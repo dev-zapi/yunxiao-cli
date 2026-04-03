@@ -29,10 +29,10 @@ impl ApiClient {
     /// Create a new API client.
     ///
     /// # Arguments
-    /// * `token`   – Personal access token for `x-devops-pat` header.
-    /// * `domain`  – API domain (e.g. `openapi-rdc.aliyuncs.com`).
-    /// * `timeout` – Request timeout in seconds.
-    pub fn new(token: &str, domain: &str, timeout: u64) -> Result<Self> {
+    /// * `token`    – Personal access token for `x-devops-pat` header.
+    /// * `endpoint` – Full API endpoint URL (e.g. `https://openapi-rdc.aliyuncs.com`).
+    /// * `timeout`  – Request timeout in seconds.
+    pub fn new(token: &str, endpoint: &str, timeout: u64) -> Result<Self> {
         let mut default_headers = HeaderMap::new();
         // Authentication header required by the Yunxiao API.
         default_headers.insert(
@@ -55,7 +55,7 @@ impl ApiClient {
             .timeout(duration)
             .build()?;
 
-        let base_url = format!("https://{domain}");
+        let base_url = endpoint.to_string();
         debug!("ApiClient created for {}", base_url);
 
         Ok(Self {
@@ -183,7 +183,7 @@ mod tests {
 
     #[test]
     fn api_client_new_valid() {
-        let client = ApiClient::new("test-token", "openapi-rdc.aliyuncs.com", 30);
+        let client = ApiClient::new("test-token", "https://openapi-rdc.aliyuncs.com", 30);
         assert!(client.is_ok());
         let client = client.unwrap();
         assert_eq!(client.base_url, "https://openapi-rdc.aliyuncs.com");
@@ -192,17 +192,17 @@ mod tests {
     }
 
     #[test]
-    fn api_client_new_custom_domain() {
-        let client = ApiClient::new("tok", "custom.example.com", 120).unwrap();
+    fn api_client_new_custom_endpoint() {
+        let client = ApiClient::new("tok", "https://custom.example.com", 120).unwrap();
         assert_eq!(client.base_url, "https://custom.example.com");
     }
 
     #[test]
     fn api_client_new_different_timeouts() {
-        let client = ApiClient::new("tok", "api.test.com", 5).unwrap();
+        let client = ApiClient::new("tok", "https://api.test.com", 5).unwrap();
         assert_eq!(client.timeout, Duration::from_secs(5));
 
-        let client = ApiClient::new("tok", "api.test.com", 300).unwrap();
+        let client = ApiClient::new("tok", "https://api.test.com", 300).unwrap();
         assert_eq!(client.timeout, Duration::from_secs(300));
     }
 

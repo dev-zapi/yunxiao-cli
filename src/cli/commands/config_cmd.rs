@@ -37,7 +37,7 @@ pub enum ConfigCommands {
 /// Arguments for `config get`.
 #[derive(Debug, Args)]
 pub struct GetArgs {
-    /// Configuration key to retrieve (token, domain, organization_id, default_output, log_level, timeout).
+    /// Configuration key to retrieve (token, endpoint, organization_id, default_output, log_level, timeout).
     pub key: String,
 }
 
@@ -84,7 +84,7 @@ fn cmd_get(args: &GetArgs, format: &OutputFormat) -> Result<()> {
                 }
             })
             .unwrap_or_default(),
-        "domain" => cfg.domain.unwrap_or_default(),
+        "endpoint" | "domain" => cfg.endpoint.unwrap_or_default(),
         "organization_id" => cfg.organization_id.unwrap_or_default(),
         "default_output" => cfg
             .default_output
@@ -100,7 +100,7 @@ fn cmd_get(args: &GetArgs, format: &OutputFormat) -> Result<()> {
             .unwrap_or_default(),
         other => {
             return Err(CliError::Config(format!(
-                "Unknown config key '{other}'. Valid keys: token, domain, organization_id, default_output, log_level, timeout"
+                "Unknown config key '{other}'. Valid keys: token, endpoint, organization_id, default_output, log_level, timeout"
             )));
         }
     };
@@ -114,7 +114,7 @@ fn cmd_set(args: &SetArgs, format: &OutputFormat) -> Result<()> {
     let mut cfg = config::load_config()?;
     match args.key.as_str() {
         "token" => cfg.token = Some(args.value.clone()),
-        "domain" => cfg.domain = Some(args.value.clone()),
+        "endpoint" | "domain" => cfg.endpoint = Some(args.value.clone()),
         "organization_id" => cfg.organization_id = Some(args.value.clone()),
         "default_output" => {
             let fmt = args
@@ -139,7 +139,7 @@ fn cmd_set(args: &SetArgs, format: &OutputFormat) -> Result<()> {
         }
         other => {
             return Err(CliError::Config(format!(
-                "Unknown config key '{other}'. Valid keys: token, domain, organization_id, default_output, log_level, timeout"
+                "Unknown config key '{other}'. Valid keys: token, endpoint, organization_id, default_output, log_level, timeout"
             )));
         }
     }
@@ -160,7 +160,7 @@ fn cmd_list(format: &OutputFormat) -> Result<()> {
                 "****".to_string()
             }
         }).unwrap_or_else(|| "(not set)".to_string()),
-        "domain": cfg.domain.unwrap_or_else(|| config::DEFAULT_DOMAIN.to_string()),
+        "endpoint": cfg.endpoint.unwrap_or_else(|| config::DEFAULT_ENDPOINT.to_string()),
         "organization_id": cfg.organization_id.unwrap_or_else(|| "(not set)".to_string()),
         "default_output": cfg.default_output.map(|o| o.to_string()).unwrap_or_else(|| "text".to_string()),
         "log_level": cfg.log_level.map(|l| l.to_string()).unwrap_or_else(|| "warn".to_string()),
@@ -175,14 +175,14 @@ fn cmd_delete(args: &DeleteArgs, format: &OutputFormat) -> Result<()> {
     let mut cfg = config::load_config()?;
     match args.key.as_str() {
         "token" => cfg.token = None,
-        "domain" => cfg.domain = None,
+        "endpoint" | "domain" => cfg.endpoint = None,
         "organization_id" => cfg.organization_id = None,
         "default_output" => cfg.default_output = None,
         "log_level" => cfg.log_level = None,
         "timeout" => cfg.timeout = None,
         other => {
             return Err(CliError::Config(format!(
-                "Unknown config key '{other}'. Valid keys: token, domain, organization_id, default_output, log_level, timeout"
+                "Unknown config key '{other}'. Valid keys: token, endpoint, organization_id, default_output, log_level, timeout"
             )));
         }
     }

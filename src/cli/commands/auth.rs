@@ -47,14 +47,14 @@ pub async fn execute(
     args: &AuthArgs,
     format: &OutputFormat,
     cli_token: Option<&str>,
-    cli_domain: Option<&str>,
+    cli_endpoint: Option<&str>,
     cli_timeout: Option<u64>,
 ) -> Result<()> {
     match &args.command {
         AuthCommands::Login(login) => cmd_login(login).await,
         AuthCommands::Logout => cmd_logout(format).await,
         AuthCommands::Status => cmd_status(format).await,
-        AuthCommands::Whoami => cmd_whoami(format, cli_token, cli_domain, cli_timeout).await,
+        AuthCommands::Whoami => cmd_whoami(format, cli_token, cli_endpoint, cli_timeout).await,
     }
 }
 
@@ -131,14 +131,14 @@ async fn cmd_status(format: &OutputFormat) -> Result<()> {
 async fn cmd_whoami(
     format: &OutputFormat,
     cli_token: Option<&str>,
-    cli_domain: Option<&str>,
+    cli_endpoint: Option<&str>,
     cli_timeout: Option<u64>,
 ) -> Result<()> {
     let token = config::resolve_token(cli_token)?;
-    let domain = config::resolve_domain(cli_domain);
+    let endpoint = config::resolve_endpoint(cli_endpoint);
     let timeout = config::resolve_timeout(cli_timeout);
 
-    let client = ApiClient::new(&token, &domain, timeout)?;
+    let client = ApiClient::new(&token, &endpoint, timeout)?;
     let data = client.get("/oapi/v1/platform/user", &[]).await?;
     output::print_output(&data, format)?;
     Ok(())

@@ -120,8 +120,15 @@ pub struct CliConfig {
     /// Personal access token for the Yunxiao API.
     pub token: Option<String>,
 
-    /// API endpoint domain. Defaults to `"openapi-rdc.aliyuncs.com"`.
-    pub domain: Option<String>,
+    /// API endpoint address (full URL or bare domain).
+    ///
+    /// Accepts a full URL (e.g. `https://openapi-rdc.aliyuncs.com`) or a bare
+    /// domain (e.g. `openapi-rdc.aliyuncs.com`).  Bare domains are
+    /// automatically prefixed with `https://`.
+    ///
+    /// Defaults to `https://openapi-rdc.aliyuncs.com` (central edition).
+    #[serde(alias = "domain")]
+    pub endpoint: Option<String>,
 
     /// Active organization identifier.
     pub organization_id: Option<String>,
@@ -136,7 +143,10 @@ pub struct CliConfig {
     pub timeout: Option<u64>,
 }
 
-/// Default API domain used when none is configured.
+/// Default API endpoint URL used when none is configured.
+pub const DEFAULT_ENDPOINT: &str = "https://openapi-rdc.aliyuncs.com";
+
+/// Legacy constant kept for backward compatibility in tests.
 pub const DEFAULT_DOMAIN: &str = "openapi-rdc.aliyuncs.com";
 
 /// Default HTTP timeout in seconds.
@@ -148,7 +158,7 @@ impl Default for CliConfig {
     fn default() -> Self {
         Self {
             token: None,
-            domain: None,
+            endpoint: None,
             organization_id: None,
             default_output: None,
             log_level: None,
@@ -250,7 +260,7 @@ mod tests {
     fn cli_config_default_all_none() {
         let cfg = CliConfig::default();
         assert!(cfg.token.is_none());
-        assert!(cfg.domain.is_none());
+        assert!(cfg.endpoint.is_none());
         assert!(cfg.organization_id.is_none());
         assert!(cfg.default_output.is_none());
         assert!(cfg.log_level.is_none());
@@ -261,7 +271,7 @@ mod tests {
     fn cli_config_serde_roundtrip() {
         let cfg = CliConfig {
             token: Some("test-token-123".into()),
-            domain: Some("custom.example.com".into()),
+            endpoint: Some("https://custom.example.com".into()),
             organization_id: Some("org-abc".into()),
             default_output: Some(OutputFormat::Table),
             log_level: Some(LogLevel::Debug),
@@ -270,7 +280,7 @@ mod tests {
         let toml_str = toml::to_string_pretty(&cfg).unwrap();
         let parsed: CliConfig = toml::from_str(&toml_str).unwrap();
         assert_eq!(parsed.token, cfg.token);
-        assert_eq!(parsed.domain, cfg.domain);
+        assert_eq!(parsed.endpoint, cfg.endpoint);
         assert_eq!(parsed.organization_id, cfg.organization_id);
         assert_eq!(parsed.default_output, cfg.default_output);
         assert_eq!(parsed.log_level, cfg.log_level);
@@ -281,7 +291,7 @@ mod tests {
     fn cli_config_deserialize_empty_toml() {
         let cfg: CliConfig = toml::from_str("").unwrap();
         assert!(cfg.token.is_none());
-        assert!(cfg.domain.is_none());
+        assert!(cfg.endpoint.is_none());
     }
 
     #[test]
@@ -293,13 +303,23 @@ mod tests {
         let cfg: CliConfig = toml::from_str(toml_str).unwrap();
         assert_eq!(cfg.token, Some("my-token".into()));
         assert_eq!(cfg.timeout, Some(45));
-        assert!(cfg.domain.is_none());
+        assert!(cfg.endpoint.is_none());
         assert!(cfg.default_output.is_none());
     }
 
     #[test]
     fn default_constants() {
+        assert_eq!(DEFAULT_ENDPOINT, "https://openapi-rdc.aliyuncs.com");
         assert_eq!(DEFAULT_DOMAIN, "openapi-rdc.aliyuncs.com");
         assert_eq!(DEFAULT_TIMEOUT, 30);
+    }
+
+    #[test]
+    fn cli_config_deserialize_legacy_domain() {
+        let toml_str = r#"
+            domain = "openapi-rdc-sg.aliyuncs.com"
+        "#;
+        let cfg: CliConfig = toml::from_str(toml_str).unwrap();
+        assert_eq!(cfg.endpoint, Some("openapi-rdc-sg.aliyuncs.com".into()));
     }
 }

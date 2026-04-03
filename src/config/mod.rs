@@ -192,31 +192,58 @@ pub fn resolve_log_level(cli_level: Option<&LogLevel>) -> LogLevel {
     LogLevel::Warn
 }
 
-/// Resolve the API domain with priority: CLI arg → env var → config → default.
-pub fn resolve_domain(cli_domain: Option<&str>) -> String {
+/// Resolve the API endpoint with priority: CLI arg → env var → config → default.
+///
+/// The returned value is always a full URL (e.g. `https://openapi-rdc.aliyuncs.com`).
+/// Bare domains are automatically prefixed with `https://`.
+pub fn resolve_endpoint(cli_endpoint: Option<&str>) -> String {
     // 1. CLI argument
-    if let Some(d) = cli_domain {
-        return d.to_string();
+    if let Some(e) = cli_endpoint {
+        return normalise_endpoint(e);
     }
 
-    // 2. Environment variable
+    // 2. Environment variable (new name first, then legacy)
+    if let Ok(e) = std::env::var("YUNXIAO_CLI_ENDPOINT") {
+        if !e.is_empty() {
+            return normalise_endpoint(&e);
+        }
+    }
     if let Ok(d) = std::env::var("YUNXIAO_CLI_DOMAIN") {
         if !d.is_empty() {
-            return d;
+            return normalise_endpoint(&d);
         }
     }
 
     // 3. Config file
     if let Ok(cfg) = load_config() {
-        if let Some(d) = cfg.domain {
-            if !d.is_empty() {
-                return d;
+        if let Some(e) = cfg.endpoint {
+            if !e.is_empty() {
+                return normalise_endpoint(&e);
             }
         }
     }
 
     // 4. Default
-    DEFAULT_DOMAIN.to_string()
+    DEFAULT_ENDPOINT.to_string()
+}
+
+/// Legacy alias for [`resolve_endpoint`].
+pub fn resolve_domain(cli_domain: Option<&str>) -> String {
+    resolve_endpoint(cli_domain)
+}
+
+/// Normalise an endpoint value to a full URL.
+///
+/// If the input already starts with `http://` or `https://`, it is returned
+/// as-is (with any trailing slash stripped).  Otherwise it is treated as a
+/// bare domain and prefixed with `https://`.
+fn normalise_endpoint(raw: &str) -> String {
+    let trimmed = raw.trim().trim_end_matches('/');
+    if trimmed.starts_with("http://") || trimmed.starts_with("https://") {
+        trimmed.to_string()
+    } else {
+        format!("https://{trimmed}")
+    }
 }
 
 /// Resolve the organization ID with priority: CLI arg → env var → config.
@@ -287,7 +314,7 @@ mod tests {
 
         let cfg = CliConfig {
             token: Some("test-token".into()),
-            domain: Some("example.com".into()),
+            endpoint: Some("https://example.com".into()),
             organization_id: Some("org-123".into()),
             default_output: Some(OutputFormat::Table),
             log_level: Some(LogLevel::Info),
@@ -301,7 +328,7 @@ mod tests {
         let loaded: CliConfig = toml::from_str(&loaded_content).unwrap();
 
         assert_eq!(loaded.token, Some("test-token".into()));
-        assert_eq!(loaded.domain, Some("example.com".into()));
+        assert_eq!(loaded.endpoint, Some("https://example.com".into()));
         assert_eq!(loaded.organization_id, Some("org-123".into()));
         assert_eq!(loaded.default_output, Some(OutputFormat::Table));
         assert_eq!(loaded.log_level, Some(LogLevel::Info));
@@ -346,17 +373,25 @@ mod tests {
     }
 
     #[test]
-    fn resolve_domain_cli_arg_wins() {
-        let domain = resolve_domain(Some("custom.domain.com"));
-        assert_eq!(domain, "custom.domain.com");
+    fn resolve_endpoint_cli_arg_wins() {
+        let endpoint = resolve_endpoint(Some("custom.domain.com"));
+        assert_eq!(endpoint, "https://custom.domain.com");
     }
 
     #[test]
-    fn resolve_domain_default() {
+    fn resolve_endpoint_full_url_preserved() {
+        let endpoint = resolve_endpoint(Some("https://custom.example.com"));
+        assert_eq!(endpoint, "https://custom.example.com");
+    }
+
+    #[test]
+    fn resolve_endpoint_default() {
+        env::remove_var("YUNXIAO_CLI_ENDPOINT");
         env::remove_var("YUNXIAO_CLI_DOMAIN");
-        let domain = resolve_domain(None);
+        let endpoint = resolve_endpoint(None);
         // Default or config file value
-        assert!(!domain.is_empty());
+        assert!(!endpoint.is_empty());
+        assert!(endpoint.starts_with("https://"));
     }
 
     #[test]

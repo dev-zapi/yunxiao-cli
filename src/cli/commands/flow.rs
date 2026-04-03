@@ -254,15 +254,15 @@ pub async fn execute(
     args: &FlowArgs,
     format: &OutputFormat,
     cli_token: Option<&str>,
-    cli_domain: Option<&str>,
+    cli_endpoint: Option<&str>,
     cli_timeout: Option<u64>,
     cli_org_id: Option<&str>,
 ) -> Result<()> {
     let token = config::resolve_token(cli_token)?;
-    let domain = config::resolve_domain(cli_domain);
+    let endpoint = config::resolve_endpoint(cli_endpoint);
     let timeout = config::resolve_timeout(cli_timeout);
     let org_id = config::resolve_org_id(cli_org_id);
-    let client = ApiClient::new(&token, &domain, timeout)?;
+    let client = ApiClient::new(&token, &endpoint, timeout)?;
 
     match &args.command {
         FlowCommands::Pipelines(p) => exec_pipelines(p, &client, &org_id, format).await,
