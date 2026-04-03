@@ -1,20 +1,26 @@
 //! Cache layer for the YunXiao CLI.
 //!
-//! Stores JSON files under `~/.cache/yunxiao-cli/` keyed by a caller-chosen
+//! Stores JSON files under `~/.shell/yunxiao-cli/` keyed by a caller-chosen
 //! string. Each cached value is written as `{key}.json`.
+//!
+//! The cache directory follows the project specification:
+//! - Path: `~/.shell/yunxiao-cli/`
+//! - Contents: Token-bound user ID, organization info, project info,
+//!   temporary API response cache, runtime intermediate data.
+//! - Cleanup: Supports manual `clear_cache()` command, no automatic deletion.
 
 use crate::error::{CliError, Result};
 use log::debug;
 use std::path::PathBuf;
 
-/// Returns the cache directory: `~/.cache/yunxiao-cli/`.
+/// Returns the cache directory: `~/.shell/yunxiao-cli/`.
+///
+/// Per the project specification, runtime cache data is stored under
+/// `~/.shell/yunxiao-cli/` (distinct from the config directory at
+/// `~/.config/yunxiao-cli/`).
 pub fn cache_dir() -> PathBuf {
-    let base = dirs::cache_dir().unwrap_or_else(|| {
-        dirs::home_dir()
-            .expect("Cannot determine home directory")
-            .join(".cache")
-    });
-    base.join("yunxiao-cli")
+    let home = dirs::home_dir().expect("Cannot determine home directory");
+    home.join(".shell").join("yunxiao-cli")
 }
 
 /// Ensures the cache directory exists, creating it if necessary.
@@ -85,4 +91,84 @@ pub fn delete_cache(key: &str) -> Result<()> {
         debug!("Deleted cache entry '{}'", key);
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn cache_dir_is_under_shell() {
+        let dir = cache_dir();
+        let home = dirs::home_dir().unwrap();
+        // Should be ~/.shell/yunxiao-cli/
+        assert!(dir.starts_with(&home));
+        assert!(dir.to_string_lossy().contains(".shell"));
+        assert!(dir.to_string_lossy().contains("yunxiao-cli"));
+    }
+
+    #[test]
+    fn write_and_read_cache_roundtrip() {
+        let key = "test_roundtrip";
+        let value = json!({"name": "test", "count": 42});
+
+        // Write
+        write_cache(key, &value).unwrap();
+
+        // Read
+        let result = read_cache(key).unwrap();
+        assert!(result.is_some());
+        let cached = result.unwrap();
+        assert_eq!(cached["name"], "test");
+        assert_eq!(cached["count"], 42);
+
+        // Cleanup
+        delete_cache(key).unwrap();
+    }
+
+    #[test]
+    fn read_cache_returns_none_for_missing_key() {
+        let result = read_cache("nonexistent_key_xyz_12345").unwrap();
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn delete_cache_removes_entry() {
+        let key = "test_delete";
+        let value = json!({"temp": true});
+
+        write_cache(key, &value).unwrap();
+        assert!(read_cache(key).unwrap().is_some());
+
+        delete_cache(key).unwrap();
+        assert!(read_cache(key).unwrap().is_none());
+    }
+
+    #[test]
+    fn delete_cache_silent_on_missing() {
+        // Should not error when deleting a non-existent key
+        let result = delete_cache("no_such_key_abc_999");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn ensure_cache_dir_creates_directory() {
+        ensure_cache_dir().unwrap();
+        assert!(cache_dir().exists());
+    }
+
+    #[test]
+    fn clear_cache_removes_all_entries() {
+        // Write two entries
+        write_cache("clear_test_a", &json!({"a": 1})).unwrap();
+        write_cache("clear_test_b", &json!({"b": 2})).unwrap();
+
+        // Clear
+        clear_cache().unwrap();
+
+        // Both should be gone
+        assert!(read_cache("clear_test_a").unwrap().is_none());
+        assert!(read_cache("clear_test_b").unwrap().is_none());
+    }
 }

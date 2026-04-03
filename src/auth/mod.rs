@@ -56,3 +56,38 @@ pub fn require_token() -> Result<String> {
         )
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn require_token_from_env() {
+        std::env::set_var("YUNXIAO_CLI_TOKEN", "env-test-token");
+        let token = require_token();
+        assert!(token.is_ok());
+        assert_eq!(token.unwrap(), "env-test-token");
+        std::env::remove_var("YUNXIAO_CLI_TOKEN");
+    }
+
+    #[test]
+    fn require_token_empty_env_var_is_rejected() {
+        std::env::set_var("YUNXIAO_CLI_TOKEN", "");
+        // It should fall through to config file, not return empty string
+        let token = require_token();
+        // This may succeed or fail depending on config file presence,
+        // but it should never return an empty string
+        if let Ok(t) = token {
+            assert!(!t.is_empty());
+        }
+        // If Err, that's expected when no config file token either
+        std::env::remove_var("YUNXIAO_CLI_TOKEN");
+    }
+
+    #[test]
+    fn get_token_returns_option() {
+        let result = get_token();
+        assert!(result.is_ok());
+        // Returns Some or None depending on config state
+    }
+}

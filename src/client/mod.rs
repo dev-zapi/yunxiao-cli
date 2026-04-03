@@ -176,3 +176,166 @@ impl ApiClient {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn api_client_new_valid() {
+        let client = ApiClient::new("test-token", "openapi-rdc.aliyuncs.com", 30);
+        assert!(client.is_ok());
+        let client = client.unwrap();
+        assert_eq!(client.base_url, "https://openapi-rdc.aliyuncs.com");
+        assert_eq!(client.token, "test-token");
+        assert_eq!(client.timeout, Duration::from_secs(30));
+    }
+
+    #[test]
+    fn api_client_new_custom_domain() {
+        let client = ApiClient::new("tok", "custom.example.com", 120).unwrap();
+        assert_eq!(client.base_url, "https://custom.example.com");
+    }
+
+    #[test]
+    fn api_client_new_different_timeouts() {
+        let client = ApiClient::new("tok", "api.test.com", 5).unwrap();
+        assert_eq!(client.timeout, Duration::from_secs(5));
+
+        let client = ApiClient::new("tok", "api.test.com", 300).unwrap();
+        assert_eq!(client.timeout, Duration::from_secs(300));
+    }
+
+    #[tokio::test]
+    async fn api_client_get_with_mock() {
+        // Set up a mock server that returns a JSON response
+        let mut server = mockito::Server::new_async().await;
+        let mock = server
+            .mock("GET", "/oapi/v1/user/current")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"id":"user-1","name":"Test User"}"#)
+            .create_async()
+            .await;
+
+        // Create client pointing to mock server
+        let domain = server
+            .host_with_port()
+            .to_string();
+        // Build client manually to avoid https
+        let http = reqwest::Client::builder()
+            .default_headers({
+                let mut h = reqwest::header::HeaderMap::new();
+                h.insert("x-devops-pat", reqwest::header::HeaderValue::from_static("test-token"));
+                h
+            })
+            .build()
+            .unwrap();
+        let client = ApiClient {
+            http,
+            base_url: format!("http://{domain}"),
+            token: "test-token".into(),
+            timeout: Duration::from_secs(30),
+        };
+
+        let result = client.get("/oapi/v1/user/current", &[]).await;
+        assert!(result.is_ok());
+        let data = result.unwrap();
+        assert_eq!(data["id"], "user-1");
+        assert_eq!(data["name"], "Test User");
+
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn api_client_post_with_mock() {
+        let mut server = mockito::Server::new_async().await;
+        let mock = server
+            .mock("POST", "/oapi/v1/workitems")
+            .with_status(201)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"id":"wi-123","status":"created"}"#)
+            .create_async()
+            .await;
+
+        let domain = server.host_with_port().to_string();
+        let http = reqwest::Client::builder()
+            .default_headers({
+                let mut h = reqwest::header::HeaderMap::new();
+                h.insert("x-devops-pat", reqwest::header::HeaderValue::from_static("test-token"));
+                h.insert(reqwest::header::CONTENT_TYPE, reqwest::header::HeaderValue::from_static("application/json"));
+                h
+            })
+            .build()
+            .unwrap();
+        let client = ApiClient {
+            http,
+            base_url: format!("http://{domain}"),
+            token: "test-token".into(),
+            timeout: Duration::from_secs(30),
+        };
+
+        let body = serde_json::json!({"subject": "Test Item"});
+        let result = client.post("/oapi/v1/workitems", &body).await;
+        assert!(result.is_ok());
+        let data = result.unwrap();
+        assert_eq!(data["id"], "wi-123");
+
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn api_client_handles_404_error() {
+        let mut server = mockito::Server::new_async().await;
+        let mock = server
+            .mock("GET", "/oapi/v1/not-found")
+            .with_status(404)
+            .with_body(r#"{"error":"not found"}"#)
+            .create_async()
+            .await;
+
+        let domain = server.host_with_port().to_string();
+        let http = reqwest::Client::new();
+        let client = ApiClient {
+            http,
+            base_url: format!("http://{domain}"),
+            token: "test-token".into(),
+            timeout: Duration::from_secs(30),
+        };
+
+        let result = client.get("/oapi/v1/not-found", &[]).await;
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(matches!(err, CliError::Api(_)));
+        assert!(err.to_string().contains("404"));
+
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn api_client_handles_204_no_content() {
+        let mut server = mockito::Server::new_async().await;
+        let mock = server
+            .mock("DELETE", "/oapi/v1/items/1")
+            .with_status(204)
+            .with_body("")
+            .create_async()
+            .await;
+
+        let domain = server.host_with_port().to_string();
+        let http = reqwest::Client::new();
+        let client = ApiClient {
+            http,
+            base_url: format!("http://{domain}"),
+            token: "test-token".into(),
+            timeout: Duration::from_secs(30),
+        };
+
+        let result = client.delete("/oapi/v1/items/1", &[]).await;
+        assert!(result.is_ok());
+        let data = result.unwrap();
+        assert_eq!(data["status"], "ok");
+
+        mock.assert_async().await;
+    }
+}

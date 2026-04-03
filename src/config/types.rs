@@ -156,3 +156,150 @@ impl Default for CliConfig {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ────── OutputFormat ──────
+
+    #[test]
+    fn output_format_parse_valid_values() {
+        assert_eq!("json".parse::<OutputFormat>().unwrap(), OutputFormat::Json);
+        assert_eq!("JSON".parse::<OutputFormat>().unwrap(), OutputFormat::Json);
+        assert_eq!("text".parse::<OutputFormat>().unwrap(), OutputFormat::Text);
+        assert_eq!(
+            "table".parse::<OutputFormat>().unwrap(),
+            OutputFormat::Table
+        );
+        assert_eq!(
+            "markdown".parse::<OutputFormat>().unwrap(),
+            OutputFormat::Markdown
+        );
+        assert_eq!(
+            "md".parse::<OutputFormat>().unwrap(),
+            OutputFormat::Markdown
+        );
+    }
+
+    #[test]
+    fn output_format_parse_invalid() {
+        assert!("xml".parse::<OutputFormat>().is_err());
+        assert!("".parse::<OutputFormat>().is_err());
+    }
+
+    #[test]
+    fn output_format_display() {
+        assert_eq!(OutputFormat::Json.to_string(), "json");
+        assert_eq!(OutputFormat::Text.to_string(), "text");
+        assert_eq!(OutputFormat::Table.to_string(), "table");
+        assert_eq!(OutputFormat::Markdown.to_string(), "markdown");
+    }
+
+    #[test]
+    fn output_format_serde_roundtrip() {
+        let json_str = serde_json::to_string(&OutputFormat::Json).unwrap();
+        assert_eq!(json_str, "\"json\"");
+        let parsed: OutputFormat = serde_json::from_str(&json_str).unwrap();
+        assert_eq!(parsed, OutputFormat::Json);
+    }
+
+    // ────── LogLevel ──────
+
+    #[test]
+    fn log_level_parse_valid_values() {
+        assert_eq!("debug".parse::<LogLevel>().unwrap(), LogLevel::Debug);
+        assert_eq!("INFO".parse::<LogLevel>().unwrap(), LogLevel::Info);
+        assert_eq!("Warn".parse::<LogLevel>().unwrap(), LogLevel::Warn);
+        assert_eq!("error".parse::<LogLevel>().unwrap(), LogLevel::Error);
+    }
+
+    #[test]
+    fn log_level_parse_invalid() {
+        assert!("trace".parse::<LogLevel>().is_err());
+        assert!("".parse::<LogLevel>().is_err());
+    }
+
+    #[test]
+    fn log_level_display() {
+        assert_eq!(LogLevel::Debug.to_string(), "debug");
+        assert_eq!(LogLevel::Info.to_string(), "info");
+        assert_eq!(LogLevel::Warn.to_string(), "warn");
+        assert_eq!(LogLevel::Error.to_string(), "error");
+    }
+
+    #[test]
+    fn log_level_to_filter() {
+        assert_eq!(LogLevel::Debug.to_level_filter(), log::LevelFilter::Debug);
+        assert_eq!(LogLevel::Info.to_level_filter(), log::LevelFilter::Info);
+        assert_eq!(LogLevel::Warn.to_level_filter(), log::LevelFilter::Warn);
+        assert_eq!(LogLevel::Error.to_level_filter(), log::LevelFilter::Error);
+    }
+
+    #[test]
+    fn log_level_serde_roundtrip() {
+        let json_str = serde_json::to_string(&LogLevel::Info).unwrap();
+        assert_eq!(json_str, "\"info\"");
+        let parsed: LogLevel = serde_json::from_str(&json_str).unwrap();
+        assert_eq!(parsed, LogLevel::Info);
+    }
+
+    // ────── CliConfig ──────
+
+    #[test]
+    fn cli_config_default_all_none() {
+        let cfg = CliConfig::default();
+        assert!(cfg.token.is_none());
+        assert!(cfg.domain.is_none());
+        assert!(cfg.organization_id.is_none());
+        assert!(cfg.default_output.is_none());
+        assert!(cfg.log_level.is_none());
+        assert!(cfg.timeout.is_none());
+    }
+
+    #[test]
+    fn cli_config_serde_roundtrip() {
+        let cfg = CliConfig {
+            token: Some("test-token-123".into()),
+            domain: Some("custom.example.com".into()),
+            organization_id: Some("org-abc".into()),
+            default_output: Some(OutputFormat::Table),
+            log_level: Some(LogLevel::Debug),
+            timeout: Some(60),
+        };
+        let toml_str = toml::to_string_pretty(&cfg).unwrap();
+        let parsed: CliConfig = toml::from_str(&toml_str).unwrap();
+        assert_eq!(parsed.token, cfg.token);
+        assert_eq!(parsed.domain, cfg.domain);
+        assert_eq!(parsed.organization_id, cfg.organization_id);
+        assert_eq!(parsed.default_output, cfg.default_output);
+        assert_eq!(parsed.log_level, cfg.log_level);
+        assert_eq!(parsed.timeout, cfg.timeout);
+    }
+
+    #[test]
+    fn cli_config_deserialize_empty_toml() {
+        let cfg: CliConfig = toml::from_str("").unwrap();
+        assert!(cfg.token.is_none());
+        assert!(cfg.domain.is_none());
+    }
+
+    #[test]
+    fn cli_config_deserialize_partial_toml() {
+        let toml_str = r#"
+            token = "my-token"
+            timeout = 45
+        "#;
+        let cfg: CliConfig = toml::from_str(toml_str).unwrap();
+        assert_eq!(cfg.token, Some("my-token".into()));
+        assert_eq!(cfg.timeout, Some(45));
+        assert!(cfg.domain.is_none());
+        assert!(cfg.default_output.is_none());
+    }
+
+    #[test]
+    fn default_constants() {
+        assert_eq!(DEFAULT_DOMAIN, "openapi-rdc.aliyuncs.com");
+        assert_eq!(DEFAULT_TIMEOUT, 30);
+    }
+}

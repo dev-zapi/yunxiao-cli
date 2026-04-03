@@ -120,14 +120,14 @@ fn cmd_set(args: &SetArgs, format: &OutputFormat) -> Result<()> {
             let fmt = args
                 .value
                 .parse::<OutputFormat>()
-                .map_err(|e| CliError::Config(e))?;
+                .map_err(CliError::Config)?;
             cfg.default_output = Some(fmt);
         }
         "log_level" => {
             let lvl = args
                 .value
                 .parse::<LogLevel>()
-                .map_err(|e| CliError::Config(e))?;
+                .map_err(CliError::Config)?;
             cfg.log_level = Some(lvl);
         }
         "timeout" => {

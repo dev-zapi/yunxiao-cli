@@ -87,7 +87,7 @@ fn print_table(data: &serde_json::Value) -> Result<()> {
 
             let mut table = Table::new();
             table.set_content_arrangement(ContentArrangement::Dynamic);
-            table.set_header(columns.iter().map(|c| Cell::new(c)));
+            table.set_header(columns.iter().map(Cell::new));
 
             for item in arr {
                 let row: Vec<Cell> = columns
@@ -105,7 +105,7 @@ fn print_table(data: &serde_json::Value) -> Result<()> {
         serde_json::Value::Object(map) => {
             let mut table = Table::new();
             table.set_content_arrangement(ContentArrangement::Dynamic);
-            table.set_header(["Key", "Value"].iter().map(|h| Cell::new(h)));
+            table.set_header(["Key", "Value"].iter().map(Cell::new));
             for (k, v) in map {
                 table.add_row(vec![Cell::new(k), Cell::new(format_cell_value(v))]);
             }
@@ -195,5 +195,139 @@ fn format_cell_value(v: &serde_json::Value) -> String {
         serde_json::Value::Number(n) => n.to_string(),
         // Nested arrays / objects – compact JSON
         other => other.to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn format_cell_value_string() {
+        let v = json!("hello");
+        assert_eq!(format_cell_value(&v), "hello");
+    }
+
+    #[test]
+    fn format_cell_value_null() {
+        let v = json!(null);
+        assert_eq!(format_cell_value(&v), "");
+    }
+
+    #[test]
+    fn format_cell_value_bool() {
+        assert_eq!(format_cell_value(&json!(true)), "true");
+        assert_eq!(format_cell_value(&json!(false)), "false");
+    }
+
+    #[test]
+    fn format_cell_value_number() {
+        assert_eq!(format_cell_value(&json!(42)), "42");
+        assert_eq!(format_cell_value(&json!(3.15)), "3.15");
+    }
+
+    #[test]
+    fn format_cell_value_nested_object() {
+        let v = json!({"a": 1});
+        let result = format_cell_value(&v);
+        assert!(result.contains("\"a\""));
+        assert!(result.contains("1"));
+    }
+
+    #[test]
+    fn print_json_outputs_pretty() {
+        // Just verify it doesn't panic
+        let data = json!({"key": "value", "num": 123});
+        let result = print_json(&data);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn print_text_object() {
+        let data = json!({"name": "test", "count": 5});
+        let result = print_text(&data);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn print_text_array() {
+        let data = json!([{"a": 1}, {"b": 2}]);
+        let result = print_text(&data);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn print_text_scalar() {
+        let result = print_text(&json!("just a string"));
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn print_text_null() {
+        let result = print_text(&json!(null));
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn print_table_array_of_objects() {
+        let data = json!([
+            {"id": 1, "name": "Alice"},
+            {"id": 2, "name": "Bob"}
+        ]);
+        let result = print_table(&data);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn print_table_single_object() {
+        let data = json!({"key1": "val1", "key2": "val2"});
+        let result = print_table(&data);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn print_table_empty_array() {
+        let data = json!([]);
+        let result = print_table(&data);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn print_table_scalar() {
+        let result = print_table(&json!(42));
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn print_markdown_array_of_objects() {
+        let data = json!([
+            {"id": 1, "name": "Alice"},
+            {"id": 2, "name": "Bob"}
+        ]);
+        let result = print_markdown(&data);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn print_markdown_single_object() {
+        let data = json!({"key": "value"});
+        let result = print_markdown(&data);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn print_markdown_null() {
+        let result = print_markdown(&json!(null));
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn print_output_dispatches_correctly() {
+        let data = json!({"test": true});
+        assert!(print_output(&data, &OutputFormat::Json).is_ok());
+        assert!(print_output(&data, &OutputFormat::Text).is_ok());
+        assert!(print_output(&data, &OutputFormat::Table).is_ok());
+        assert!(print_output(&data, &OutputFormat::Markdown).is_ok());
     }
 }
