@@ -275,22 +275,20 @@ async fn exec_cases(
     let oid = require_org(org_id)?;
     match &args.command {
         CasesCmds::Search(s) => {
-            let page = s.page.to_string();
-            let per_page = s.per_page.to_string();
-            let mut params: Vec<(&str, &str)> = vec![
-                ("page", page.as_str()),
-                ("perPage", per_page.as_str()),
-            ];
+            let mut body = json!({
+                "page": s.page,
+                "perPage": s.per_page,
+            });
             if let Some(ref kw) = s.keyword {
-                params.push(("keyword", kw.as_str()));
+                body["keyword"] = json!(kw);
             }
             let data = client
-                .get(
+                .post(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/spaces/{}/testcases",
+                        "/oapi/v1/testhub/organizations/{oid}/testRepos/{}/testcases:search",
                         s.space_id
                     ),
-                    &params,
+                    &body,
                 )
                 .await?;
             output::print_output(&data, format)?;
@@ -299,7 +297,7 @@ async fn exec_cases(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/spaces/{}/testcases/{}",
+                        "/oapi/v1/testhub/organizations/{oid}/testRepos/{}/testcases/{}",
                         g.space_id, g.case_id
                     ),
                     &[],
@@ -321,7 +319,7 @@ async fn exec_cases(
             let data = client
                 .post(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/spaces/{}/testcases",
+                        "/oapi/v1/testhub/organizations/{oid}/testRepos/{}/testcases",
                         c.space_id
                     ),
                     &body,
@@ -333,7 +331,7 @@ async fn exec_cases(
             let data = client
                 .delete(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/spaces/{}/testcases/{}",
+                        "/oapi/v1/testhub/organizations/{oid}/testRepos/{}/testcases/{}",
                         d.space_id, d.case_id
                     ),
                     &[],
@@ -345,10 +343,10 @@ async fn exec_cases(
             CaseDirsCmds::List(l) => {
                 let data = client
                     .get(
-                        &format!(
-                            "/oapi/v1/organizations/{oid}/spaces/{}/testcases/directories",
-                            l.space_id
-                        ),
+                    &format!(
+                        "/oapi/v1/testhub/organizations/{oid}/testRepos/{}/directories",
+                        l.space_id
+                    ),
                         &[],
                     )
                     .await?;
@@ -361,10 +359,10 @@ async fn exec_cases(
                 }
                 let data = client
                     .post(
-                        &format!(
-                            "/oapi/v1/organizations/{oid}/spaces/{}/testcases/directories",
-                            c.space_id
-                        ),
+                    &format!(
+                        "/oapi/v1/testhub/organizations/{oid}/testRepos/{}/directories",
+                        c.space_id
+                    ),
                         &body,
                     )
                     .await?;
@@ -375,7 +373,7 @@ async fn exec_cases(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/spaces/{}/testcases/fields",
+                        "/oapi/v1/testhub/organizations/{oid}/testRepos/{}/testcases/fields",
                         f.space_id
                     ),
                     &[],
@@ -398,14 +396,13 @@ async fn exec_plans(
 ) -> Result<()> {
     let oid = require_org(org_id)?;
     match &args.command {
-        PlansCmds::List(l) => {
+        PlansCmds::List(_l) => {
             let data = client
-                .get(
+                .post(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/spaces/{}/testplans",
-                        l.space_id
+                        "/oapi/v1/projex/organizations/{oid}/testPlan/list",
                     ),
-                    &[],
+                    &json!({}),
                 )
                 .await?;
             output::print_output(&data, format)?;
@@ -415,8 +412,8 @@ async fn exec_plans(
                 let data = client
                     .get(
                         &format!(
-                            "/oapi/v1/organizations/{oid}/spaces/{}/testplans/{}/results",
-                            l.space_id, l.plan_id
+                            "/oapi/v1/testhub/organizations/{oid}/testPlans/{}/results",
+                            l.plan_id
                         ),
                         &[],
                     )
@@ -425,14 +422,13 @@ async fn exec_plans(
             }
             PlansResultsCmds::Update(u) => {
                 let body = json!({
-                    "caseId": u.case_id,
                     "status": u.status,
                 });
                 let data = client
                     .put(
                         &format!(
-                            "/oapi/v1/organizations/{oid}/spaces/{}/testplans/{}/results",
-                            u.space_id, u.plan_id
+                            "/oapi/v1/testhub/organizations/{oid}/testPlans/{}/testcases/{}",
+                            u.plan_id, u.case_id
                         ),
                         &body,
                     )

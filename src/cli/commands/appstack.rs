@@ -522,7 +522,7 @@ async fn exec_apps(
             let per_page = l.per_page.to_string();
             let data = client
                 .get(
-                    &format!("/oapi/v1/organizations/{oid}/apps"),
+                    &format!("/oapi/v1/appstack/organizations/{oid}/apps:search"),
                     &[("page", page.as_str()), ("perPage", per_page.as_str())],
                 )
                 .await?;
@@ -531,7 +531,7 @@ async fn exec_apps(
         AppsCmds::Get(g) => {
             let data = client
                 .get(
-                    &format!("/oapi/v1/organizations/{oid}/apps/{}", g.app_name),
+                    &format!("/oapi/v1/appstack/organizations/{oid}/apps/{}", g.app_name),
                     &[],
                 )
                 .await?;
@@ -547,7 +547,7 @@ async fn exec_apps(
             }
             let data = client
                 .post(
-                    &format!("/oapi/v1/organizations/{oid}/apps"),
+                    &format!("/oapi/v1/appstack/organizations/{oid}/apps"),
                     &body,
                 )
                 .await?;
@@ -560,7 +560,7 @@ async fn exec_apps(
             }
             let data = client
                 .put(
-                    &format!("/oapi/v1/organizations/{oid}/apps/{}", u.app_name),
+                    &format!("/oapi/v1/appstack/organizations/{oid}/apps/{}", u.app_name),
                     &body,
                 )
                 .await?;
@@ -588,7 +588,7 @@ async fn exec_tags(
             }
             let data = client
                 .get(
-                    &format!("/oapi/v1/organizations/{oid}/apps/tags"),
+                    &format!("/oapi/v1/appstack/organizations/{oid}/apps/tags"),
                     &params,
                 )
                 .await?;
@@ -598,7 +598,7 @@ async fn exec_tags(
             let body = json!({"tagName": c.tag_name});
             let data = client
                 .post(
-                    &format!("/oapi/v1/organizations/{oid}/apps/tags"),
+                    &format!("/oapi/v1/appstack/organizations/{oid}/apps/tags"),
                     &body,
                 )
                 .await?;
@@ -622,7 +622,7 @@ async fn exec_vars(
         VarsCmds::List => {
             let data = client
                 .get(
-                    &format!("/oapi/v1/organizations/{oid}/variableGroups"),
+                    &format!("/oapi/v1/appstack/organizations/{oid}/variableGroups"),
                     &[],
                 )
                 .await?;
@@ -632,7 +632,7 @@ async fn exec_vars(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/variableGroups/{}",
+                        "/oapi/v1/appstack/organizations/{oid}/variableGroups/{}",
                         g.var_id
                     ),
                     &[],
@@ -648,7 +648,7 @@ async fn exec_vars(
             let body = json!({"name": c.name, "variables": variables});
             let data = client
                 .post(
-                    &format!("/oapi/v1/organizations/{oid}/variableGroups"),
+                    &format!("/oapi/v1/appstack/organizations/{oid}/variableGroups"),
                     &body,
                 )
                 .await?;
@@ -663,7 +663,7 @@ async fn exec_vars(
             let data = client
                 .put(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/variableGroups/{}",
+                        "/oapi/v1/appstack/organizations/{oid}/variableGroups/{}",
                         u.var_id
                     ),
                     &body,
@@ -675,7 +675,7 @@ async fn exec_vars(
             let data = client
                 .delete(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/variableGroups/{}",
+                        "/oapi/v1/appstack/organizations/{oid}/variableGroups/{}",
                         d.var_id
                     ),
                     &[],
@@ -702,7 +702,7 @@ async fn exec_orch(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/apps/{}/orchestrations",
+                        "/oapi/v1/appstack/organizations/{oid}/apps/{}/orchestrations",
                         l.app_name
                     ),
                     &[],
@@ -714,7 +714,7 @@ async fn exec_orch(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/apps/{}/orchestrations/{}",
+                        "/oapi/v1/appstack/organizations/{oid}/apps/{}/orchestrations/{}",
                         g.app_name, g.orch_id
                     ),
                     &[],
@@ -729,7 +729,7 @@ async fn exec_orch(
             let data = client
                 .post(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/apps/{}/orchestrations",
+                        "/oapi/v1/appstack/organizations/{oid}/apps/{}/orchestrations",
                         c.app_name
                     ),
                     &body,
@@ -747,7 +747,7 @@ async fn exec_orch(
             let data = client
                 .put(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/apps/{}/orchestrations/{}",
+                        "/oapi/v1/appstack/organizations/{oid}/apps/{}/orchestrations/{}",
                         u.app_name, u.orch_id
                     ),
                     &body,
@@ -759,7 +759,7 @@ async fn exec_orch(
             let data = client
                 .delete(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/apps/{}/orchestrations/{}",
+                        "/oapi/v1/appstack/organizations/{oid}/apps/{}/orchestrations/{}",
                         d.app_name, d.orch_id
                     ),
                     &[],
@@ -795,7 +795,7 @@ async fn exec_changes(
             }
             let data = client
                 .post(
-                    &format!("/oapi/v1/organizations/{oid}/changeOrders"),
+                    &format!("/oapi/v1/appstack/organizations/{oid}/changeOrders"),
                     &body,
                 )
                 .await?;
@@ -806,7 +806,7 @@ async fn exec_changes(
             let data = client
                 .post(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/changeOrders/{}/cancel",
+                        "/oapi/v1/appstack/organizations/{oid}/changeOrders/{}/cancel",
                         c.change_id
                     ),
                     &body,
@@ -819,7 +819,7 @@ async fn exec_changes(
             let data = client
                 .post(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/changeOrders/{}/close",
+                        "/oapi/v1/appstack/organizations/{oid}/changeOrders/{}/close",
                         c.change_id
                     ),
                     &body,
@@ -852,7 +852,7 @@ async fn exec_deploy(
             }
             let data = client
                 .post(
-                    &format!("/oapi/v1/organizations/{oid}/deployments"),
+                    &format!("/oapi/v1/appstack/organizations/{oid}/deployments"),
                     &body,
                 )
                 .await?;
@@ -862,7 +862,7 @@ async fn exec_deploy(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/changeOrders/{}",
+                        "/oapi/v1/appstack/organizations/{oid}/changeOrders/{}",
                         g.change_order_id
                     ),
                     &[],
@@ -874,7 +874,7 @@ async fn exec_deploy(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/changeOrders/{}/log",
+                        "/oapi/v1/appstack/organizations/{oid}/changeOrders/{}/log",
                         l.change_order_id
                     ),
                     &[],
@@ -892,7 +892,7 @@ async fn exec_deploy(
             let data = client
                 .post(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/changeOrders/{}/action",
+                        "/oapi/v1/appstack/organizations/{oid}/changeOrders/{}/action",
                         a.change_order_id
                     ),
                     &body,
@@ -919,7 +919,7 @@ async fn exec_releases(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/apps/{}/releaseWorkflows",
+                        "/oapi/v1/appstack/organizations/{oid}/apps/{}/releaseWorkflows",
                         l.app_name
                     ),
                     &[],
@@ -932,7 +932,7 @@ async fn exec_releases(
                 let data = client
                     .get(
                         &format!(
-                            "/oapi/v1/organizations/{oid}/apps/{}/releaseWorkflows/{}/stages",
+                            "/oapi/v1/appstack/organizations/{oid}/apps/{}/releaseWorkflows/{}/stages",
                             l.app_name, l.workflow_id
                         ),
                         &[],
@@ -945,7 +945,7 @@ async fn exec_releases(
                 let data = client
                     .post(
                         &format!(
-                            "/oapi/v1/organizations/{oid}/changeOrders/{}/stages/{}/execute",
+                            "/oapi/v1/appstack/organizations/{oid}/changeOrders/{}/stages/{}/execute",
                             e.change_id, e.stage_id
                         ),
                         &body,
@@ -958,7 +958,7 @@ async fn exec_releases(
                 let data = client
                     .post(
                         &format!(
-                            "/oapi/v1/organizations/{oid}/changeOrders/{}/stages/{}/cancel",
+                            "/oapi/v1/appstack/organizations/{oid}/changeOrders/{}/stages/{}/cancel",
                             c.change_id, c.stage_id
                         ),
                         &body,

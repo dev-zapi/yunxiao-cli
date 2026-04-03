@@ -304,7 +304,7 @@ async fn exec_pipelines(
             }
             let data = client
                 .get(
-                    &format!("/oapi/v1/organizations/{oid}/pipelines"),
+                    &format!("/oapi/v1/flow/organizations/{oid}/pipelines"),
                     &params,
                 )
                 .await?;
@@ -314,7 +314,7 @@ async fn exec_pipelines(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/pipelines/{}",
+                        "/oapi/v1/flow/organizations/{oid}/pipelines/{}",
                         g.pipeline_id
                     ),
                     &[],
@@ -327,7 +327,7 @@ async fn exec_pipelines(
             let data = client
                 .put(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/pipelines/{}",
+                        "/oapi/v1/flow/organizations/{oid}/pipelines/{}",
                         u.pipeline_id
                     ),
                     &body,
@@ -356,7 +356,7 @@ async fn exec_runs(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/pipelines/{}/runs",
+                        "/oapi/v1/flow/organizations/{oid}/pipelines/{}/runs",
                         l.pipeline_id
                     ),
                     &[("page", page.as_str()), ("perPage", per_page.as_str())],
@@ -368,7 +368,7 @@ async fn exec_runs(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/pipelines/{}/runs/{}",
+                        "/oapi/v1/flow/organizations/{oid}/pipelines/{}/runs/{}",
                         g.pipeline_id, g.run_id
                     ),
                     &[],
@@ -388,7 +388,7 @@ async fn exec_runs(
             let data = client
                 .post(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/pipelines/{}/runs",
+                        "/oapi/v1/flow/organizations/{oid}/pipelines/{}/runs",
                         c.pipeline_id
                     ),
                     &body,
@@ -400,7 +400,7 @@ async fn exec_runs(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/pipelines/{}/runs/latest",
+                        "/oapi/v1/flow/organizations/{oid}/pipelines/{}/runs/latestPipelineRun",
                         l.pipeline_id
                     ),
                     &[],
@@ -427,7 +427,7 @@ async fn exec_jobs(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/pipelines/{}/jobs",
+                        "/oapi/v1/flow/organizations/{oid}/pipelines/{}/jobs",
                         l.pipeline_id
                     ),
                     &[("category", l.category.as_str())],
@@ -439,7 +439,7 @@ async fn exec_jobs(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/pipelines/{}/jobs/{}/history",
+                        "/oapi/v1/flow/organizations/{oid}/pipelines/{}/jobs/{}/history",
                         h.pipeline_id, h.job_id
                     ),
                     &[],
@@ -452,7 +452,7 @@ async fn exec_jobs(
             let data = client
                 .post(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/pipelines/{}/runs/{}/jobs/{}/run",
+                        "/oapi/v1/flow/organizations/{oid}/pipelines/{}/runs/{}/jobs/{}/run",
                         r.pipeline_id, r.run_id, r.job_id
                     ),
                     &body,
@@ -464,7 +464,7 @@ async fn exec_jobs(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/pipelines/{}/runs/{}/jobs/{}/log",
+                        "/oapi/v1/flow/organizations/{oid}/pipelines/{}/runs/{}/jobs/{}/log",
                         l.pipeline_id, l.run_id, l.job_id
                     ),
                     &[],
@@ -499,7 +499,7 @@ async fn exec_connections(
             }
             let data = client
                 .get(
-                    &format!("/oapi/v1/organizations/{oid}/connections"),
+                    &format!("/oapi/v1/flow/organizations/{oid}/serviceConnections"),
                     &params,
                 )
                 .await?;

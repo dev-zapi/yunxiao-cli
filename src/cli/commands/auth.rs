@@ -139,7 +139,7 @@ async fn cmd_whoami(
     let timeout = config::resolve_timeout(cli_timeout);
 
     let client = ApiClient::new(&token, &domain, timeout)?;
-    let data = client.get("/oapi/v1/user/current", &[]).await?;
+    let data = client.get("/oapi/v1/platform/user", &[]).await?;
     output::print_output(&data, format)?;
     Ok(())
 }

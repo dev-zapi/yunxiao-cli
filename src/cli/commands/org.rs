@@ -152,15 +152,15 @@ pub async fn execute(
     match &args.command {
         OrgCommands::Info => {
             let path = match &org_id {
-                Some(id) => format!("/oapi/v1/organizations/{id}"),
-                None => "/oapi/v1/organization".to_string(),
+                Some(id) => format!("/oapi/v1/platform/organizations/{id}"),
+                None => "/oapi/v1/platform/user".to_string(),
             };
             let data = client.get(&path, &[]).await?;
             output::print_output(&data, format)?;
         }
         OrgCommands::List => {
             let data = client
-                .get("/oapi/v1/users/current/organizations", &[])
+                .get("/oapi/v1/platform/organizations", &[])
                 .await?;
             output::print_output(&data, format)?;
         }
@@ -171,7 +171,7 @@ pub async fn execute(
                 let per_page = la.per_page.to_string();
                 let data = client
                     .get(
-                        &format!("/oapi/v1/organizations/{oid}/members"),
+                        &format!("/oapi/v1/platform/organizations/{oid}/members"),
                         &[("page", page.as_str()), ("perPage", per_page.as_str())],
                     )
                     .await?;
@@ -181,7 +181,7 @@ pub async fn execute(
                 let oid = require_org_id(&org_id)?;
                 let data = client
                     .get(
-                        &format!("/oapi/v1/organizations/{oid}/members/{}", g.user_id),
+                        &format!("/oapi/v1/platform/organizations/{oid}/members/{}", g.user_id),
                         &[],
                     )
                     .await?;
@@ -189,10 +189,11 @@ pub async fn execute(
             }
             MembersCommands::Search(s) => {
                 let oid = require_org_id(&org_id)?;
+                let body = serde_json::json!({"query": s.query});
                 let data = client
-                    .get(
-                        &format!("/oapi/v1/organizations/{oid}/members/search"),
-                        &[("keyword", s.query.as_str())],
+                    .post(
+                        &format!("/oapi/v1/platform/organizations/{oid}/members:search"),
+                        &body,
                     )
                     .await?;
                 output::print_output(&data, format)?;
@@ -202,7 +203,7 @@ pub async fn execute(
             DepartmentsCommands::List => {
                 let oid = require_org_id(&org_id)?;
                 let data = client
-                    .get(&format!("/oapi/v1/organizations/{oid}/departments"), &[])
+                    .get(&format!("/oapi/v1/platform/organizations/{oid}/departments"), &[])
                     .await?;
                 output::print_output(&data, format)?;
             }
@@ -210,7 +211,7 @@ pub async fn execute(
                 let oid = require_org_id(&org_id)?;
                 let data = client
                     .get(
-                        &format!("/oapi/v1/organizations/{oid}/departments/{}", g.id),
+                        &format!("/oapi/v1/platform/organizations/{oid}/departments/{}", g.id),
                         &[],
                     )
                     .await?;
@@ -221,7 +222,7 @@ pub async fn execute(
             RolesCommands::List => {
                 let oid = require_org_id(&org_id)?;
                 let data = client
-                    .get(&format!("/oapi/v1/organizations/{oid}/roles"), &[])
+                    .get(&format!("/oapi/v1/platform/organizations/{oid}/roles"), &[])
                     .await?;
                 output::print_output(&data, format)?;
             }
@@ -229,7 +230,7 @@ pub async fn execute(
                 let oid = require_org_id(&org_id)?;
                 let data = client
                     .get(
-                        &format!("/oapi/v1/organizations/{oid}/roles/{}", g.id),
+                        &format!("/oapi/v1/platform/organizations/{oid}/roles/{}", g.id),
                         &[],
                     )
                     .await?;

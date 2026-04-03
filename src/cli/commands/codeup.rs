@@ -1,7 +1,7 @@
 //! `codeup` subcommand – code management.
 //!
 //! Manages repositories, branches, commits, files, comparisons, and
-//! merge requests via the Yunxiao Codeup API.
+//! change requests via the Yunxiao Codeup API.
 
 use clap::{Args, Subcommand};
 use serde_json::json;
@@ -343,9 +343,9 @@ pub enum MrCmds {
 /// Arguments for `codeup mr list`.
 #[derive(Debug, Args)]
 pub struct MrListArgs {
-    /// Repository ID.
+    /// Repository ID (optional filter).
     #[arg(long)]
-    pub repo_id: String,
+    pub repo_id: Option<String>,
     /// Filter by state (opened, closed, merged, all).
     #[arg(long)]
     pub state: Option<String>,
@@ -496,7 +496,7 @@ async fn exec_repos(
             let per_page = l.per_page.to_string();
             let data = client
                 .get(
-                    &format!("/oapi/v1/organizations/{oid}/repositories"),
+                    &format!("/oapi/v1/codeup/organizations/{oid}/repositories"),
                     &[("page", page.as_str()), ("perPage", per_page.as_str())],
                 )
                 .await?;
@@ -506,7 +506,7 @@ async fn exec_repos(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/repositories/{}",
+                        "/oapi/v1/codeup/organizations/{oid}/repositories/{}",
                         g.repo_id
                     ),
                     &[],
@@ -535,7 +535,7 @@ async fn exec_branches(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/repositories/{}/branches",
+                        "/oapi/v1/codeup/organizations/{oid}/repositories/{}/branches",
                         l.repo_id
                     ),
                     &[("page", page.as_str()), ("perPage", per_page.as_str())],
@@ -547,7 +547,7 @@ async fn exec_branches(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/repositories/{}/branches/detail",
+                        "/oapi/v1/codeup/organizations/{oid}/repositories/{}/branches/detail",
                         g.repo_id
                     ),
                     &[("branchName", g.branch.as_str())],
@@ -563,7 +563,7 @@ async fn exec_branches(
             let data = client
                 .post(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/repositories/{}/branches",
+                        "/oapi/v1/codeup/organizations/{oid}/repositories/{}/branches",
                         c.repo_id
                     ),
                     &body,
@@ -575,7 +575,7 @@ async fn exec_branches(
             let data = client
                 .delete(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/repositories/{}/branches",
+                        "/oapi/v1/codeup/organizations/{oid}/repositories/{}/branches",
                         d.repo_id
                     ),
                     &[("branchName", d.branch.as_str())],
@@ -611,7 +611,7 @@ async fn exec_commits(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/repositories/{}/commits",
+                        "/oapi/v1/codeup/organizations/{oid}/repositories/{}/commits",
                         l.repo_id
                     ),
                     &params,
@@ -623,7 +623,7 @@ async fn exec_commits(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/repositories/{}/commits/{}",
+                        "/oapi/v1/codeup/organizations/{oid}/repositories/{}/commits/{}",
                         g.repo_id, g.sha
                     ),
                     &[],
@@ -654,7 +654,7 @@ async fn exec_files(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/repositories/{}/files/tree",
+                        "/oapi/v1/codeup/organizations/{oid}/repositories/{}/files/tree",
                         l.repo_id
                     ),
                     &params,
@@ -663,15 +663,16 @@ async fn exec_files(
             output::print_output(&data, format)?;
         }
         FilesCmds::Get(g) => {
-            let mut params: Vec<(&str, &str)> = vec![("filePath", g.path.as_str())];
+            let encoded_path = urlencoding::encode(&g.path);
+            let mut params: Vec<(&str, &str)> = vec![];
             if let Some(ref r) = g.ref_name {
                 params.push(("ref", r.as_str()));
             }
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/repositories/{}/files",
-                        g.repo_id
+                        "/oapi/v1/codeup/organizations/{oid}/repositories/{}/files/{}",
+                        g.repo_id, encoded_path
                     ),
                     &params,
                 )
@@ -688,7 +689,7 @@ async fn exec_files(
             let data = client
                 .post(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/repositories/{}/files",
+                        "/oapi/v1/codeup/organizations/{oid}/repositories/{}/files",
                         c.repo_id
                     ),
                     &body,
@@ -706,7 +707,7 @@ async fn exec_files(
             let data = client
                 .put(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/repositories/{}/files",
+                        "/oapi/v1/codeup/organizations/{oid}/repositories/{}/files",
                         u.repo_id
                     ),
                     &body,
@@ -718,7 +719,7 @@ async fn exec_files(
             let data = client
                 .delete(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/repositories/{}/files",
+                        "/oapi/v1/codeup/organizations/{oid}/repositories/{}/files",
                         d.repo_id
                     ),
                     &[
@@ -747,7 +748,7 @@ async fn exec_compare(
     let data = client
         .get(
             &format!(
-                "/oapi/v1/organizations/{oid}/repositories/{}/compare",
+                "/oapi/v1/codeup/organizations/{oid}/repositories/{}/compares",
                 args.repo_id
             ),
             &[("from", args.from.as_str()), ("to", args.to.as_str())],
@@ -771,6 +772,7 @@ async fn exec_mr(
         MrCmds::List(l) => {
             let page = l.page.to_string();
             let per_page = l.per_page.to_string();
+            let repo_id_str;
             let mut params: Vec<(&str, &str)> = vec![
                 ("page", page.as_str()),
                 ("perPage", per_page.as_str()),
@@ -778,11 +780,14 @@ async fn exec_mr(
             if let Some(ref s) = l.state {
                 params.push(("state", s.as_str()));
             }
+            if let Some(ref r) = l.repo_id {
+                repo_id_str = r.clone();
+                params.push(("repositoryId", repo_id_str.as_str()));
+            }
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/repositories/{}/mergeRequests",
-                        l.repo_id
+                        "/oapi/v1/codeup/organizations/{oid}/changeRequests"
                     ),
                     &params,
                 )
@@ -793,7 +798,7 @@ async fn exec_mr(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/repositories/{}/mergeRequests/{}",
+                        "/oapi/v1/codeup/organizations/{oid}/repositories/{}/changeRequests/{}",
                         g.repo_id, g.mr_id
                     ),
                     &[],
@@ -813,7 +818,7 @@ async fn exec_mr(
             let data = client
                 .post(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/repositories/{}/mergeRequests",
+                        "/oapi/v1/codeup/organizations/{oid}/repositories/{}/changeRequests",
                         c.repo_id
                     ),
                     &body,
@@ -826,7 +831,7 @@ async fn exec_mr(
                 let data = client
                     .get(
                         &format!(
-                            "/oapi/v1/organizations/{oid}/repositories/{}/mergeRequests/{}/comments",
+                            "/oapi/v1/codeup/organizations/{oid}/repositories/{}/changeRequests/{}/comments",
                             l.repo_id, l.mr_id
                         ),
                         &[],
@@ -839,7 +844,7 @@ async fn exec_mr(
                 let data = client
                     .post(
                         &format!(
-                            "/oapi/v1/organizations/{oid}/repositories/{}/mergeRequests/{}/comments",
+                            "/oapi/v1/codeup/organizations/{oid}/repositories/{}/changeRequests/{}/comments",
                             cr.repo_id, cr.mr_id
                         ),
                         &body,
@@ -852,7 +857,7 @@ async fn exec_mr(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/repositories/{}/mergeRequests/{}/patchsets",
+                        "/oapi/v1/codeup/organizations/{oid}/repositories/{}/changeRequests/{}/patchsets",
                         p.repo_id, p.mr_id
                     ),
                     &[],

@@ -145,7 +145,7 @@ async fn exec_repos(
             }
             let data = client
                 .get(
-                    &format!("/oapi/v1/organizations/{oid}/packages/repositories"),
+                    &format!("/oapi/v1/packages/organizations/{oid}/repositories"),
                     &params,
                 )
                 .await?;
@@ -177,7 +177,7 @@ async fn exec_artifacts(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/packages/repositories/{}/artifacts",
+                        "/oapi/v1/packages/organizations/{oid}/repositories/{}/artifacts",
                         l.repo_id
                     ),
                     &params,
@@ -189,7 +189,7 @@ async fn exec_artifacts(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/packages/repositories/{}/artifacts/{}",
+                        "/oapi/v1/packages/organizations/{oid}/repositories/{}/artifacts/{}",
                         g.repo_id, g.artifact_id
                     ),
                     &[],
