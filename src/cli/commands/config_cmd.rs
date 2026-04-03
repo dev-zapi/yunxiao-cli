@@ -162,7 +162,7 @@ fn cmd_list(format: &OutputFormat) -> Result<()> {
         }).unwrap_or_else(|| "(not set)".to_string()),
         "domain": cfg.domain.unwrap_or_else(|| config::DEFAULT_DOMAIN.to_string()),
         "organization_id": cfg.organization_id.unwrap_or_else(|| "(not set)".to_string()),
-        "default_output": cfg.default_output.map(|o| o.to_string()).unwrap_or_else(|| "json".to_string()),
+        "default_output": cfg.default_output.map(|o| o.to_string()).unwrap_or_else(|| "text".to_string()),
         "log_level": cfg.log_level.map(|l| l.to_string()).unwrap_or_else(|| "warn".to_string()),
         "timeout": cfg.timeout.unwrap_or(config::DEFAULT_TIMEOUT),
     });

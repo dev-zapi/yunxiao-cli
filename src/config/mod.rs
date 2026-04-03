@@ -117,7 +117,7 @@ pub fn resolve_token(cli_token: Option<&str>) -> Result<String> {
     ))
 }
 
-/// Resolve the output format with priority: CLI arg → env var → config → default (JSON).
+/// Resolve the output format with priority: CLI arg → env var → config → default (text).
 pub fn resolve_output_format(cli_format: Option<&OutputFormat>) -> OutputFormat {
     // 1. CLI argument
     if let Some(f) = cli_format {
@@ -139,7 +139,7 @@ pub fn resolve_output_format(cli_format: Option<&OutputFormat>) -> OutputFormat 
     }
 
     // 4. Default
-    OutputFormat::Json
+    OutputFormat::Text
 }
 
 /// Resolve the HTTP timeout with priority: CLI arg → env var → config → default (30s).
@@ -317,12 +317,12 @@ mod tests {
     }
 
     #[test]
-    fn resolve_output_format_default_is_json() {
+    fn resolve_output_format_default_is_text() {
         // Remove env var to test default fallback
         env::remove_var("YUNXIAO_CLI_OUTPUT");
         let fmt = resolve_output_format(None);
-        // Will be Json unless a config file overrides it
-        assert!(fmt == OutputFormat::Json || fmt == OutputFormat::Text);
+        // Will be Text unless a config file overrides it
+        assert!(fmt == OutputFormat::Text || fmt == OutputFormat::Json);
     }
 
     #[test]
