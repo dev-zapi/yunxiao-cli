@@ -1,7 +1,7 @@
 //! HTTP client layer for the YunXiao (Alibaba Cloud DevOps) API.
 //!
 //! Wraps [`reqwest::Client`] with pre-configured base URL, authentication
-//! header (`x-devops-pat`), and timeout settings.
+//! header (`x-yunxiao-token`), and timeout settings.
 
 use crate::error::{CliError, Result};
 use log::{debug, error};
@@ -29,14 +29,14 @@ impl ApiClient {
     /// Create a new API client.
     ///
     /// # Arguments
-    /// * `token`    – Personal access token for `x-devops-pat` header.
+    /// * `token`    – Personal access token for `x-yunxiao-token` header.
     /// * `endpoint` – Full API endpoint URL (e.g. `https://openapi-rdc.aliyuncs.com`).
     /// * `timeout`  – Request timeout in seconds.
     pub fn new(token: &str, endpoint: &str, timeout: u64) -> Result<Self> {
         let mut default_headers = HeaderMap::new();
         // Authentication header required by the Yunxiao API.
         default_headers.insert(
-            "x-devops-pat",
+            "x-yunxiao-token",
             HeaderValue::from_str(token)
                 .map_err(|e| CliError::Auth(format!("Invalid token value: {e}")))?,
         );
@@ -226,7 +226,7 @@ mod tests {
         let http = reqwest::Client::builder()
             .default_headers({
                 let mut h = reqwest::header::HeaderMap::new();
-                h.insert("x-devops-pat", reqwest::header::HeaderValue::from_static("test-token"));
+                h.insert("x-yunxiao-token", reqwest::header::HeaderValue::from_static("test-token"));
                 h
             })
             .build()
@@ -262,7 +262,7 @@ mod tests {
         let http = reqwest::Client::builder()
             .default_headers({
                 let mut h = reqwest::header::HeaderMap::new();
-                h.insert("x-devops-pat", reqwest::header::HeaderValue::from_static("test-token"));
+                h.insert("x-yunxiao-token", reqwest::header::HeaderValue::from_static("test-token"));
                 h.insert(reqwest::header::CONTENT_TYPE, reqwest::header::HeaderValue::from_static("application/json"));
                 h
             })
