@@ -539,19 +539,17 @@ async fn exec_projects(
     let oid = require_org(org_id)?;
     match &args.command {
         ProjectsCmds::Search(s) => {
-            let page = s.page.to_string();
-            let page_size = s.page_size.to_string();
-            let mut params: Vec<(&str, &str)> = vec![
-                ("page", page.as_str()),
-                ("pageSize", page_size.as_str()),
-            ];
+            let mut body = json!({
+                "page": s.page,
+                "pageSize": s.page_size,
+            });
             if let Some(ref kw) = s.keyword {
-                params.push(("keyword", kw.as_str()));
+                body["keyword"] = json!(kw);
             }
             let data = client
-                .get(
-                    &format!("/oapi/v1/organizations/{oid}/projects"),
-                    &params,
+                .post(
+                    &format!("/oapi/v1/projex/organizations/{oid}/projects:search"),
+                    &body,
                 )
                 .await?;
             output::print_output(&data, format)?;
@@ -559,7 +557,7 @@ async fn exec_projects(
         ProjectsCmds::Get(g) => {
             let data = client
                 .get(
-                    &format!("/oapi/v1/organizations/{oid}/projects/{}", g.id),
+                    &format!("/oapi/v1/projex/organizations/{oid}/projects/{}", g.id),
                     &[],
                 )
                 .await?;
@@ -581,14 +579,14 @@ async fn exec_programs(
     let oid = require_org(org_id)?;
     match &args.command {
         ProgramsCmds::Search(s) => {
-            let mut params: Vec<(&str, &str)> = vec![];
+            let mut body = json!({});
             if let Some(ref kw) = s.keyword {
-                params.push(("keyword", kw.as_str()));
+                body["keyword"] = json!(kw);
             }
             let data = client
-                .get(
-                    &format!("/oapi/v1/organizations/{oid}/programs"),
-                    &params,
+                .post(
+                    &format!("/oapi/v1/projex/organizations/{oid}/programs:search"),
+                    &body,
                 )
                 .await?;
             output::print_output(&data, format)?;
@@ -609,23 +607,19 @@ async fn exec_workitems(
     let oid = require_org(org_id)?;
     match &args.command {
         WorkitemsCmds::Search(s) => {
-            let page = s.page.to_string();
-            let page_size = s.page_size.to_string();
-            let mut params: Vec<(&str, &str)> = vec![
-                ("category", s.category.as_str()),
-                ("page", page.as_str()),
-                ("pageSize", page_size.as_str()),
-            ];
+            let mut body = json!({
+                "category": s.category,
+                "spaceId": s.space_id,
+                "page": s.page,
+                "pageSize": s.page_size,
+            });
             if let Some(ref kw) = s.keyword {
-                params.push(("keyword", kw.as_str()));
+                body["keyword"] = json!(kw);
             }
             let data = client
-                .get(
-                    &format!(
-                        "/oapi/v1/organizations/{oid}/spaces/{}/workitems",
-                        s.space_id
-                    ),
-                    &params,
+                .post(
+                    &format!("/oapi/v1/projex/organizations/{oid}/workitems:search"),
+                    &body,
                 )
                 .await?;
             output::print_output(&data, format)?;
@@ -634,8 +628,8 @@ async fn exec_workitems(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/spaces/{}/workitems/{}",
-                        g.space_id, g.workitem_id
+                        "/oapi/v1/projex/organizations/{oid}/workitems/{}",
+                        g.workitem_id
                     ),
                     &[],
                 )
@@ -646,6 +640,7 @@ async fn exec_workitems(
             let mut body = json!({
                 "category": c.category,
                 "subject": c.subject,
+                "spaceId": c.space_id,
             });
             if let Some(ref desc) = c.description {
                 body["description"] = json!(desc);
@@ -662,8 +657,7 @@ async fn exec_workitems(
             let data = client
                 .post(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/spaces/{}/workitems",
-                        c.space_id
+                        "/oapi/v1/projex/organizations/{oid}/workitems"
                     ),
                     &body,
                 )
@@ -690,20 +684,19 @@ async fn exec_workitems(
             let data = client
                 .put(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/spaces/{}/workitems/{}",
-                        u.space_id, u.workitem_id
+                        "/oapi/v1/projex/organizations/{oid}/workitems/{}",
+                        u.workitem_id
                     ),
                     &body,
                 )
                 .await?;
             output::print_output(&data, format)?;
         }
-        WorkitemsCmds::Types(t) => {
+        WorkitemsCmds::Types(_t) => {
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/spaces/{}/workitemTypes",
-                        t.space_id
+                        "/oapi/v1/projex/organizations/{oid}/workitemTypes"
                     ),
                     &[],
                 )
@@ -715,8 +708,8 @@ async fn exec_workitems(
                 let data = client
                     .get(
                         &format!(
-                            "/oapi/v1/organizations/{oid}/spaces/{}/workitems/{}/comments",
-                            l.space_id, l.workitem_id
+                            "/oapi/v1/projex/organizations/{oid}/workitems/{}/comments",
+                            l.workitem_id
                         ),
                         &[],
                     )
@@ -728,8 +721,8 @@ async fn exec_workitems(
                 let data = client
                     .post(
                         &format!(
-                            "/oapi/v1/organizations/{oid}/spaces/{}/workitems/{}/comments",
-                            cr.space_id, cr.workitem_id
+                            "/oapi/v1/projex/organizations/{oid}/workitems/{}/comments",
+                            cr.workitem_id
                         ),
                         &body,
                     )
@@ -742,8 +735,8 @@ async fn exec_workitems(
                 let data = client
                     .get(
                         &format!(
-                            "/oapi/v1/organizations/{oid}/spaces/{}/workitems/{}/attachments",
-                            l.space_id, l.workitem_id
+                            "/oapi/v1/projex/organizations/{oid}/workitems/{}/attachments",
+                            l.workitem_id
                         ),
                         &[],
                     )
@@ -770,7 +763,7 @@ async fn exec_sprints(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/spaces/{}/sprints",
+                        "/oapi/v1/projex/organizations/{oid}/projects/{}/sprints",
                         l.space_id
                     ),
                     &[],
@@ -782,7 +775,7 @@ async fn exec_sprints(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/spaces/{}/sprints/{}",
+                        "/oapi/v1/projex/organizations/{oid}/projects/{}/sprints/{}",
                         g.space_id, g.sprint_id
                     ),
                     &[],
@@ -801,7 +794,7 @@ async fn exec_sprints(
             let data = client
                 .post(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/spaces/{}/sprints",
+                        "/oapi/v1/projex/organizations/{oid}/projects/{}/sprints",
                         c.space_id
                     ),
                     &body,
@@ -826,7 +819,7 @@ async fn exec_sprints(
             let data = client
                 .put(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/spaces/{}/sprints/{}",
+                        "/oapi/v1/projex/organizations/{oid}/projects/{}/sprints/{}",
                         u.space_id, u.sprint_id
                     ),
                     &body,
@@ -853,7 +846,7 @@ async fn exec_versions(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/spaces/{}/versions",
+                        "/oapi/v1/projex/organizations/{oid}/projects/{}/versions",
                         l.space_id
                     ),
                     &[],
@@ -869,7 +862,7 @@ async fn exec_versions(
             let data = client
                 .post(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/spaces/{}/versions",
+                        "/oapi/v1/projex/organizations/{oid}/projects/{}/versions",
                         c.space_id
                     ),
                     &body,
@@ -891,7 +884,7 @@ async fn exec_versions(
             let data = client
                 .put(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/spaces/{}/versions/{}",
+                        "/oapi/v1/projex/organizations/{oid}/projects/{}/versions/{}",
                         u.space_id, u.version_id
                     ),
                     &body,
@@ -903,7 +896,7 @@ async fn exec_versions(
             let data = client
                 .delete(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/spaces/{}/versions/{}",
+                        "/oapi/v1/projex/organizations/{oid}/projects/{}/versions/{}",
                         d.space_id, d.version_id
                     ),
                     &[],
@@ -936,7 +929,7 @@ async fn exec_efforts(
             }
             let data = client
                 .get(
-                    &format!("/oapi/v1/organizations/{oid}/efforts"),
+                    &format!("/oapi/v1/projex/organizations/{oid}/effortRecords"),
                     &params,
                 )
                 .await?;
@@ -953,8 +946,8 @@ async fn exec_efforts(
             let data = client
                 .post(
                     &format!(
-                        "/oapi/v1/organizations/{oid}/spaces/{}/efforts",
-                        c.space_id
+                        "/oapi/v1/projex/organizations/{oid}/workitems/{}/effortRecords",
+                        c.workitem_id
                     ),
                     &body,
                 )
