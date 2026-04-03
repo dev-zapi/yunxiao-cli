@@ -8,6 +8,10 @@ CARGO       := cargo
 TARGET_DIR  := target
 DIST_DIR    := dist
 
+# HTTP/3 support requires unstable features
+RUSTFLAGS   := --cfg reqwest_unstable
+export RUSTFLAGS
+
 # Build profiles
 PROFILE     := release
 PROFILE_FLAG := --profile $(PROFILE)

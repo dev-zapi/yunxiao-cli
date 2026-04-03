@@ -36,7 +36,11 @@ async fn main() {
     let result = match &cli.command {
         Commands::Auth(args) => {
             yunxiao_cli::cli::commands::auth::execute(
-                args, &format, cli_token, cli_endpoint, cli_timeout,
+                args,
+                &format,
+                cli_token,
+                cli_endpoint,
+                cli_timeout,
             )
             .await
         }
@@ -45,43 +49,78 @@ async fn main() {
         }
         Commands::Org(args) => {
             yunxiao_cli::cli::commands::org::execute(
-                args, &format, cli_token, cli_endpoint, cli_timeout, cli_org_id,
+                args,
+                &format,
+                cli_token,
+                cli_endpoint,
+                cli_timeout,
+                cli_org_id,
             )
             .await
         }
         Commands::Projex(args) => {
             yunxiao_cli::cli::commands::projex::execute(
-                args, &format, cli_token, cli_endpoint, cli_timeout, cli_org_id,
+                args,
+                &format,
+                cli_token,
+                cli_endpoint,
+                cli_timeout,
+                cli_org_id,
             )
             .await
         }
         Commands::Codeup(args) => {
             yunxiao_cli::cli::commands::codeup::execute(
-                args, &format, cli_token, cli_endpoint, cli_timeout, cli_org_id,
+                args,
+                &format,
+                cli_token,
+                cli_endpoint,
+                cli_timeout,
+                cli_org_id,
             )
             .await
         }
         Commands::Flow(args) => {
             yunxiao_cli::cli::commands::flow::execute(
-                args, &format, cli_token, cli_endpoint, cli_timeout, cli_org_id,
+                args,
+                &format,
+                cli_token,
+                cli_endpoint,
+                cli_timeout,
+                cli_org_id,
             )
             .await
         }
         Commands::Appstack(args) => {
             yunxiao_cli::cli::commands::appstack::execute(
-                args, &format, cli_token, cli_endpoint, cli_timeout, cli_org_id,
+                args,
+                &format,
+                cli_token,
+                cli_endpoint,
+                cli_timeout,
+                cli_org_id,
             )
             .await
         }
         Commands::Packages(args) => {
             yunxiao_cli::cli::commands::packages::execute(
-                args, &format, cli_token, cli_endpoint, cli_timeout, cli_org_id,
+                args,
+                &format,
+                cli_token,
+                cli_endpoint,
+                cli_timeout,
+                cli_org_id,
             )
             .await
         }
         Commands::Testhub(args) => {
             yunxiao_cli::cli::commands::testhub::execute(
-                args, &format, cli_token, cli_endpoint, cli_timeout, cli_org_id,
+                args,
+                &format,
+                cli_token,
+                cli_endpoint,
+                cli_timeout,
+                cli_org_id,
             )
             .await
         }

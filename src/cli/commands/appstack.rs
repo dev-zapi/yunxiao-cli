@@ -641,10 +641,8 @@ async fn exec_vars(
             output::print_output(&data, format)?;
         }
         VarsCmds::Create(c) => {
-            let variables: serde_json::Value =
-                serde_json::from_str(&c.variables).map_err(|e| {
-                    crate::error::CliError::Api(format!("Invalid variables JSON: {e}"))
-                })?;
+            let variables: serde_json::Value = serde_json::from_str(&c.variables)
+                .map_err(|e| crate::error::CliError::Api(format!("Invalid variables JSON: {e}")))?;
             let body = json!({"name": c.name, "variables": variables});
             let data = client
                 .post(
@@ -655,10 +653,8 @@ async fn exec_vars(
             output::print_output(&data, format)?;
         }
         VarsCmds::Update(u) => {
-            let variables: serde_json::Value =
-                serde_json::from_str(&u.variables).map_err(|e| {
-                    crate::error::CliError::Api(format!("Invalid variables JSON: {e}"))
-                })?;
+            let variables: serde_json::Value = serde_json::from_str(&u.variables)
+                .map_err(|e| crate::error::CliError::Api(format!("Invalid variables JSON: {e}")))?;
             let body = json!({"variables": variables});
             let data = client
                 .put(

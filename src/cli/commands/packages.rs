@@ -167,10 +167,8 @@ async fn exec_artifacts(
         ArtifactsCmds::List(l) => {
             let page = l.page.to_string();
             let per_page = l.per_page.to_string();
-            let mut params: Vec<(&str, &str)> = vec![
-                ("page", page.as_str()),
-                ("perPage", per_page.as_str()),
-            ];
+            let mut params: Vec<(&str, &str)> =
+                vec![("page", page.as_str()), ("perPage", per_page.as_str())];
             if let Some(ref kw) = l.keyword {
                 params.push(("keyword", kw.as_str()));
             }

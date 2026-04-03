@@ -85,10 +85,7 @@ pub async fn execute(args: &InsightArgs, format: &OutputFormat) -> Result<()> {
     match &args.command {
         InsightCommands::Metrics(m) => match &m.command {
             MetricsCmds::List(l) => {
-                let dimension_msg = l
-                    .dimension
-                    .as_deref()
-                    .unwrap_or("all");
+                let dimension_msg = l.dimension.as_deref().unwrap_or("all");
                 let data = json!({
                     "status": "coming_soon",
                     "message": format!(

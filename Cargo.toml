@@ -11,7 +11,7 @@ clap = { version = "4", features = ["derive", "env"] }
 clap_complete = "4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-reqwest = { version = "0.12", features = ["json", "blocking"] }
+reqwest = { version = "0.12", features = ["json", "blocking", "http2"] }
 tokio = { version = "1", features = ["full"] }
 dirs = "6"
 toml = "0.8"
@@ -29,3 +29,6 @@ mockito = "1"
 tempfile = "3"
 assert_cmd = "2"
 predicates = "3"
+
+[build-dependencies]
+chrono = "0.4"

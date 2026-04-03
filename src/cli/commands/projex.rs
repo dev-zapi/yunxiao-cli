@@ -51,8 +51,21 @@ pub struct ProjectsArgs {
 pub enum ProjectsCmds {
     /// Search projects by keyword.
     Search(ProjectSearchArgs),
+    /// List all projects (alternative to search).
+    List(ProjectListArgs),
     /// Get project details by ID.
     Get(ProjectGetArgs),
+}
+
+/// Arguments for `projex projects list`.
+#[derive(Debug, Args)]
+pub struct ProjectListArgs {
+    /// Page size (1-200).
+    #[arg(long, default_value = "20")]
+    pub per_page: u32,
+    /// Page number (1-based).
+    #[arg(long, default_value = "1")]
+    pub page: u32,
 }
 
 /// Arguments for `projex projects search`.
@@ -61,9 +74,9 @@ pub struct ProjectSearchArgs {
     /// Search keyword.
     #[arg(long)]
     pub keyword: Option<String>,
-    /// Page size.
+    /// Page size (1-200).
     #[arg(long, default_value = "20")]
-    pub page_size: u32,
+    pub per_page: u32,
     /// Page number (1-based).
     #[arg(long, default_value = "1")]
     pub page: u32,
@@ -541,7 +554,7 @@ async fn exec_projects(
         ProjectsCmds::Search(s) => {
             let mut body = json!({
                 "page": s.page,
-                "pageSize": s.page_size,
+                "prePage": s.per_page,
             });
             if let Some(ref kw) = s.keyword {
                 body["keyword"] = json!(kw);
@@ -553,6 +566,52 @@ async fn exec_projects(
                 )
                 .await?;
             output::print_output(&data, format)?;
+        }
+        ProjectsCmds::List(l) => {
+            let mut all_projects = Vec::new();
+            let mut current_page = l.page;
+            let per_page = l.per_page.min(200); // API限制最大200
+
+            loop {
+                let body = json!({
+                    "page": current_page,
+                    "perPage": per_page,
+                });
+
+                let data = client
+                    .post(
+                        &format!("/oapi/v1/projex/organizations/{oid}/projects:search"),
+                        &body,
+                    )
+                    .await?;
+
+                // 解析响应中的项目列表
+                if let Some(projects) = data.as_array() {
+                    if projects.is_empty() {
+                        break;
+                    }
+                    all_projects.extend(projects.clone());
+
+                    // 检查是否还有更多数据
+                    if projects.len() < per_page as usize {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+
+                current_page += 1;
+
+                // 安全检查：防止无限循环
+                if current_page > 100 {
+                    log::warn!("Reached maximum page limit (100), stopping pagination");
+                    break;
+                }
+            }
+
+            // 输出合并后的结果
+            let combined = serde_json::Value::Array(all_projects);
+            output::print_output(&combined, format)?;
         }
         ProjectsCmds::Get(g) => {
             let data = client
@@ -656,9 +715,7 @@ async fn exec_workitems(
             }
             let data = client
                 .post(
-                    &format!(
-                        "/oapi/v1/projex/organizations/{oid}/workitems"
-                    ),
+                    &format!("/oapi/v1/projex/organizations/{oid}/workitems"),
                     &body,
                 )
                 .await?;
@@ -695,9 +752,7 @@ async fn exec_workitems(
         WorkitemsCmds::Types(_t) => {
             let data = client
                 .get(
-                    &format!(
-                        "/oapi/v1/projex/organizations/{oid}/workitemTypes"
-                    ),
+                    &format!("/oapi/v1/projex/organizations/{oid}/workitemTypes"),
                     &[],
                 )
                 .await?;

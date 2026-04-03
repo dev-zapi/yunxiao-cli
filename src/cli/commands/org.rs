@@ -159,9 +159,7 @@ pub async fn execute(
             output::print_output(&data, format)?;
         }
         OrgCommands::List => {
-            let data = client
-                .get("/oapi/v1/platform/organizations", &[])
-                .await?;
+            let data = client.get("/oapi/v1/platform/organizations", &[]).await?;
             output::print_output(&data, format)?;
         }
         OrgCommands::Members(m) => match &m.command {
@@ -181,7 +179,10 @@ pub async fn execute(
                 let oid = require_org_id(&org_id)?;
                 let data = client
                     .get(
-                        &format!("/oapi/v1/platform/organizations/{oid}/members/{}", g.user_id),
+                        &format!(
+                            "/oapi/v1/platform/organizations/{oid}/members/{}",
+                            g.user_id
+                        ),
                         &[],
                     )
                     .await?;
@@ -203,7 +204,10 @@ pub async fn execute(
             DepartmentsCommands::List => {
                 let oid = require_org_id(&org_id)?;
                 let data = client
-                    .get(&format!("/oapi/v1/platform/organizations/{oid}/departments"), &[])
+                    .get(
+                        &format!("/oapi/v1/platform/organizations/{oid}/departments"),
+                        &[],
+                    )
                     .await?;
                 output::print_output(&data, format)?;
             }

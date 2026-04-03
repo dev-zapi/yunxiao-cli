@@ -295,10 +295,8 @@ async fn exec_pipelines(
         PipelinesCmds::List(l) => {
             let page = l.page.to_string();
             let per_page = l.per_page.to_string();
-            let mut params: Vec<(&str, &str)> = vec![
-                ("page", page.as_str()),
-                ("perPage", per_page.as_str()),
-            ];
+            let mut params: Vec<(&str, &str)> =
+                vec![("page", page.as_str()), ("perPage", per_page.as_str())];
             if let Some(ref kw) = l.keyword {
                 params.push(("keyword", kw.as_str()));
             }
@@ -379,9 +377,8 @@ async fn exec_runs(
         RunsCmds::Create(c) => {
             let body = if let Some(ref p) = c.params {
                 // Parse user-supplied JSON parameters
-                serde_json::from_str(p).map_err(|e| {
-                    crate::error::CliError::Api(format!("Invalid params JSON: {e}"))
-                })?
+                serde_json::from_str(p)
+                    .map_err(|e| crate::error::CliError::Api(format!("Invalid params JSON: {e}")))?
             } else {
                 json!({})
             };

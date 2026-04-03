@@ -19,7 +19,7 @@ use clap::Parser;
 #[derive(Debug, Parser)]
 #[command(
     name = "yunxiao",
-    version,
+    version = concat!(env!("CARGO_PKG_VERSION"), "\nBuild time: ", env!("BUILD_TIME"), "\nGit commit: ", env!("GIT_COMMIT_HASH")),
     about = "YunXiao CLI - Alibaba Cloud DevOps command-line client",
     long_about = "A comprehensive command-line interface for the Alibaba Cloud \
                   YunXiao (云效) DevOps platform. Manage projects, code, pipelines, \

@@ -90,14 +90,8 @@ fn cmd_get(args: &GetArgs, format: &OutputFormat) -> Result<()> {
             .default_output
             .map(|o| o.to_string())
             .unwrap_or_default(),
-        "log_level" => cfg
-            .log_level
-            .map(|l| l.to_string())
-            .unwrap_or_default(),
-        "timeout" => cfg
-            .timeout
-            .map(|t| t.to_string())
-            .unwrap_or_default(),
+        "log_level" => cfg.log_level.map(|l| l.to_string()).unwrap_or_default(),
+        "timeout" => cfg.timeout.map(|t| t.to_string()).unwrap_or_default(),
         other => {
             return Err(CliError::Config(format!(
                 "Unknown config key '{other}'. Valid keys: token, endpoint, organization_id, default_output, log_level, timeout"
@@ -124,10 +118,7 @@ fn cmd_set(args: &SetArgs, format: &OutputFormat) -> Result<()> {
             cfg.default_output = Some(fmt);
         }
         "log_level" => {
-            let lvl = args
-                .value
-                .parse::<LogLevel>()
-                .map_err(CliError::Config)?;
+            let lvl = args.value.parse::<LogLevel>().map_err(CliError::Config)?;
             cfg.log_level = Some(lvl);
         }
         "timeout" => {

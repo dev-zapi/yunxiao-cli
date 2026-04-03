@@ -601,10 +601,8 @@ async fn exec_commits(
         CommitsCmds::List(l) => {
             let page = l.page.to_string();
             let per_page = l.per_page.to_string();
-            let mut params: Vec<(&str, &str)> = vec![
-                ("page", page.as_str()),
-                ("perPage", per_page.as_str()),
-            ];
+            let mut params: Vec<(&str, &str)> =
+                vec![("page", page.as_str()), ("perPage", per_page.as_str())];
             if let Some(ref r) = l.ref_name {
                 params.push(("refName", r.as_str()));
             }
@@ -773,10 +771,8 @@ async fn exec_mr(
             let page = l.page.to_string();
             let per_page = l.per_page.to_string();
             let repo_id_str;
-            let mut params: Vec<(&str, &str)> = vec![
-                ("page", page.as_str()),
-                ("perPage", per_page.as_str()),
-            ];
+            let mut params: Vec<(&str, &str)> =
+                vec![("page", page.as_str()), ("perPage", per_page.as_str())];
             if let Some(ref s) = l.state {
                 params.push(("state", s.as_str()));
             }
@@ -786,9 +782,7 @@ async fn exec_mr(
             }
             let data = client
                 .get(
-                    &format!(
-                        "/oapi/v1/codeup/organizations/{oid}/changeRequests"
-                    ),
+                    &format!("/oapi/v1/codeup/organizations/{oid}/changeRequests"),
                     &params,
                 )
                 .await?;

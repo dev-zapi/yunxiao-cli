@@ -343,10 +343,10 @@ async fn exec_cases(
             CaseDirsCmds::List(l) => {
                 let data = client
                     .get(
-                    &format!(
-                        "/oapi/v1/testhub/organizations/{oid}/testRepos/{}/directories",
-                        l.space_id
-                    ),
+                        &format!(
+                            "/oapi/v1/testhub/organizations/{oid}/testRepos/{}/directories",
+                            l.space_id
+                        ),
                         &[],
                     )
                     .await?;
@@ -359,10 +359,10 @@ async fn exec_cases(
                 }
                 let data = client
                     .post(
-                    &format!(
-                        "/oapi/v1/testhub/organizations/{oid}/testRepos/{}/directories",
-                        c.space_id
-                    ),
+                        &format!(
+                            "/oapi/v1/testhub/organizations/{oid}/testRepos/{}/directories",
+                            c.space_id
+                        ),
                         &body,
                     )
                     .await?;
@@ -399,9 +399,7 @@ async fn exec_plans(
         PlansCmds::List(_l) => {
             let data = client
                 .post(
-                    &format!(
-                        "/oapi/v1/projex/organizations/{oid}/testPlan/list",
-                    ),
+                    &format!("/oapi/v1/projex/organizations/{oid}/testPlan/list",),
                     &json!({}),
                 )
                 .await?;
