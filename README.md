@@ -4,6 +4,12 @@
   <img src="https://img.shields.io/badge/YunXiao-DevOps-blue?style=for-the-badge" alt="YunXiao">
 </p>
 
+<p align="center">
+  <img src="https://img.shields.io/github/license/your-org/yunxiao-cli?style=flat-square" alt="License">
+  <img src="https://img.shields.io/badge/version-0.1.0-blue?style=flat-square" alt="Version">
+  <img src="https://img.shields.io/badge/platform-windows%20%7C%20linux%20%7C%20macos-lightgrey?style=flat-square" alt="Platform">
+</p>
+
 <h1 align="center">云效 CLI</h1>
 
 <p align="center">
