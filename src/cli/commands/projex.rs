@@ -187,6 +187,10 @@ pub struct WiCreateArgs {
     /// Description body (optional).
     #[arg(long)]
     pub description: Option<String>,
+    /// Description format: RICHTEXT or MARKDOWN (default).
+    /// Defaults to MARKDOWN when description is provided.
+    #[arg(long, value_parser = ["RICHTEXT", "MARKDOWN"])]
+    pub description_format: Option<String>,
     /// Assignee user ID (optional).
     #[arg(long)]
     pub assignee: Option<String>,
@@ -213,6 +217,10 @@ pub struct WiUpdateArgs {
     /// New description (optional).
     #[arg(long)]
     pub description: Option<String>,
+    /// Description format: RICHTEXT or MARKDOWN (default).
+    /// Defaults to MARKDOWN when description is provided.
+    #[arg(long, value_parser = ["RICHTEXT", "MARKDOWN"])]
+    pub description_format: Option<String>,
     /// New assignee (optional).
     #[arg(long)]
     pub assignee: Option<String>,
@@ -703,6 +711,7 @@ async fn exec_workitems(
             });
             if let Some(ref desc) = c.description {
                 body["description"] = json!(desc);
+                body["formatType"] = json!(c.description_format.as_deref().unwrap_or("MARKDOWN"));
             }
             if let Some(ref assignee) = c.assignee {
                 body["assignee"] = json!(assignee);
@@ -728,6 +737,7 @@ async fn exec_workitems(
             }
             if let Some(ref d) = u.description {
                 body["description"] = json!(d);
+                body["formatType"] = json!(u.description_format.as_deref().unwrap_or("MARKDOWN"));
             }
             if let Some(ref a) = u.assignee {
                 body["assignee"] = json!(a);
