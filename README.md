@@ -1,13 +1,7 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white" alt="Rust">
-  <img src="https://img.shields.io/badge/Alibaba%20Cloud-FF6A00?style=for-the-badge&logo=alibabadotcom&logoColor=white" alt="Alibaba Cloud">
-  <img src="https://img.shields.io/badge/YunXiao-DevOps-blue?style=for-the-badge" alt="YunXiao">
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/github/license/your-org/yunxiao-cli?style=flat-square" alt="License">
-  <img src="https://img.shields.io/badge/version-0.1.0-blue?style=flat-square" alt="Version">
-  <img src="https://img.shields.io/badge/platform-windows%20%7C%20linux%20%7C%20macos-lightgrey?style=flat-square" alt="Platform">
+  <img src="https://img.shields.io/github/license/your-org/yunxiao-cli?style=for-the-badge" alt="License">
+  <img src="https://img.shields.io/badge/version-0.1.0-007EC6?style=for-the-badge" alt="Version">
+  <img src="https://img.shields.io/badge/platform-windows%20%7C%20linux%20%7C%20macos-6C757D?style=for-the-badge" alt="Platform">
 </p>
 
 <h1 align="center">云效 CLI</h1>
