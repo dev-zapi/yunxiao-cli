@@ -1,354 +1,293 @@
 # YunXiao CLI Skill
 
-## Overview
+## 用途
 
-This skill provides comprehensive instructions for developing and using the **YunXiao CLI** - a command-line interface for the Alibaba Cloud YunXiao (DevOps) platform built with Rust.
+阿里云云效（YunXiao）DevOps 平台的命令行工具，用于通过终端管理完整的 DevOps 生命周期。
 
-## Purpose
+## 能做什么
 
-Manage the entire DevOps lifecycle through the command line: authentication, organizations, projects, work items, code repositories, pipelines, deployments, packages, tests, and analytics.
+- **认证管理** - 登录、查看用户信息、登出
+- **组织管理** - 查看组织信息、成员、部门、角色
+- **项目协作** - 管理工作项（需求/任务/缺陷）、迭代、版本
+- **代码管理** - 查看仓库、分支、提交代码、发起合并请求
+- **流水线** - 查看流水线、触发构建、查看构建日志
+- **应用交付** - 管理应用、环境变量、创建部署
+- **制品库** - 查看制品仓库和构建产物
+- **测试管理** - 查看测试用例、测试计划、测试结果
+- **效率洞察** - 查看效能分析数据
+- **知识库** - 查看文档和页面
 
-## Key Commands
+## 使用前提
 
-### Build & Development
+1. 登录云效控制台获取个人访问令牌（PAT）
+2. 使用以下方式之一配置认证：
+   - 环境变量: `export YUNXIAO_CLI_TOKEN=<your_token>`
+   - 配置文件: `~/.config/yunxiao/config.toml`
 
-```bash
-# Build the CLI
-cargo build --release
+## 命令参考
 
-# Run with debug logging
-YUNXIAO_CLI_LOG_LEVEL=debug cargo run -- <command>
-
-# Run tests
-cargo test
-
-# Lint
-cargo clippy --all-targets
-
-# Generate documentation
-cargo doc --open
-```
-
-### Authentication Commands
+### 认证相关
 
 ```bash
-# Login with token
-yunxiao auth login --token <PERSONAL_ACCESS_TOKEN>
-
-# Check current user
+# 查看当前登录用户
 yunxiao auth whoami
 
-# Check auth status
+# 查看认证状态
 yunxiao auth status
 
-# Logout
+# 登出（清除本地 token）
 yunxiao auth logout
 ```
 
-### Configuration Commands
+### 配置管理
 
 ```bash
-# List all config
+# 查看所有配置
 yunxiao config list
 
-# Get specific config value
+# 获取配置项
 yunxiao config get token
 yunxiao config get default_output
 yunxiao config get organization_id
 
-# Set config value
+# 设置配置项
 yunxiao config set default_output table
 yunxiao config set timeout 60
 yunxiao config set organization_id <ORG_ID>
 
-# Delete config key
+# 删除配置项
 yunxiao config delete organization_id
 
-# Show config file path
+# 查看配置文件路径
 yunxiao config path
 ```
 
-### Organization Commands
+### 组织与成员
 
 ```bash
-# List organizations
+# 列出所有组织
 yunxiao org list
 
-# Get organization info
+# 查看组织详情
 yunxiao org info --org-id <ORG_ID>
 
-# List members
+# 列出成员
 yunxiao org members list --org-id <ORG_ID>
 
-# Get specific member
-yunxiao org members get --user-id <USER_ID> --org-id <ORG_ID>
-
-# Search members
+# 搜索成员
 yunxiao org members search --query "alice" --org-id <ORG_ID>
 
-# List departments
+# 查看成员详情
+yunxiao org members get --user-id <USER_ID> --org-id <ORG_ID>
+
+# 列出部门
 yunxiao org departments list --org-id <ORG_ID>
 
-# List roles
+# 列出角色
 yunxiao org roles list --org-id <ORG_ID>
 ```
 
-### Project (Projex) Commands
+### 项目协作（Projex）
 
 ```bash
-# Search projects
+# 搜索项目
 yunxiao projex projects search --keyword "demo" --org-id <ORG_ID>
 
-# Get project details
+# 查看项目详情
 yunxiao projex projects get --project-id <PROJECT_ID> --org-id <ORG_ID>
 
-# Search work items (requirements)
-yunxiao projex workitems search --space-id <SPACE_ID> --category Req --org-id <ORG_ID>
+# 搜索工作项（Req=需求, Task=任务, Bug=缺陷）
+yunxiao projex workitems search --space-id <PROJECT_ID> --category Req --org-id <ORG_ID>
 
-# Get work item
-yunxiao projex workitems get --space-id <SPACE_ID> --workitem-id <WORKITEM_ID> --org-id <ORG_ID>
+# 查看工作项详情
+yunxiao projex workitems get --space-id <PROJECT_ID> --workitem-id <WORKITEM_ID> --org-id <ORG_ID>
 
-# Create work item
-yunxiao projex workitems create --space-id <SPACE_ID> --category Req --subject "New feature" --org-id <ORG_ID>
+# 创建工作项
+yunxiao projex workitems create --space-id <PROJECT_ID> --category Req --subject "新功能" --org-id <ORG_ID>
 
-# List sprints
-yunxiao projex sprints list --space-id <SPACE_ID> --org-id <ORG_ID>
+# 列出迭代
+yunxiao projex sprints list --space-id <PROJECT_ID> --org-id <ORG_ID>
 
-# Create sprint
-yunxiao projex sprints create --space-id <SPACE_ID> --name "Sprint 1" --org-id <ORG_ID>
+# 创建迭代
+yunxiao projex sprints create --space-id <PROJECT_ID> --name "迭代1" --org-id <ORG_ID>
 
-# List versions
-yunxiao projex versions list --space-id <SPACE_ID> --org-id <ORG_ID>
+# 列出版本
+yunxiao projex versions list --space-id <PROJECT_ID> --org-id <ORG_ID>
 ```
 
-### Code Management (Codeup) Commands
+### 代码管理（Codeup）
 
 ```bash
-# List repositories
+# 列出代码仓库
 yunxiao codeup repos list --org-id <ORG_ID>
 
-# Get repository
+# 查看仓库详情
 yunxiao codeup repos get --repo-id <REPO_ID> --org-id <ORG_ID>
 
-# List branches
+# 列出分支
 yunxiao codeup branches list --repo-id <REPO_ID> --org-id <ORG_ID>
 
-# Create branch
+# 创建分支
 yunxiao codeup branches create --repo-id <REPO_ID> --branch feature/new --ref main --org-id <ORG_ID>
 
-# List merge requests
+# 列出合并请求
 yunxiao codeup mr list --repo-id <REPO_ID> --org-id <ORG_ID>
 
-# Create merge request
-yunxiao codeup mr create --repo-id <REPO_ID> --source feature/new --target main --title "Add feature" --org-id <ORG_ID>
+# 创建合并请求
+yunxiao codeup mr create --repo-id <REPO_ID> --source feature/new --target main --title "添加新功能" --org-id <ORG_ID>
 
-# List files
+# 查看文件列表
 yunxiao codeup files list --repo-id <REPO_ID> --org-id <ORG_ID>
 
-# Get file content
+# 查看文件内容
 yunxiao codeup files get --repo-id <REPO_ID> --path src/main.rs --org-id <ORG_ID>
 ```
 
-### Pipeline (Flow) Commands
+### 流水线（Flow）
 
 ```bash
-# List pipelines
+# 列出流水线
 yunxiao flow pipelines list --org-id <ORG_ID>
 
-# Get pipeline
+# 查看流水线详情
 yunxiao flow pipelines get --pipeline-id <PIPELINE_ID> --org-id <ORG_ID>
 
-# Create run
+# 触发流水线运行
 yunxiao flow runs create --pipeline-id <PIPELINE_ID> --org-id <ORG_ID>
 
-# List runs
+# 列出运行记录
 yunxiao flow runs list --pipeline-id <PIPELINE_ID> --org-id <ORG_ID>
 
-# Get latest run
+# 查看最新运行
 yunxiao flow runs latest --pipeline-id <PIPELINE_ID> --org-id <ORG_ID>
 
-# Get job logs
+# 查看任务日志
 yunxiao flow jobs log --pipeline-id <PIPELINE_ID> --run-id <RUN_ID> --job-id <JOB_ID> --org-id <ORG_ID>
 ```
 
-### Application Delivery (Appstack) Commands
+### 应用交付（Appstack）
 
 ```bash
-# List applications
+# 列出应用
 yunxiao appstack apps list --org-id <ORG_ID>
 
-# Get application
+# 查看应用详情
 yunxiao appstack apps get --app-name <APP_NAME> --org-id <ORG_ID>
 
-# List variables
+# 列出环境变量
 yunxiao appstack vars list --org-id <ORG_ID>
 
-# Create deployment
+# 创建部署
 yunxiao appstack deploy create --app-name <APP_NAME> --org-id <ORG_ID>
 ```
 
-### Package Management Commands
+### 制品库（Packages）
 
 ```bash
-# List package repositories
+# 列出制品仓库
 yunxiao packages repos list --org-id <ORG_ID>
 
-# List artifacts
+# 列出版本
 yunxiao packages artifacts list --repo-id <REPO_ID> --org-id <ORG_ID>
 ```
 
-### Test Management (Testhub) Commands
+### 测试管理（Testhub）
 
 ```bash
-# Search test cases
-yunxiao testhub cases search --space-id <SPACE_ID> --org-id <ORG_ID>
+# 搜索测试用例
+yunxiao testhub cases search --space-id <PROJECT_ID> --org-id <ORG_ID>
 
-# List test plans
-yunxiao testhub plans list --space-id <SPACE_ID> --org-id <ORG_ID>
+# 列出测试计划
+yunxiao testhub plans list --space-id <PROJECT_ID> --org-id <ORG_ID>
 
-# List test results
-yunxiao testhub plans results list --space-id <SPACE_ID> --plan-id <PLAN_ID> --org-id <ORG_ID>
+# 查看测试结果
+yunxiao testhub plans results list --space-id <PROJECT_ID> --plan-id <PLAN_ID> --org-id <ORG_ID>
 ```
 
-### Shell Completion
+### 效率洞察（Insight）
 
 ```bash
-# Generate Bash completion
+# 查看效能指标（具体参数根据实际 API 调整）
+yunxiao insight metrics --org-id <ORG_ID>
+```
+
+### 知识库（Thoughts）
+
+```bash
+# 列出文档
+yunxiao thoughts documents list --org-id <ORG_ID>
+
+# 查看页面
+yunxiao thoughts pages list --org-id <ORG_ID>
+```
+
+### 生成 Shell 补全
+
+```bash
+# Bash
 yunxiao completion generate --shell bash > ~/.local/share/bash-completion/completions/yunxiao
 
-# Generate Zsh completion
+# Zsh
 yunxiao completion generate --shell zsh > ~/.zfunc/_yunxiao
 
-# Generate PowerShell completion
+# PowerShell
 yunxiao completion generate --shell powershell > yunxiao.ps1
 ```
 
-## Global Flags
+## 全局参数
 
-All commands support these global flags:
+所有命令都支持以下全局参数：
 
-| Flag | Environment Variable | Description |
-|------|---------------------|-------------|
-| `-o, --output` | `YUNXIAO_CLI_OUTPUT` | Output format: json, text, table, markdown |
-| `--timeout` | `YUNXIAO_CLI_TIMEOUT` | API request timeout in seconds |
-| `--log-level` | `YUNXIAO_CLI_LOG_LEVEL` | Log level: debug, info, warn, error |
-| `--token` | `YUNXIAO_CLI_TOKEN` | Personal access token |
-| `--endpoint` | `YUNXIAO_CLI_ENDPOINT` | API endpoint URL |
-| `--org-id` | `YUNXIAO_CLI_ORG_ID` | Organization ID |
+| 参数 | 环境变量 | 说明 |
+|------|---------|------|
+| `-o, --output` | `YUNXIAO_CLI_OUTPUT` | 输出格式：json, text, table, markdown |
+| `--timeout` | `YUNXIAO_CLI_TIMEOUT` | API 请求超时时间（秒） |
+| `--log-level` | `YUNXIAO_CLI_LOG_LEVEL` | 日志级别：debug, info, warn, error |
+| `--token` | `YUNXIAO_CLI_TOKEN` | 个人访问令牌 |
+| `--endpoint` | `YUNXIAO_CLI_ENDPOINT` | API 端点地址 |
+| `--org-id` | `YUNXIAO_CLI_ORG_ID` | 组织 ID |
 
-## Configuration
+## 配置文件
 
-### Config File Location
+### 配置文件路径
 
 - Linux/macOS: `~/.config/yunxiao/config.toml`
 - Windows: `%APPDATA%\yunxiao\config.toml`
 
-### Config File Format
+### 配置文件示例
 
 ```toml
-# Personal access token
+# 个人访问令牌
 token = "pt_xxxxxxxxxxxxxxxxxxxx"
 
-# API endpoint domain (default: openapi-rdc.aliyuncs.com)
+# API 端点域名（默认：openapi-rdc.aliyuncs.com）
 domain = "openapi-rdc.aliyuncs.com"
 
-# Active organization ID
+# 默认组织 ID
 organization_id = "org-xxxxxxxx"
 
-# Default output format: json | text | table | markdown
-default_output = "json"
+# 默认输出格式：json | text | table | markdown
+default_output = "table"
 
-# Default log level: debug | info | warn | error
+# 日志级别：debug | info | warn | error
 log_level = "warn"
 
-# HTTP request timeout in seconds (default: 30)
+# 请求超时时间（秒，默认 30）
 timeout = 30
 ```
 
-### Configuration Priority
+### 配置优先级
 
-Settings are resolved in this order (highest priority first):
+配置按以下优先级从高到低生效：
 
-1. **CLI flags** – e.g. `--output json`, `--timeout 60`
-2. **Environment variables** – e.g. `YUNXIAO_CLI_TOKEN`, `YUNXIAO_CLI_OUTPUT`
-3. **Config file** – `~/.config/yunxiao/config.toml`
-4. **Built-in defaults** – JSON output, 30s timeout, warn log level
+1. **命令行参数** - 如 `--output json`, `--timeout 60`
+2. **环境变量** - 如 `YUNXIAO_CLI_TOKEN`, `YUNXIAO_CLI_OUTPUT`
+3. **配置文件** - `~/.config/yunxiao/config.toml`
+4. **默认值** - JSON 输出，30秒超时，warn 日志级别
 
-## Getting a Personal Access Token
+## 获取个人访问令牌
 
-1. Log in to [YunXiao Console](https://devops.console.aliyun.com/)
-2. Click your avatar > **Personal Settings** > **Personal Access Token**
-3. Click **Create Token**
-4. Copy the token (shown only once)
-
-## Project Structure
-
-```
-src/
-├── main.rs              # Entry point
-├── lib.rs               # Library root
-├── error/mod.rs         # Unified error types (CliError)
-├── config/              # Configuration layer
-│   ├── mod.rs           # Config management with 4-tier priority
-│   └── types.rs         # OutputFormat, LogLevel, CliConfig
-├── cache/mod.rs         # File-based JSON cache
-├── auth/mod.rs          # Token management
-├── client/mod.rs        # HTTP client (reqwest + x-devops-pat auth)
-├── output/mod.rs        # Output formatting
-└── cli/
-    ├── mod.rs           # Root CLI definition
-    └── commands/
-        ├── mod.rs       # Commands enum
-        ├── auth.rs      # Authentication commands
-        ├── config_cmd.rs # Configuration commands
-        ├── org.rs       # Organization commands
-        ├── projex.rs    # Project collaboration commands
-        ├── codeup.rs    # Code management commands
-        ├── flow.rs      # Pipeline commands
-        ├── appstack.rs  # Application delivery commands
-        ├── packages.rs  # Package commands
-        ├── testhub.rs   # Test management commands
-        ├── insight.rs   # Analytics commands
-        ├── thoughts.rs  # Knowledge base commands
-        └── completion.rs # Shell completion
-```
-
-## Common Development Tasks
-
-### Adding a New Subcommand
-
-1. Create a new file in `src/cli/commands/<module>.rs`
-2. Define argument structs with clap derive macros
-3. Implement the `execute` function
-4. Add the module to `src/cli/commands/mod.rs`
-5. Add the variant to the `Commands` enum
-
-### Adding API Endpoints
-
-1. Add request/response structs in the relevant command module
-2. Implement the API call in the client or command module
-3. Handle errors using the `CliError` type
-4. Format output using the output module
-
-### Testing
-
-```bash
-# Run all tests
-cargo test
-
-# Run specific test
-cargo test test_name
-
-# Run with output
-cargo test -- --nocapture
-```
-
-## Best Practices
-
-- Always use the `CliError` type for error handling
-- Use the `Output` trait for formatting results
-- Support all four output formats (json, text, table, markdown)
-- Add help text to all CLI arguments
-- Use environment variables for global flags
-- Handle missing org-id gracefully with helpful error messages
-- Cache frequently accessed data when appropriate
+1. 登录 [云效控制台](https://devops.console.aliyun.com/)
+2. 点击右上角头像 → **个人设置** → **个人访问令牌**
+3. 点击 **创建令牌**
+4. 复制令牌（仅显示一次）
