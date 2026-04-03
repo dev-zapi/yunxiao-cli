@@ -136,6 +136,8 @@ pub enum WorkitemsCmds {
     Update(WiUpdateArgs),
     /// List work-item types in a space.
     Types(WiTypesArgs),
+    /// Get field configuration for a work-item type.
+    TypeFields(WiTypeFieldsArgs),
     /// Manage work-item comments.
     Comments(WiCommentsArgs),
     /// Manage work-item attachments.
@@ -237,6 +239,17 @@ pub struct WiTypesArgs {
     /// Project space ID.
     #[arg(long)]
     pub space_id: String,
+}
+
+/// Arguments for `projex workitems type-fields`.
+#[derive(Debug, Args)]
+pub struct WiTypeFieldsArgs {
+    /// Project ID.
+    #[arg(long)]
+    pub project_id: String,
+    /// Work-item type ID.
+    #[arg(long)]
+    pub type_id: String,
 }
 
 // ───── Work-item comments ───────────────────────────────────────────────
@@ -784,6 +797,18 @@ async fn exec_workitems(
             let data = client
                 .get(
                     &format!("/oapi/v1/projex/organizations/{oid}/workitemTypes"),
+                    &[],
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+        WorkitemsCmds::TypeFields(tf) => {
+            let data = client
+                .get(
+                    &format!(
+                        "/oapi/v1/projex/organizations/{oid}/projects/{}/workitemTypes/{}/fields",
+                        tf.project_id, tf.type_id
+                    ),
                     &[],
                 )
                 .await?;
