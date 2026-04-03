@@ -107,15 +107,16 @@ dist-macos-aarch64:
 
 ##@ Install
 
-## Install binary to /usr/local/bin
+## Install binary to $HOME/.local/bin as 'yunxiao'
 install: release
-	@cp $(TARGET_DIR)/$(PROFILE)/$(APP_NAME) /usr/local/bin/$(APP_NAME)
-	@echo "Installed $(APP_NAME) $(VERSION) to /usr/local/bin/"
+	@mkdir -p $(HOME)/.local/bin
+	@cp $(TARGET_DIR)/$(PROFILE)/$(APP_NAME) $(HOME)/.local/bin/yunxiao
+	@echo "Installed yunxiao $(VERSION) to $(HOME)/.local/bin/"
 
-## Remove binary from /usr/local/bin
+## Remove binary from $HOME/.local/bin
 uninstall:
-	@rm -f /usr/local/bin/$(APP_NAME)
-	@echo "Uninstalled $(APP_NAME) from /usr/local/bin/"
+	@rm -f $(HOME)/.local/bin/yunxiao
+	@echo "Uninstalled yunxiao from $(HOME)/.local/bin/"
 
 ##@ Clean
 
