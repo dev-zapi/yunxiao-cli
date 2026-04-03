@@ -1,2 +1,60 @@
 /target
 /dist
+
+# Environment variables and secrets
+.env
+.env.local
+.env.*.local
+.envrc
+*.env
+
+# Secrets and keys
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.cer
+certificates/
+secrets/
+credentials/
+
+# SSH keys
+id_rsa
+id_rsa.pub
+id_dsa
+id_dsa.pub
+id_ecdsa
+id_ecdsa.pub
+id_ed25519
+id_ed25519.pub
+
+# Configuration files that may contain sensitive data
+config.toml
+config.yaml
+config.yml
+config.json
+!example.config.toml
+!example.config.yaml
+!example.config.yml
+!example.config.json
+
+# Local development files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE and editor files
+.idea/
+.vscode/
+*.iml
+*.sublime-project
+*.sublime-workspace
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+logs/
