@@ -4,7 +4,6 @@
 //! sprints, versions, and effort records.
 
 use clap::{Args, Subcommand};
-use pulldown_cmark::{html, Options, Parser};
 use serde_json::json;
 
 use crate::client::ApiClient;
@@ -136,8 +135,6 @@ pub enum WorkitemsCmds {
     Update(WiUpdateArgs),
     /// List work-item types in a space.
     Types(WiTypesArgs),
-    /// Get field configuration for a work-item type.
-    TypeFields(WiTypeFieldsArgs),
     /// Manage work-item comments.
     Comments(WiCommentsArgs),
     /// Manage work-item attachments.
@@ -190,9 +187,6 @@ pub struct WiCreateArgs {
     /// Description body (optional).
     #[arg(long)]
     pub description: Option<String>,
-    /// Description format: text (plain text), markdown (converts to richtext), or html (richtext).
-    #[arg(long, default_value = "text", value_parser = ["text", "markdown", "html"])]
-    pub description_format: String,
     /// Assignee user ID (optional).
     #[arg(long)]
     pub assignee: Option<String>,
@@ -219,9 +213,6 @@ pub struct WiUpdateArgs {
     /// New description (optional).
     #[arg(long)]
     pub description: Option<String>,
-    /// Description format: text (plain text), markdown (converts to richtext), or html (richtext).
-    #[arg(long, default_value = "text", value_parser = ["text", "markdown", "html"])]
-    pub description_format: String,
     /// New assignee (optional).
     #[arg(long)]
     pub assignee: Option<String>,
@@ -239,17 +230,6 @@ pub struct WiTypesArgs {
     /// Project space ID.
     #[arg(long)]
     pub space_id: String,
-}
-
-/// Arguments for `projex workitems type-fields`.
-#[derive(Debug, Args)]
-pub struct WiTypeFieldsArgs {
-    /// Project ID.
-    #[arg(long)]
-    pub project_id: String,
-    /// Work-item type ID.
-    #[arg(long)]
-    pub type_id: String,
 }
 
 // ───── Work-item comments ───────────────────────────────────────────────
@@ -560,28 +540,6 @@ fn require_org(org_id: &Option<String>) -> Result<&str> {
     })
 }
 
-/// Helper: convert description to proper format for Yunxiao API.
-fn format_description(content: &str, format_type: &str) -> String {
-    match format_type {
-        "text" => content.to_string(),
-        "markdown" => {
-            let options = Options::empty();
-            let parser = Parser::new_ext(content, options);
-            let mut html_output = String::new();
-            html::push_html(&mut html_output, parser);
-
-            let wrapped_html = format!("<article class='4ever-article'>{}</article>", html_output);
-
-            json!({"htmlValue": wrapped_html}).to_string()
-        }
-        "html" => {
-            let wrapped_html = format!("<article class='4ever-article'>{}</article>", content);
-            json!({"htmlValue": wrapped_html}).to_string()
-        }
-        _ => content.to_string(),
-    }
-}
-
 // ─────────────────────────── Projects ───────────────────────────────────
 
 /// Execute project sub-operations.
@@ -744,8 +702,7 @@ async fn exec_workitems(
                 "spaceId": c.space_id,
             });
             if let Some(ref desc) = c.description {
-                let formatted_desc = format_description(desc, &c.description_format);
-                body["description"] = json!(formatted_desc);
+                body["description"] = json!(desc);
             }
             if let Some(ref assignee) = c.assignee {
                 body["assignee"] = json!(assignee);
@@ -770,8 +727,7 @@ async fn exec_workitems(
                 body["subject"] = json!(s);
             }
             if let Some(ref d) = u.description {
-                let formatted_desc = format_description(d, &u.description_format);
-                body["description"] = json!(formatted_desc);
+                body["description"] = json!(d);
             }
             if let Some(ref a) = u.assignee {
                 body["assignee"] = json!(a);
@@ -797,18 +753,6 @@ async fn exec_workitems(
             let data = client
                 .get(
                     &format!("/oapi/v1/projex/organizations/{oid}/workitemTypes"),
-                    &[],
-                )
-                .await?;
-            output::print_output(&data, format)?;
-        }
-        WorkitemsCmds::TypeFields(tf) => {
-            let data = client
-                .get(
-                    &format!(
-                        "/oapi/v1/projex/organizations/{oid}/projects/{}/workitemTypes/{}/fields",
-                        tf.project_id, tf.type_id
-                    ),
                     &[],
                 )
                 .await?;

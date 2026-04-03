@@ -21,7 +21,6 @@ thiserror = "2"
 anyhow = "1"
 comfy-table = "7"
 urlencoding = "2"
-pulldown-cmark = "0.12"
 
 [dev-dependencies]
 mockito = "1"
