@@ -69,7 +69,7 @@ pub struct MembersListArgs {
 /// Arguments for `org members get`.
 #[derive(Debug, Args)]
 pub struct MemberGetArgs {
-    /// User ID to look up.
+    /// User ID to look up. Get via: yunxiao org members list --org-id <ORG_ID>
     pub user_id: String,
 }
 

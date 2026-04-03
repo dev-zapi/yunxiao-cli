@@ -72,7 +72,7 @@ pub enum ArtifactsCmds {
 /// Arguments for `packages artifacts list`.
 #[derive(Debug, Args)]
 pub struct ArtifactsListArgs {
-    /// Repository ID.
+    /// Repository ID. Get via: yunxiao packages repos list
     #[arg(long)]
     pub repo_id: String,
     /// Search keyword (optional).
@@ -89,10 +89,10 @@ pub struct ArtifactsListArgs {
 /// Arguments for `packages artifacts get`.
 #[derive(Debug, Args)]
 pub struct ArtifactsGetArgs {
-    /// Repository ID.
+    /// Repository ID. Get via: yunxiao packages repos list
     #[arg(long)]
     pub repo_id: String,
-    /// Artifact ID.
+    /// Artifact ID. Get via: yunxiao packages artifacts list --repo-id <REPO_ID>
     #[arg(long)]
     pub artifact_id: String,
 }

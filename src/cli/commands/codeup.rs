@@ -68,7 +68,7 @@ pub struct ReposListArgs {
 /// Arguments for `codeup repos get`.
 #[derive(Debug, Args)]
 pub struct ReposGetArgs {
-    /// Repository ID.
+    /// Repository ID. Get via: yunxiao codeup repos list
     #[arg(long)]
     pub repo_id: String,
 }
@@ -98,7 +98,7 @@ pub enum BranchesCmds {
 /// Arguments for `codeup branches list`.
 #[derive(Debug, Args)]
 pub struct BranchListArgs {
-    /// Repository ID.
+    /// Repository ID. Get via: yunxiao codeup repos list
     #[arg(long)]
     pub repo_id: String,
     /// Page number.
@@ -112,7 +112,7 @@ pub struct BranchListArgs {
 /// Arguments for `codeup branches get`.
 #[derive(Debug, Args)]
 pub struct BranchGetArgs {
-    /// Repository ID.
+    /// Repository ID. Get via: yunxiao codeup repos list
     #[arg(long)]
     pub repo_id: String,
     /// Branch name.
@@ -123,7 +123,7 @@ pub struct BranchGetArgs {
 /// Arguments for `codeup branches create`.
 #[derive(Debug, Args)]
 pub struct BranchCreateArgs {
-    /// Repository ID.
+    /// Repository ID. Get via: yunxiao codeup repos list
     #[arg(long)]
     pub repo_id: String,
     /// New branch name.
@@ -137,7 +137,7 @@ pub struct BranchCreateArgs {
 /// Arguments for `codeup branches delete`.
 #[derive(Debug, Args)]
 pub struct BranchDeleteArgs {
-    /// Repository ID.
+    /// Repository ID. Get via: yunxiao codeup repos list
     #[arg(long)]
     pub repo_id: String,
     /// Branch name to delete.
@@ -166,7 +166,7 @@ pub enum CommitsCmds {
 /// Arguments for `codeup commits list`.
 #[derive(Debug, Args)]
 pub struct CommitListArgs {
-    /// Repository ID.
+    /// Repository ID. Get via: yunxiao codeup repos list
     #[arg(long)]
     pub repo_id: String,
     /// Branch or tag to list commits for (defaults to default branch).
@@ -183,7 +183,7 @@ pub struct CommitListArgs {
 /// Arguments for `codeup commits get`.
 #[derive(Debug, Args)]
 pub struct CommitGetArgs {
-    /// Repository ID.
+    /// Repository ID. Get via: yunxiao codeup repos list
     #[arg(long)]
     pub repo_id: String,
     /// Commit SHA.
@@ -218,7 +218,7 @@ pub enum FilesCmds {
 /// Arguments for `codeup files list`.
 #[derive(Debug, Args)]
 pub struct FileListArgs {
-    /// Repository ID.
+    /// Repository ID. Get via: yunxiao codeup repos list
     #[arg(long)]
     pub repo_id: String,
     /// Path within the repository (defaults to root).
@@ -232,7 +232,7 @@ pub struct FileListArgs {
 /// Arguments for `codeup files get`.
 #[derive(Debug, Args)]
 pub struct FileGetArgs {
-    /// Repository ID.
+    /// Repository ID. Get via: yunxiao codeup repos list
     #[arg(long)]
     pub repo_id: String,
     /// File path within the repository.
@@ -246,7 +246,7 @@ pub struct FileGetArgs {
 /// Arguments for `codeup files create`.
 #[derive(Debug, Args)]
 pub struct FileCreateArgs {
-    /// Repository ID.
+    /// Repository ID. Get via: yunxiao codeup repos list
     #[arg(long)]
     pub repo_id: String,
     /// File path within the repository.
@@ -266,7 +266,7 @@ pub struct FileCreateArgs {
 /// Arguments for `codeup files update`.
 #[derive(Debug, Args)]
 pub struct FileUpdateArgs {
-    /// Repository ID.
+    /// Repository ID. Get via: yunxiao codeup repos list
     #[arg(long)]
     pub repo_id: String,
     /// File path within the repository.
@@ -286,7 +286,7 @@ pub struct FileUpdateArgs {
 /// Arguments for `codeup files delete`.
 #[derive(Debug, Args)]
 pub struct FileDeleteArgs {
-    /// Repository ID.
+    /// Repository ID. Get via: yunxiao codeup repos list
     #[arg(long)]
     pub repo_id: String,
     /// File path within the repository.
@@ -305,7 +305,7 @@ pub struct FileDeleteArgs {
 /// Arguments for `codeup compare`.
 #[derive(Debug, Args)]
 pub struct CompareArgs {
-    /// Repository ID.
+    /// Repository ID. Get via: yunxiao codeup repos list
     #[arg(long)]
     pub repo_id: String,
     /// Source ref (branch, tag, or SHA).
@@ -343,7 +343,7 @@ pub enum MrCmds {
 /// Arguments for `codeup mr list`.
 #[derive(Debug, Args)]
 pub struct MrListArgs {
-    /// Repository ID (optional filter).
+    /// Repository ID (optional filter). Get via: yunxiao codeup repos list
     #[arg(long)]
     pub repo_id: Option<String>,
     /// Filter by state (opened, closed, merged, all).
@@ -360,10 +360,10 @@ pub struct MrListArgs {
 /// Arguments for `codeup mr get`.
 #[derive(Debug, Args)]
 pub struct MrGetArgs {
-    /// Repository ID.
+    /// Repository ID. Get via: yunxiao codeup repos list
     #[arg(long)]
     pub repo_id: String,
-    /// Merge request ID.
+    /// Merge request ID. Get via: yunxiao codeup mr list --repo-id <REPO_ID>
     #[arg(long)]
     pub mr_id: String,
 }
@@ -371,7 +371,7 @@ pub struct MrGetArgs {
 /// Arguments for `codeup mr create`.
 #[derive(Debug, Args)]
 pub struct MrCreateArgs {
-    /// Repository ID.
+    /// Repository ID. Get via: yunxiao codeup repos list
     #[arg(long)]
     pub repo_id: String,
     /// Source branch.
@@ -409,10 +409,10 @@ pub enum MrCommentsCmds {
 /// Arguments for `codeup mr comments list`.
 #[derive(Debug, Args)]
 pub struct MrCommentsListArgs {
-    /// Repository ID.
+    /// Repository ID. Get via: yunxiao codeup repos list
     #[arg(long)]
     pub repo_id: String,
-    /// Merge request ID.
+    /// Merge request ID. Get via: yunxiao codeup mr list --repo-id <REPO_ID>
     #[arg(long)]
     pub mr_id: String,
 }
@@ -420,10 +420,10 @@ pub struct MrCommentsListArgs {
 /// Arguments for `codeup mr comments create`.
 #[derive(Debug, Args)]
 pub struct MrCommentsCreateArgs {
-    /// Repository ID.
+    /// Repository ID. Get via: yunxiao codeup repos list
     #[arg(long)]
     pub repo_id: String,
-    /// Merge request ID.
+    /// Merge request ID. Get via: yunxiao codeup mr list --repo-id <REPO_ID>
     #[arg(long)]
     pub mr_id: String,
     /// Comment content.
@@ -436,10 +436,10 @@ pub struct MrCommentsCreateArgs {
 /// Arguments for `codeup mr patchsets`.
 #[derive(Debug, Args)]
 pub struct MrPatchsetsArgs {
-    /// Repository ID.
+    /// Repository ID. Get via: yunxiao codeup repos list
     #[arg(long)]
     pub repo_id: String,
-    /// Merge request ID.
+    /// Merge request ID. Get via: yunxiao codeup mr list --repo-id <REPO_ID>
     #[arg(long)]
     pub mr_id: String,
 }

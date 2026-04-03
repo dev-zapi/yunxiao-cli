@@ -165,7 +165,7 @@ pub enum VarsCmds {
 /// Arguments for `appstack vars get`.
 #[derive(Debug, Args)]
 pub struct VarsGetArgs {
-    /// Variable group ID.
+    /// Variable group ID. Get via: yunxiao appstack vars list
     #[arg(long)]
     pub var_id: String,
 }
@@ -184,7 +184,7 @@ pub struct VarsCreateArgs {
 /// Arguments for `appstack vars update`.
 #[derive(Debug, Args)]
 pub struct VarsUpdateArgs {
-    /// Variable group ID.
+    /// Variable group ID. Get via: yunxiao appstack vars list
     #[arg(long)]
     pub var_id: String,
     /// Variables as a JSON string.
@@ -195,7 +195,7 @@ pub struct VarsUpdateArgs {
 /// Arguments for `appstack vars delete`.
 #[derive(Debug, Args)]
 pub struct VarsDeleteArgs {
-    /// Variable group ID.
+    /// Variable group ID. Get via: yunxiao appstack vars list
     #[arg(long)]
     pub var_id: String,
 }
@@ -238,7 +238,7 @@ pub struct OrchGetArgs {
     /// Application name.
     #[arg(long)]
     pub app_name: String,
-    /// Orchestration ID.
+    /// Orchestration ID. Get via: yunxiao appstack orchestrations list --app-name <APP_NAME>
     #[arg(long)]
     pub orch_id: String,
 }
@@ -260,7 +260,7 @@ pub struct OrchUpdateArgs {
     /// Application name.
     #[arg(long)]
     pub app_name: String,
-    /// Orchestration ID.
+    /// Orchestration ID. Get via: yunxiao appstack orchestrations list --app-name <APP_NAME>
     #[arg(long)]
     pub orch_id: String,
     /// Updated template content (optional).
@@ -274,7 +274,7 @@ pub struct OrchDeleteArgs {
     /// Application name.
     #[arg(long)]
     pub app_name: String,
-    /// Orchestration ID.
+    /// Orchestration ID. Get via: yunxiao appstack orchestrations list --app-name <APP_NAME>
     #[arg(long)]
     pub orch_id: String,
 }
@@ -305,7 +305,7 @@ pub struct ChangeCreateArgs {
     /// Application name.
     #[arg(long)]
     pub app_name: Option<String>,
-    /// Orchestration ID (optional).
+    /// Orchestration ID (optional). Get via: yunxiao appstack orchestrations list --app-name <APP_NAME>
     #[arg(long)]
     pub orch_id: Option<String>,
     /// Description (optional).
@@ -316,7 +316,7 @@ pub struct ChangeCreateArgs {
 /// Arguments for `appstack changes cancel`.
 #[derive(Debug, Args)]
 pub struct ChangeCancelArgs {
-    /// Change order ID.
+    /// Change order ID. Get via: yunxiao appstack changes list
     #[arg(long)]
     pub change_id: String,
 }
@@ -324,7 +324,7 @@ pub struct ChangeCancelArgs {
 /// Arguments for `appstack changes close`.
 #[derive(Debug, Args)]
 pub struct ChangeCloseArgs {
-    /// Change order ID.
+    /// Change order ID. Get via: yunxiao appstack changes list
     #[arg(long)]
     pub change_id: String,
 }
@@ -368,7 +368,7 @@ pub struct DeployCreateArgs {
 /// Arguments for `appstack deploy get`.
 #[derive(Debug, Args)]
 pub struct DeployGetArgs {
-    /// Change order ID.
+    /// Change order ID. Get via: yunxiao appstack changes list
     #[arg(long)]
     pub change_order_id: String,
 }
@@ -376,7 +376,7 @@ pub struct DeployGetArgs {
 /// Arguments for `appstack deploy log`.
 #[derive(Debug, Args)]
 pub struct DeployLogArgs {
-    /// Change order ID.
+    /// Change order ID. Get via: yunxiao appstack changes list
     #[arg(long)]
     pub change_order_id: String,
 }
@@ -384,7 +384,7 @@ pub struct DeployLogArgs {
 /// Arguments for `appstack deploy action`.
 #[derive(Debug, Args)]
 pub struct DeployActionArgs {
-    /// Change order ID.
+    /// Change order ID. Get via: yunxiao appstack changes list
     #[arg(long)]
     pub change_order_id: String,
     /// Action to perform (confirm, rollback, retry, abort).
@@ -450,7 +450,7 @@ pub struct StagesListArgs {
 /// Arguments for `appstack releases stages execute`.
 #[derive(Debug, Args)]
 pub struct StagesExecArgs {
-    /// Change order ID.
+    /// Change order ID. Get via: yunxiao appstack changes list
     #[arg(long)]
     pub change_id: String,
     /// Stage ID.
@@ -461,7 +461,7 @@ pub struct StagesExecArgs {
 /// Arguments for `appstack releases stages cancel`.
 #[derive(Debug, Args)]
 pub struct StagesCancelArgs {
-    /// Change order ID.
+    /// Change order ID. Get via: yunxiao appstack changes list
     #[arg(long)]
     pub change_id: String,
     /// Stage ID.

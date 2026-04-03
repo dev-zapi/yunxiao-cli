@@ -69,7 +69,7 @@ pub struct PipelineListArgs {
 /// Arguments for `flow pipelines get`.
 #[derive(Debug, Args)]
 pub struct PipelineGetArgs {
-    /// Pipeline ID.
+    /// Pipeline ID. Get via: yunxiao flow pipelines list
     #[arg(long)]
     pub pipeline_id: String,
 }
@@ -77,7 +77,7 @@ pub struct PipelineGetArgs {
 /// Arguments for `flow pipelines update`.
 #[derive(Debug, Args)]
 pub struct PipelineUpdateArgs {
-    /// Pipeline ID.
+    /// Pipeline ID. Get via: yunxiao flow pipelines list
     #[arg(long)]
     pub pipeline_id: String,
     /// YAML content for the pipeline definition.
@@ -110,7 +110,7 @@ pub enum RunsCmds {
 /// Arguments for `flow runs list`.
 #[derive(Debug, Args)]
 pub struct RunListArgs {
-    /// Pipeline ID.
+    /// Pipeline ID. Get via: yunxiao flow pipelines list
     #[arg(long)]
     pub pipeline_id: String,
     /// Page number.
@@ -124,10 +124,10 @@ pub struct RunListArgs {
 /// Arguments for `flow runs get`.
 #[derive(Debug, Args)]
 pub struct RunGetArgs {
-    /// Pipeline ID.
+    /// Pipeline ID. Get via: yunxiao flow pipelines list
     #[arg(long)]
     pub pipeline_id: String,
-    /// Run ID.
+    /// Run ID. Get via: yunxiao flow runs list --pipeline-id <PIPELINE_ID>
     #[arg(long)]
     pub run_id: String,
 }
@@ -135,7 +135,7 @@ pub struct RunGetArgs {
 /// Arguments for `flow runs create`.
 #[derive(Debug, Args)]
 pub struct RunCreateArgs {
-    /// Pipeline ID.
+    /// Pipeline ID. Get via: yunxiao flow pipelines list
     #[arg(long)]
     pub pipeline_id: String,
     /// Run parameters as a JSON string (optional).
@@ -146,7 +146,7 @@ pub struct RunCreateArgs {
 /// Arguments for `flow runs latest`.
 #[derive(Debug, Args)]
 pub struct RunLatestArgs {
-    /// Pipeline ID.
+    /// Pipeline ID. Get via: yunxiao flow pipelines list
     #[arg(long)]
     pub pipeline_id: String,
 }
@@ -176,7 +176,7 @@ pub enum JobsCmds {
 /// Arguments for `flow jobs list`.
 #[derive(Debug, Args)]
 pub struct JobListArgs {
-    /// Pipeline ID.
+    /// Pipeline ID. Get via: yunxiao flow pipelines list
     #[arg(long)]
     pub pipeline_id: String,
     /// Job category (e.g. BUILD, DEPLOY, TEST).
@@ -187,10 +187,10 @@ pub struct JobListArgs {
 /// Arguments for `flow jobs history`.
 #[derive(Debug, Args)]
 pub struct JobHistoryArgs {
-    /// Pipeline ID.
+    /// Pipeline ID. Get via: yunxiao flow pipelines list
     #[arg(long)]
     pub pipeline_id: String,
-    /// Job ID.
+    /// Job ID. Get via: yunxiao flow jobs list --pipeline-id <PIPELINE_ID> --run-id <RUN_ID>
     #[arg(long)]
     pub job_id: String,
 }
@@ -198,13 +198,13 @@ pub struct JobHistoryArgs {
 /// Arguments for `flow jobs run`.
 #[derive(Debug, Args)]
 pub struct JobRunArgs {
-    /// Pipeline ID.
+    /// Pipeline ID. Get via: yunxiao flow pipelines list
     #[arg(long)]
     pub pipeline_id: String,
-    /// Run ID.
+    /// Run ID. Get via: yunxiao flow runs list --pipeline-id <PIPELINE_ID>
     #[arg(long)]
     pub run_id: String,
-    /// Job ID.
+    /// Job ID. Get via: yunxiao flow jobs list --pipeline-id <PIPELINE_ID> --run-id <RUN_ID>
     #[arg(long)]
     pub job_id: String,
 }
@@ -212,13 +212,13 @@ pub struct JobRunArgs {
 /// Arguments for `flow jobs log`.
 #[derive(Debug, Args)]
 pub struct JobLogArgs {
-    /// Pipeline ID.
+    /// Pipeline ID. Get via: yunxiao flow pipelines list
     #[arg(long)]
     pub pipeline_id: String,
-    /// Run ID.
+    /// Run ID. Get via: yunxiao flow runs list --pipeline-id <PIPELINE_ID>
     #[arg(long)]
     pub run_id: String,
-    /// Job ID.
+    /// Job ID. Get via: yunxiao flow jobs list --pipeline-id <PIPELINE_ID> --run-id <RUN_ID>
     #[arg(long)]
     pub job_id: String,
 }

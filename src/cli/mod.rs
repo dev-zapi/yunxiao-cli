@@ -50,7 +50,7 @@ pub struct Cli {
     #[arg(long, global = true, env = "YUNXIAO_CLI_ENDPOINT")]
     pub endpoint: Option<String>,
 
-    /// Organization ID for org-scoped operations.
+    /// Organization ID for org-scoped operations. Get via: yunxiao org list or set via: yunxiao config set organization_id <ID>
     #[arg(long, global = true, env = "YUNXIAO_CLI_ORG_ID")]
     pub org_id: Option<String>,
 }

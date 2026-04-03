@@ -57,7 +57,7 @@ pub enum CasesCmds {
 /// Arguments for `testhub cases search`.
 #[derive(Debug, Args)]
 pub struct CaseSearchArgs {
-    /// Project space ID.
+    /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
     /// Search keyword (optional).
@@ -74,10 +74,10 @@ pub struct CaseSearchArgs {
 /// Arguments for `testhub cases get`.
 #[derive(Debug, Args)]
 pub struct CaseGetArgs {
-    /// Project space ID.
+    /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
-    /// Test case ID.
+    /// Test case ID. Get via: yunxiao testhub cases search --space-id <SPACE_ID>
     #[arg(long)]
     pub case_id: String,
 }
@@ -85,7 +85,7 @@ pub struct CaseGetArgs {
 /// Arguments for `testhub cases create`.
 #[derive(Debug, Args)]
 pub struct CaseCreateArgs {
-    /// Project space ID.
+    /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
     /// Test case subject / title.
@@ -94,7 +94,7 @@ pub struct CaseCreateArgs {
     /// Priority (e.g. P0, P1, P2, P3, optional).
     #[arg(long)]
     pub priority: Option<String>,
-    /// Directory ID to place the case in (optional).
+    /// Directory ID to place the case in (optional). Get via: yunxiao testhub cases directories list --space-id <SPACE_ID>
     #[arg(long)]
     pub directory_id: Option<String>,
     /// Pre-conditions (optional).
@@ -105,10 +105,10 @@ pub struct CaseCreateArgs {
 /// Arguments for `testhub cases delete`.
 #[derive(Debug, Args)]
 pub struct CaseDeleteArgs {
-    /// Project space ID.
+    /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
-    /// Test case ID.
+    /// Test case ID. Get via: yunxiao testhub cases search --space-id <SPACE_ID>
     #[arg(long)]
     pub case_id: String,
 }
@@ -134,7 +134,7 @@ pub enum CaseDirsCmds {
 /// Arguments for `testhub cases directories list`.
 #[derive(Debug, Args)]
 pub struct CaseDirsListArgs {
-    /// Project space ID.
+    /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
 }
@@ -142,13 +142,13 @@ pub struct CaseDirsListArgs {
 /// Arguments for `testhub cases directories create`.
 #[derive(Debug, Args)]
 pub struct CaseDirsCreateArgs {
-    /// Project space ID.
+    /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
     /// Directory name.
     #[arg(long)]
     pub name: String,
-    /// Parent directory ID (optional, omit for root).
+    /// Parent directory ID (optional, omit for root). Get via: yunxiao testhub cases directories list --space-id <SPACE_ID>
     #[arg(long)]
     pub parent_id: Option<String>,
 }
@@ -156,7 +156,7 @@ pub struct CaseDirsCreateArgs {
 /// Arguments for `testhub cases fields`.
 #[derive(Debug, Args)]
 pub struct CaseFieldsArgs {
-    /// Project space ID.
+    /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
 }
@@ -182,7 +182,7 @@ pub enum PlansCmds {
 /// Arguments for `testhub plans list`.
 #[derive(Debug, Args)]
 pub struct PlansListArgs {
-    /// Project space ID.
+    /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
 }
@@ -206,10 +206,10 @@ pub enum PlansResultsCmds {
 /// Arguments for `testhub plans results list`.
 #[derive(Debug, Args)]
 pub struct PlansResultsListArgs {
-    /// Project space ID.
+    /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
-    /// Test plan ID.
+    /// Test plan ID. Get via: yunxiao testhub plans list --space-id <SPACE_ID>
     #[arg(long)]
     pub plan_id: String,
 }
@@ -217,13 +217,13 @@ pub struct PlansResultsListArgs {
 /// Arguments for `testhub plans results update`.
 #[derive(Debug, Args)]
 pub struct PlansResultsUpdateArgs {
-    /// Project space ID.
+    /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
-    /// Test plan ID.
+    /// Test plan ID. Get via: yunxiao testhub plans list --space-id <SPACE_ID>
     #[arg(long)]
     pub plan_id: String,
-    /// Test case ID.
+    /// Test case ID. Get via: yunxiao testhub cases search --space-id <SPACE_ID>
     #[arg(long)]
     pub case_id: String,
     /// Result status (pass, fail, block, skip, etc.).

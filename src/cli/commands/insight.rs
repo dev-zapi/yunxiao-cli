@@ -70,7 +70,7 @@ pub enum ReportsCmds {
 /// Arguments for `insight reports get`.
 #[derive(Debug, Args)]
 pub struct ReportGetArgs {
-    /// Report ID.
+    /// Report ID. Get via: yunxiao insight reports list
     #[arg(long)]
     pub report_id: String,
 }

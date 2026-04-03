@@ -144,10 +144,10 @@ pub enum WorkitemsCmds {
 /// Arguments for `projex workitems search`.
 #[derive(Debug, Args)]
 pub struct WiSearchArgs {
-    /// Project space ID.
+    /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
-    /// Work-item category (e.g. Req, Task, Bug).
+    /// Work-item category (e.g. Req, Task, Bug). Get via: yunxiao projex workitems types --space-id <SPACE_ID>
     #[arg(long)]
     pub category: String,
     /// Optional keyword filter.
@@ -164,10 +164,10 @@ pub struct WiSearchArgs {
 /// Arguments for `projex workitems get`.
 #[derive(Debug, Args)]
 pub struct WiGetArgs {
-    /// Project space ID.
+    /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
-    /// Work item ID.
+    /// Work item ID. Get via: yunxiao projex workitems search --space-id <SPACE_ID> --category <CATEGORY>
     #[arg(long)]
     pub workitem_id: String,
 }
@@ -175,67 +175,61 @@ pub struct WiGetArgs {
 /// Arguments for `projex workitems create`.
 #[derive(Debug, Args)]
 pub struct WiCreateArgs {
-    /// Project space ID.
+    /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
-    /// Category (Req, Task, Bug, etc.).
+    /// Category (Req, Task, Bug, etc.). Get via: yunxiao projex workitems types --space-id <SPACE_ID>
     #[arg(long)]
     pub category: String,
     /// Work-item subject / title.
     #[arg(long)]
     pub subject: String,
-    /// Description body (optional).
-    #[arg(long)]
-    pub description: Option<String>,
-    /// Description format: RICHTEXT or MARKDOWN (default).
-    /// Defaults to MARKDOWN when description is provided.
-    #[arg(long, value_parser = ["RICHTEXT", "MARKDOWN"])]
-    pub description_format: Option<String>,
-    /// Assignee user ID (optional).
+    /// Assignee user ID. Get via: yunxiao org members list --org-id <ORG_ID>
     #[arg(long)]
     pub assignee: Option<String>,
-    /// Sprint ID to assign (optional).
+    /// Sprint ID. Get via: yunxiao projex sprints list --space-id <SPACE_ID>
     #[arg(long)]
     pub sprint_id: Option<String>,
-    /// Priority (optional).
+    /// Priority. Get via: yunxiao projex workitems fields --space-id <SPACE_ID> --type-id <TYPE_ID>
     #[arg(long)]
     pub priority: Option<String>,
+    /// Dynamic field in format "fieldId=value", can be used multiple times.
+    /// Use "yunxiao projex workitems fields --space-id <SPACE_ID> --type-id <TYPE_ID>" to get available field IDs.
+    #[arg(long = "field")]
+    pub fields: Vec<String>,
 }
 
 /// Arguments for `projex workitems update`.
 #[derive(Debug, Args)]
 pub struct WiUpdateArgs {
-    /// Project space ID.
+    /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
-    /// Work item ID.
+    /// Work item ID. Get via: yunxiao projex workitems search --space-id <SPACE_ID> --category <CATEGORY>
     #[arg(long)]
     pub workitem_id: String,
     /// New subject (optional).
     #[arg(long)]
     pub subject: Option<String>,
-    /// New description (optional).
-    #[arg(long)]
-    pub description: Option<String>,
-    /// Description format: RICHTEXT or MARKDOWN (default).
-    /// Defaults to MARKDOWN when description is provided.
-    #[arg(long, value_parser = ["RICHTEXT", "MARKDOWN"])]
-    pub description_format: Option<String>,
-    /// New assignee (optional).
+    /// New assignee user ID. Get via: yunxiao org members list --org-id <ORG_ID>
     #[arg(long)]
     pub assignee: Option<String>,
-    /// New status (optional).
+    /// New status. Get via: yunxiao projex workitems fields --space-id <SPACE_ID> --type-id <TYPE_ID>
     #[arg(long)]
     pub status: Option<String>,
-    /// New priority (optional).
+    /// New priority. Get via: yunxiao projex workitems fields --space-id <SPACE_ID> --type-id <TYPE_ID>
     #[arg(long)]
     pub priority: Option<String>,
+    /// Dynamic field in format "fieldId=value", can be used multiple times.
+    /// Use "yunxiao projex workitems fields --space-id <SPACE_ID> --type-id <TYPE_ID>" to get available field IDs.
+    #[arg(long = "field")]
+    pub fields: Vec<String>,
 }
 
 /// Arguments for `projex workitems types`.
 #[derive(Debug, Args)]
 pub struct WiTypesArgs {
-    /// Project space ID.
+    /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
 }
@@ -261,10 +255,10 @@ pub enum WiCommentsCmds {
 /// Arguments for comment listing.
 #[derive(Debug, Args)]
 pub struct WiCommentsListArgs {
-    /// Project space ID.
+    /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
-    /// Work item ID.
+    /// Work item ID. Get via: yunxiao projex workitems search --space-id <SPACE_ID> --category <CATEGORY>
     #[arg(long)]
     pub workitem_id: String,
 }
@@ -272,10 +266,10 @@ pub struct WiCommentsListArgs {
 /// Arguments for comment creation.
 #[derive(Debug, Args)]
 pub struct WiCommentsCreateArgs {
-    /// Project space ID.
+    /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
-    /// Work item ID.
+    /// Work item ID. Get via: yunxiao projex workitems search --space-id <SPACE_ID> --category <CATEGORY>
     #[arg(long)]
     pub workitem_id: String,
     /// Comment content.
@@ -302,10 +296,10 @@ pub enum WiAttachmentsCmds {
 /// Arguments for attachment listing.
 #[derive(Debug, Args)]
 pub struct WiAttachmentsListArgs {
-    /// Project space ID.
+    /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
-    /// Work item ID.
+    /// Work item ID. Get via: yunxiao projex workitems search --space-id <SPACE_ID> --category <CATEGORY>
     #[arg(long)]
     pub workitem_id: String,
 }
@@ -335,7 +329,7 @@ pub enum SprintsCmds {
 /// Arguments for `projex sprints list`.
 #[derive(Debug, Args)]
 pub struct SprintsListArgs {
-    /// Project space ID.
+    /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
 }
@@ -343,10 +337,10 @@ pub struct SprintsListArgs {
 /// Arguments for `projex sprints get`.
 #[derive(Debug, Args)]
 pub struct SprintsGetArgs {
-    /// Project space ID.
+    /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
-    /// Sprint ID.
+    /// Sprint ID. Get via: yunxiao projex sprints list --space-id <SPACE_ID>
     #[arg(long)]
     pub sprint_id: String,
 }
@@ -354,7 +348,7 @@ pub struct SprintsGetArgs {
 /// Arguments for `projex sprints create`.
 #[derive(Debug, Args)]
 pub struct SprintsCreateArgs {
-    /// Project space ID.
+    /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
     /// Sprint name.
@@ -371,10 +365,10 @@ pub struct SprintsCreateArgs {
 /// Arguments for `projex sprints update`.
 #[derive(Debug, Args)]
 pub struct SprintsUpdateArgs {
-    /// Project space ID.
+    /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
-    /// Sprint ID.
+    /// Sprint ID. Get via: yunxiao projex sprints list --space-id <SPACE_ID>
     #[arg(long)]
     pub sprint_id: String,
     /// New name (optional).
@@ -416,7 +410,7 @@ pub enum VersionsCmds {
 /// Arguments for `projex versions list`.
 #[derive(Debug, Args)]
 pub struct VersionsListArgs {
-    /// Project space ID.
+    /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
 }
@@ -424,7 +418,7 @@ pub struct VersionsListArgs {
 /// Arguments for `projex versions create`.
 #[derive(Debug, Args)]
 pub struct VersionsCreateArgs {
-    /// Project space ID.
+    /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
     /// Version name.
@@ -438,10 +432,10 @@ pub struct VersionsCreateArgs {
 /// Arguments for `projex versions update`.
 #[derive(Debug, Args)]
 pub struct VersionsUpdateArgs {
-    /// Project space ID.
+    /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
-    /// Version ID.
+    /// Version ID. Get via: yunxiao projex versions list --space-id <SPACE_ID>
     #[arg(long)]
     pub version_id: String,
     /// New name (optional).
@@ -458,10 +452,10 @@ pub struct VersionsUpdateArgs {
 /// Arguments for `projex versions delete`.
 #[derive(Debug, Args)]
 pub struct VersionsDeleteArgs {
-    /// Project space ID.
+    /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
-    /// Version ID.
+    /// Version ID. Get via: yunxiao projex versions list --space-id <SPACE_ID>
     #[arg(long)]
     pub version_id: String,
 }
@@ -498,10 +492,10 @@ pub struct EffortsListArgs {
 /// Arguments for `projex efforts create`.
 #[derive(Debug, Args)]
 pub struct EffortsCreateArgs {
-    /// Project space ID.
+    /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
-    /// Work item ID.
+    /// Work item ID. Get via: yunxiao projex workitems search --space-id <SPACE_ID> --category <CATEGORY>
     #[arg(long)]
     pub workitem_id: String,
     /// Duration in hours.
@@ -546,6 +540,22 @@ fn require_org(org_id: &Option<String>) -> Result<&str> {
             "Organization ID required. Set via --org-id, YUNXIAO_CLI_ORG_ID, or config.".into(),
         )
     })
+}
+
+/// Parse dynamic fields from "key=value" format.
+fn parse_dynamic_fields(fields: &[String]) -> Vec<(String, String)> {
+    fields
+        .iter()
+        .filter_map(|f| {
+            let parts: Vec<&str> = f.splitn(2, '=').collect();
+            if parts.len() == 2 {
+                Some((parts[0].to_string(), parts[1].to_string()))
+            } else {
+                log::warn!("Invalid field format: {}, expected \"key=value\"", f);
+                None
+            }
+        })
+        .collect()
 }
 
 // ─────────────────────────── Projects ───────────────────────────────────
@@ -709,10 +719,6 @@ async fn exec_workitems(
                 "subject": c.subject,
                 "spaceId": c.space_id,
             });
-            if let Some(ref desc) = c.description {
-                body["description"] = json!(desc);
-                body["formatType"] = json!(c.description_format.as_deref().unwrap_or("MARKDOWN"));
-            }
             if let Some(ref assignee) = c.assignee {
                 body["assignee"] = json!(assignee);
             }
@@ -722,6 +728,11 @@ async fn exec_workitems(
             if let Some(ref prio) = c.priority {
                 body["priority"] = json!(prio);
             }
+
+            for (key, value) in parse_dynamic_fields(&c.fields) {
+                body[key] = json!(value);
+            }
+
             let data = client
                 .post(
                     &format!("/oapi/v1/projex/organizations/{oid}/workitems"),
@@ -735,10 +746,6 @@ async fn exec_workitems(
             if let Some(ref s) = u.subject {
                 body["subject"] = json!(s);
             }
-            if let Some(ref d) = u.description {
-                body["description"] = json!(d);
-                body["formatType"] = json!(u.description_format.as_deref().unwrap_or("MARKDOWN"));
-            }
             if let Some(ref a) = u.assignee {
                 body["assignee"] = json!(a);
             }
@@ -748,6 +755,11 @@ async fn exec_workitems(
             if let Some(ref p) = u.priority {
                 body["priority"] = json!(p);
             }
+
+            for (key, value) in parse_dynamic_fields(&u.fields) {
+                body[key] = json!(value);
+            }
+
             let data = client
                 .put(
                     &format!(
