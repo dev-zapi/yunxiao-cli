@@ -1075,22 +1075,50 @@ async fn exec_workitems_search(
     client: &ApiClient,
     format: &OutputFormat,
 ) -> Result<()> {
+    // Build conditions according to API spec
+    // The API uses conditions parameter with conditionGroups for filtering
+    let mut conditions = Vec::new();
+
+    // Add keyword filter as subject CONTAINS condition if provided
+    if let Some(ref kw) = s.keyword {
+        conditions.push(json!({
+            "fieldIdentifier": "subject",
+            "operator": "CONTAINS",
+            "value": [kw],
+            "toValue": null,
+            "className": "string",
+            "format": "input"
+        }));
+    }
+
+    let conditions_str = if conditions.is_empty() {
+        None
+    } else {
+        Some(json!({ "conditionGroups": [conditions] }).to_string())
+    };
+
     let mut body = json!({
         "category": s.category,
         "spaceId": s.space_id,
         "page": s.page,
-        "pageSize": s.page_size,
+        "perPage": s.page_size,
     });
-    if let Some(ref kw) = s.keyword {
-        body["keyword"] = json!(kw);
+
+    if let Some(conds) = conditions_str {
+        body["conditions"] = json!(conds);
     }
-    let data = client
-        .post(
+
+    let resp = client
+        .post_with_headers(
             &format!("/oapi/v1/projex/organizations/{oid}/workitems:search"),
             &body,
         )
         .await?;
-    output::print_output(&data, format)?;
+
+    // Print pagination info if available
+    print_pagination_info(&resp.headers);
+
+    output::print_output(&resp.body, format)?;
     Ok(())
 }
 
