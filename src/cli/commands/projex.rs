@@ -288,6 +288,12 @@ pub struct WiTypesArgs {
     /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
+    /// Filter by work-item category (e.g. Req, Task, Bug).
+    #[arg(long)]
+    pub category: Option<String>,
+    /// Filter results locally by type name (case-insensitive substring).
+    #[arg(long)]
+    pub keyword: Option<String>,
 }
 
 // ───── Work-item comments ───────────────────────────────────────────────
@@ -973,14 +979,47 @@ async fn exec_workitems(
                 .await?;
             output::print_output(&data, format)?;
         }
-        WorkitemsCmds::Types(_t) => {
-            let data = client
-                .get(
-                    &format!("/oapi/v1/projex/organizations/{oid}/workitemTypes"),
-                    &[],
+        WorkitemsCmds::Types(t) => {
+            // When category is provided, use the project-scoped endpoint.
+            // API docs: https://help.aliyun.com/zh/yunxiao/developer-reference/listworkitemtypes?spm=a2c4g.11186623.help-menu-150040.d_5_0_7_13_1.3d65224fUbi08m&scm=20140722.H_2870624._.OR_help-T_cn~zh-V_1
+            // When category is not provided, use the organization-wide endpoint.
+            // API docs: https://help.aliyun.com/zh/yunxiao/developer-reference/listallworkitemtypes?spm=a2c4g.11186623.help-menu-150040.d_5_0_7_13_0.5c4c6a3beGaLvw&scm=20140722.H_2870623._.OR_help-T_cn~zh-V_1
+            let mut params: Vec<(&str, &str)> = Vec::new();
+            let path = if let Some(ref c) = t.category {
+                params.push(("category", c.as_str()));
+                format!(
+                    "/oapi/v1/projex/organizations/{oid}/projects/{}/workitemTypes",
+                    t.space_id
                 )
-                .await?;
-            output::print_output(&data, format)?;
+            } else {
+                format!("/oapi/v1/projex/organizations/{oid}/workitemTypes")
+            };
+
+            let data = client.get(&path, &params).await?;
+
+            // Local keyword filter by name
+            let filtered = if let Some(ref kw) = t.keyword {
+                let kw_lower = kw.to_lowercase();
+                if let Some(arr) = data.as_array() {
+                    let kept: Vec<serde_json::Value> = arr
+                        .iter()
+                        .filter(|item| {
+                            item.get("name")
+                                .and_then(|v| v.as_str())
+                                .map(|name| name.to_lowercase().contains(&kw_lower))
+                                .unwrap_or(false)
+                        })
+                        .cloned()
+                        .collect();
+                    serde_json::Value::Array(kept)
+                } else {
+                    data
+                }
+            } else {
+                data
+            };
+
+            output::print_output(&filtered, format)?;
         }
         WorkitemsCmds::Comments(c) => match &c.command {
             WiCommentsCmds::List(l) => {
