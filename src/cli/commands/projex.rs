@@ -4,6 +4,7 @@
 //! sprints, versions, and effort records.
 
 use clap::{Args, Subcommand};
+use reqwest::header::HeaderMap;
 use serde_json::json;
 
 use crate::client::ApiClient;
@@ -66,12 +67,30 @@ pub struct ProjectListArgs {
     /// Page number (1-based).
     #[arg(long, default_value = "1")]
     pub page: u32,
+    /// Sort field: gmtCreate (default) or name.
+    #[arg(long, value_enum, default_value = "gmtCreate")]
+    pub order_by: OrderByField,
+    /// Sort order: desc (default) or asc.
+    #[arg(long, value_enum, default_value = "desc")]
+    pub sort: SortOrder,
+    /// Filter by logical status (NORMAL, ARCHIVED, DELETED).
+    #[arg(long)]
+    pub status: Option<String>,
+    /// Filter by creator user ID.
+    #[arg(long)]
+    pub creator: Option<String>,
+    /// Filter by admin user ID.
+    #[arg(long)]
+    pub admin: Option<String>,
+    /// Extra conditions: managed, joined, or starred.
+    #[arg(long)]
+    pub scope: Option<String>,
 }
 
 /// Arguments for `projex projects search`.
 #[derive(Debug, Args)]
 pub struct ProjectSearchArgs {
-    /// Search keyword.
+    /// Search keyword (searches in project name).
     #[arg(long)]
     pub keyword: Option<String>,
     /// Page size (1-200).
@@ -80,6 +99,43 @@ pub struct ProjectSearchArgs {
     /// Page number (1-based).
     #[arg(long, default_value = "1")]
     pub page: u32,
+    /// Sort field: gmtCreate (default) or name.
+    #[arg(long, value_enum, default_value = "gmtCreate")]
+    pub order_by: OrderByField,
+    /// Sort order: desc (default) or asc.
+    #[arg(long, value_enum, default_value = "desc")]
+    pub sort: SortOrder,
+    /// Filter by logical status (NORMAL, ARCHIVED, DELETED).
+    #[arg(long)]
+    pub status: Option<String>,
+    /// Filter by creator user ID.
+    #[arg(long)]
+    pub creator: Option<String>,
+    /// Filter by admin user ID.
+    #[arg(long)]
+    pub admin: Option<String>,
+}
+
+/// Sort field for project listing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
+pub enum OrderByField {
+    /// Sort by creation time.
+    #[value(name = "gmtCreate")]
+    GmtCreate,
+    /// Sort by project name.
+    #[value(name = "name")]
+    Name,
+}
+
+/// Sort order for project listing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
+pub enum SortOrder {
+    /// Descending order.
+    #[value(name = "desc")]
+    Desc,
+    /// Ascending order.
+    #[value(name = "asc")]
+    Asc,
 }
 
 /// Arguments for `projex projects get`.
@@ -558,6 +614,30 @@ fn parse_dynamic_fields(fields: &[String]) -> Vec<(String, String)> {
         .collect()
 }
 
+/// Print pagination information from response headers.
+fn print_pagination_info(headers: &HeaderMap) {
+    if let Some(total) = get_header_int(headers, "x-total") {
+        eprintln!("Total: {}", total);
+    }
+    if let Some(page) = get_header_int(headers, "x-page") {
+        eprintln!("Page: {}", page);
+    }
+    if let Some(per_page) = get_header_int(headers, "x-per-page") {
+        eprintln!("Per Page: {}", per_page);
+    }
+    if let Some(total_pages) = get_header_int(headers, "x-total-pages") {
+        eprintln!("Total Pages: {}", total_pages);
+    }
+}
+
+/// Get integer value from response header.
+fn get_header_int(headers: &HeaderMap, key: &str) -> Option<u32> {
+    headers
+        .get(key)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.parse::<u32>().ok())
+}
+
 // ─────────────────────────── Projects ───────────────────────────────────
 
 /// Execute project sub-operations.
@@ -570,55 +650,193 @@ async fn exec_projects(
     let oid = require_org(org_id)?;
     match &args.command {
         ProjectsCmds::Search(s) => {
-            let mut body = json!({
-                "page": s.page,
-                "prePage": s.per_page,
-            });
+            // Build conditions according to API spec
+            let mut conditions = Vec::new();
+
+            // Add keyword filter if provided
             if let Some(ref kw) = s.keyword {
-                body["keyword"] = json!(kw);
+                conditions.push(json!({
+                    "className": "string",
+                    "fieldIdentifier": "name",
+                    "format": "input",
+                    "operator": "BETWEEN",
+                    "toValue": null,
+                    "value": [kw]
+                }));
             }
-            let data = client
-                .post(
+
+            // Add status filter if provided
+            if let Some(ref status) = s.status {
+                conditions.push(json!({
+                    "className": "string",
+                    "fieldIdentifier": "logicalStatus",
+                    "format": "list",
+                    "operator": "CONTAINS",
+                    "toValue": null,
+                    "value": [status]
+                }));
+            }
+
+            // Add creator filter if provided
+            if let Some(ref creator) = s.creator {
+                conditions.push(json!({
+                    "className": "user",
+                    "fieldIdentifier": "creator",
+                    "format": "list",
+                    "operator": "CONTAINS",
+                    "toValue": null,
+                    "value": [creator]
+                }));
+            }
+
+            // Add admin filter if provided
+            if let Some(ref admin) = s.admin {
+                conditions.push(json!({
+                    "className": "user",
+                    "fieldIdentifier": "project.admin",
+                    "format": "multiList",
+                    "operator": "CONTAINS",
+                    "toValue": null,
+                    "value": [admin]
+                }));
+            }
+
+            let body = json!({
+                "page": s.page,
+                "perPage": s.per_page,
+                "orderBy": match s.order_by {
+                    OrderByField::GmtCreate => "gmtCreate",
+                    OrderByField::Name => "name",
+                },
+                "sort": match s.sort {
+                    SortOrder::Desc => "desc",
+                    SortOrder::Asc => "asc",
+                },
+                "conditions": if conditions.is_empty() {
+                    None
+                } else {
+                    Some(json!({
+                        "conditionGroups": [conditions]
+                    }))
+                },
+            });
+
+            let resp = client
+                .post_with_headers(
                     &format!("/oapi/v1/projex/organizations/{oid}/projects:search"),
                     &body,
                 )
                 .await?;
-            output::print_output(&data, format)?;
+
+            // Print pagination info if available
+            print_pagination_info(&resp.headers);
+
+            output::print_output(&resp.body, format)?;
         }
         ProjectsCmds::List(l) => {
             let mut all_projects = Vec::new();
             let mut current_page = l.page;
             let per_page = l.per_page.min(200); // API限制最大200
 
+            // Build conditions according to API spec
+            let mut conditions = Vec::new();
+
+            // Add status filter if provided
+            if let Some(ref status) = l.status {
+                conditions.push(json!({
+                    "className": "string",
+                    "fieldIdentifier": "logicalStatus",
+                    "format": "list",
+                    "operator": "CONTAINS",
+                    "toValue": null,
+                    "value": [status]
+                }));
+            }
+
+            // Add creator filter if provided
+            if let Some(ref creator) = l.creator {
+                conditions.push(json!({
+                    "className": "user",
+                    "fieldIdentifier": "creator",
+                    "format": "list",
+                    "operator": "CONTAINS",
+                    "toValue": null,
+                    "value": [creator]
+                }));
+            }
+
+            // Add admin filter if provided
+            if let Some(ref admin) = l.admin {
+                conditions.push(json!({
+                    "className": "user",
+                    "fieldIdentifier": "project.admin",
+                    "format": "multiList",
+                    "operator": "CONTAINS",
+                    "toValue": null,
+                    "value": [admin]
+                }));
+            }
+
+            // Build extraConditions if scope is provided
+            let extra_conditions = l.scope.as_ref().map(|scope| json!({
+                "scope": scope
+            }));
+
             loop {
                 let body = json!({
                     "page": current_page,
                     "perPage": per_page,
+                    "orderBy": match l.order_by {
+                        OrderByField::GmtCreate => "gmtCreate",
+                        OrderByField::Name => "name",
+                    },
+                    "sort": match l.sort {
+                        SortOrder::Desc => "desc",
+                        SortOrder::Asc => "asc",
+                    },
+                    "conditions": if conditions.is_empty() {
+                        None
+                    } else {
+                        Some(json!({
+                            "conditionGroups": [conditions.clone()]
+                        }))
+                    },
+                    "extraConditions": extra_conditions,
                 });
 
-                let data = client
-                    .post(
+                let resp = client
+                    .post_with_headers(
                         &format!("/oapi/v1/projex/organizations/{oid}/projects:search"),
                         &body,
                     )
                     .await?;
 
+                // Parse response headers for pagination info
+                let headers = &resp.headers;
+                let total_pages = get_header_int(headers, "x-total-pages");
+                let current_resp_page = get_header_int(headers, "x-page").unwrap_or(current_page);
+
                 // 解析响应中的项目列表
-                if let Some(projects) = data.as_array() {
+                if let Some(projects) = resp.body.as_array() {
                     if projects.is_empty() {
                         break;
                     }
                     all_projects.extend(projects.clone());
 
-                    // 检查是否还有更多数据
-                    if projects.len() < per_page as usize {
+                    // Check if we've reached the last page using response headers
+                    if let Some(total) = total_pages {
+                        if current_resp_page >= total {
+                            break;
+                        }
+                    } else if projects.len() < per_page as usize {
+                        // Fallback: check if we got fewer results than requested
                         break;
                     }
                 } else {
                     break;
                 }
 
-                current_page += 1;
+                current_page = current_resp_page + 1;
 
                 // 安全检查：防止无限循环
                 if current_page > 100 {

@@ -64,16 +64,6 @@ impl Middleware for HeaderCaptureMiddleware {
     }
 }
 
-/// Debug information for a failed API request.
-#[derive(Debug)]
-struct DebugInfo {
-    method: String,
-    url: String,
-    headers: Vec<(String, String)>,
-    body: Option<String>,
-    response_headers: Vec<(String, String)>,
-}
-
 /// API client for all YunXiao REST calls.
 ///
 /// Constructed via [`ApiClient::new`] and used throughout command handlers
@@ -84,11 +74,9 @@ pub struct ApiClient {
     /// Base URL including scheme, e.g. `https://openapi-rdc.aliyuncs.com`.
     base_url: String,
     /// Personal access token sent in every request.
-    #[allow(dead_code)]
-    token: String,
+    _token: String,
     /// Per-request timeout.
-    #[allow(dead_code)]
-    timeout: Duration,
+    _timeout: Duration,
 }
 
 /// Response data including headers and body.
@@ -147,8 +135,8 @@ impl ApiClient {
         Ok(Self {
             http,
             base_url,
-            token: token.to_string(),
-            timeout: duration,
+            _token: token.to_string(),
+            _timeout: duration,
         })
     }
 
@@ -289,219 +277,6 @@ impl ApiClient {
         }
     }
 
-    /// Internal method to execute request with captured headers for debugging.
-    /// This is used when you need to capture headers on error.
-    async fn execute_with_debug(
-        &self,
-        method: &str,
-        path: &str,
-        params: Option<&[(&str, &str)]>,
-        body: Option<&serde_json::Value>,
-    ) -> Result<(serde_json::Value, CapturedHeaders)> {
-        let url = format!("{}{}", self.base_url, path);
-        
-        let mut req_builder = match method {
-            "GET" => self.http.get(&url),
-            "POST" => self.http.post(&url),
-            "PUT" => self.http.put(&url),
-            "DELETE" => self.http.delete(&url),
-            _ => return Err(CliError::Api(format!("Unsupported method: {method}"))),
-        };
-
-        if let Some(p) = params {
-            req_builder = req_builder.query(p);
-        }
-
-        if let Some(b) = body {
-            let body_str = b.to_string();
-            req_builder = req_builder
-                .header(reqwest::header::CONTENT_TYPE, "application/json")
-                .body(body_str);
-        }
-
-        // Build the request to capture headers
-        let request = req_builder.try_clone().ok_or_else(|| {
-            CliError::Api("Failed to clone request".to_string())
-        })?.build()?;
-
-        let request_headers: Vec<(String, String)> = request
-            .headers()
-            .iter()
-            .map(|(k, v)| {
-                let key = k.to_string();
-                let value = v.to_str().unwrap_or("[binary]").to_string();
-                (key, value)
-            })
-            .collect();
-
-        // Execute request
-        let resp = self.http.execute(request).await?;
-        let status = resp.status();
-        let response_headers: Vec<(String, String)> = resp
-            .headers()
-            .iter()
-            .map(|(k, v)| {
-                let key = k.to_string();
-                let value = v.to_str().unwrap_or("[binary]").to_string();
-                (key, value)
-            })
-            .collect();
-
-        let captured = CapturedHeaders {
-            request_headers,
-            response_headers,
-        };
-
-        if status.is_success() {
-            let text = resp.text().await?;
-            if text.is_empty() {
-                return Ok((serde_json::json!({"status": "ok"}), captured));
-            }
-            let value: serde_json::Value = serde_json::from_str(&text).map_err(|e| {
-                CliError::Api(format!("Failed to parse response JSON from {url}: {e}"))
-            })?;
-            Ok((value, captured))
-        } else {
-            let body_str = resp.text().await.unwrap_or_default();
-            
-            // Create debug info for error reporting
-            let debug_info = DebugInfo {
-                method: method.to_string(),
-                url: url.clone(),
-                headers: captured.request_headers.clone(),
-                body: body.map(|b| b.to_string()),
-                response_headers: captured.response_headers.clone(),
-            };
-            
-            self.save_debug_info(&debug_info, status.as_u16(), &body_str);
-            
-            Err(CliError::Api(format!("HTTP {status} from {url}: {body_str}")))
-        }
-    }
-
-    /// Save debug information to $XDG_DATA_HOME/yunxiao-cli/ directory when API call fails.
-    fn save_debug_info(&self, debug_info: &DebugInfo, status: u16, response_body: &str) {
-        use std::time::SystemTime;
-        use log::warn;
-        
-        // Get data directory (XDG_DATA_HOME, defaults to ~/.local/share)
-        let data_dir = match dirs::data_dir() {
-            Some(path) => path,
-            None => {
-                warn!("Could not determine data directory, skipping debug file save");
-                return;
-            }
-        };
-
-        let share_dir = data_dir.join("yunxiao-cli");
-        if !share_dir.exists() {
-            if let Err(e) = std::fs::create_dir_all(&share_dir) {
-                warn!("Failed to create {} directory: {}", share_dir.display(), e);
-                return;
-            }
-        }
-
-        // Generate timestamp for unique filename
-        let timestamp = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs();
-
-        let filename = format!(
-            "api-error-{}-{}-{}.txt",
-            timestamp,
-            debug_info.method.to_lowercase(),
-            status
-        );
-        let filepath = share_dir.join(&filename);
-
-        // Build debug output
-        let mut output = String::new();
-        output.push_str("============================================\n");
-        output.push_str("API ERROR DEBUG INFORMATION\n");
-        output.push_str("============================================\n\n");
-
-        // Request information
-        output.push_str("[REQUEST]\n");
-        output.push_str(&format!("Method: {}\n", debug_info.method));
-        output.push_str(&format!("URL: {}\n", debug_info.url));
-
-        if !debug_info.headers.is_empty() {
-            output.push_str("\nRequest Headers:\n");
-            for (key, value) in &debug_info.headers {
-                // Mask sensitive headers
-                let display_value = if key.to_lowercase() == "authorization"
-                    || key.to_lowercase() == "x-yunxiao-token"
-                {
-                    "***REDACTED***"
-                } else {
-                    value
-                };
-                output.push_str(&format!("  {}: {}\n", key, display_value));
-            }
-        }
-
-        if let Some(body) = &debug_info.body {
-            output.push_str("\nRequest Body:\n");
-            // Pretty print JSON if possible
-            match serde_json::from_str::<serde_json::Value>(body) {
-                Ok(json) => {
-                    if let Ok(pretty) = serde_json::to_string_pretty(&json) {
-                        output.push_str(&pretty);
-                    } else {
-                        output.push_str(body);
-                    }
-                }
-                Err(_) => output.push_str(body),
-            }
-            output.push('\n');
-        }
-
-        // Response information
-        output.push_str("\n--------------------------------------------\n");
-        output.push_str("[RESPONSE]\n");
-        output.push_str(&format!("Status Code: {}\n", status));
-
-        if !debug_info.response_headers.is_empty() {
-            output.push_str("\nResponse Headers:\n");
-            for (key, value) in &debug_info.response_headers {
-                output.push_str(&format!("  {}: {}\n", key, value));
-            }
-        }
-
-        output.push_str("\nResponse Body:\n");
-
-        // Try to pretty print JSON response
-        match serde_json::from_str::<serde_json::Value>(response_body) {
-            Ok(json) => {
-                if let Ok(pretty) = serde_json::to_string_pretty(&json) {
-                    output.push_str(&pretty);
-                } else {
-                    output.push_str(response_body);
-                }
-            }
-            Err(_) => output.push_str(response_body),
-        }
-        output.push('\n');
-
-        output.push_str("\n============================================\n");
-        output.push_str(&format!("Debug file: {}\n", filepath.display()));
-        output.push_str("============================================\n");
-
-        // Write to file
-        match std::fs::write(&filepath, output) {
-            Ok(_) => {
-                // Use eprintln! to always show this message regardless of log level
-                eprintln!(
-                    "[INFO] API error debug details saved to: {}",
-                    filepath.display()
-                );
-            }
-            Err(e) => {
-                eprintln!("[WARN] API error debug info save failed: {}", e);
-            }
-        }
-    }
 }
 
 #[cfg(test)]
@@ -514,8 +289,8 @@ mod tests {
         assert!(client.is_ok());
         let client = client.unwrap();
         assert_eq!(client.base_url, "https://openapi-rdc.aliyuncs.com");
-        assert_eq!(client.token, "test-token");
-        assert_eq!(client.timeout, Duration::from_secs(30));
+        assert_eq!(client._token, "test-token");
+        assert_eq!(client._timeout, Duration::from_secs(30));
     }
 
     #[test]

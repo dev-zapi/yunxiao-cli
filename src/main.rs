@@ -16,11 +16,33 @@ async fn main() {
     let cli = Cli::parse();
 
     // Resolve log level and initialise the logger.
-    let log_level = config::resolve_log_level(cli.log_level.as_ref());
-    env_logger::Builder::new()
-        .filter_level(log_level.to_level_filter())
-        .init();
-    debug!("Log level set to {}", log_level);
+    // Priority: CLI arg > RUST_LOG env var > config file > default (Warn)
+    let mut builder = env_logger::Builder::new();
+
+    // 1. Set default level (Warn)
+    builder.filter_level(log::LevelFilter::Warn);
+
+    // 2. Parse RUST_LOG environment variable (overrides default)
+    builder.parse_default_env();
+
+    // 3. CLI argument has highest priority (overrides everything)
+    let log_level = cli.log_level.as_ref();
+    if let Some(level) = log_level {
+        builder.filter_level(level.to_level_filter());
+    }
+
+    builder.init();
+
+    // Log the effective level for debugging
+    let effective_level = log_level.cloned().unwrap_or_else(|| {
+        // If CLI arg not provided, check if RUST_LOG was set
+        if std::env::var("RUST_LOG").is_ok() {
+            config::LogLevel::Debug // Assume debug if RUST_LOG is set
+        } else {
+            config::resolve_log_level(None) // Fall back to config file or default
+        }
+    });
+    log::debug!("Log level set to {}", effective_level);
 
     // Resolve the output format once for all subcommands.
     let format = config::resolve_output_format(cli.output.as_ref());
