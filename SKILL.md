@@ -111,6 +111,15 @@ yunxiao projex workitems get --space-id <PROJECT_ID> --workitem-id <WORKITEM_ID>
 # 创建工作项
 yunxiao projex workitems create --space-id <PROJECT_ID> --category Req --subject "新功能" --org-id <ORG_ID>
 
+# 列出工作项类型（当不提供 category 时，使用组织级 API 列出全部类型）
+yunxiao projex workitems types --space-id <PROJECT_ID> --org-id <ORG_ID>
+
+# 按类别过滤工作项类型
+yunxiao projex workitems types --space-id <PROJECT_ID> --category Req --org-id <ORG_ID>
+
+# 按名称关键词本地过滤工作项类型
+yunxiao projex workitems types --space-id <PROJECT_ID> --keyword "需求" --org-id <ORG_ID>
+
 # 查看工作项类型字段配置
 yunxiao projex workitems type-fields --project-id <PROJECT_ID> --type-id <TYPE_ID> --org-id <ORG_ID>
 
