@@ -902,24 +902,7 @@ async fn exec_workitems(
 ) -> Result<()> {
     let oid = require_org(org_id)?;
     match &args.command {
-        WorkitemsCmds::Search(s) => {
-            let mut body = json!({
-                "category": s.category,
-                "spaceId": s.space_id,
-                "page": s.page,
-                "pageSize": s.page_size,
-            });
-            if let Some(ref kw) = s.keyword {
-                body["keyword"] = json!(kw);
-            }
-            let data = client
-                .post(
-                    &format!("/oapi/v1/projex/organizations/{oid}/workitems:search"),
-                    &body,
-                )
-                .await?;
-            output::print_output(&data, format)?;
-        }
+        WorkitemsCmds::Search(s) => exec_workitems_search(s, oid, client, format).await?,
         WorkitemsCmds::Get(g) => {
             let data = client
                 .get(
@@ -1041,6 +1024,34 @@ async fn exec_workitems(
             }
         },
     }
+    Ok(())
+}
+
+/// Execute work-item search.
+///
+/// API docs: <https://help.aliyun.com/zh/yunxiao/developer-reference/searchworkitems?spm=a2c4g.11186623.help-menu-150040.d_5_0_7_9_0.59282316XIqioe&scm=20140722.H_2870366._.OR_help-T_cn~zh-V_1>
+async fn exec_workitems_search(
+    s: &WiSearchArgs,
+    oid: &str,
+    client: &ApiClient,
+    format: &OutputFormat,
+) -> Result<()> {
+    let mut body = json!({
+        "category": s.category,
+        "spaceId": s.space_id,
+        "page": s.page,
+        "pageSize": s.page_size,
+    });
+    if let Some(ref kw) = s.keyword {
+        body["keyword"] = json!(kw);
+    }
+    let data = client
+        .post(
+            &format!("/oapi/v1/projex/organizations/{oid}/workitems:search"),
+            &body,
+        )
+        .await?;
+    output::print_output(&data, format)?;
     Ok(())
 }
 
