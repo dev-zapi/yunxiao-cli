@@ -598,6 +598,9 @@ pub struct LabelListArgs {
     /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
+    /// Filter results locally by label name (case-insensitive substring).
+    #[arg(long)]
+    pub keyword: Option<String>,
 }
 
 /// Arguments for `projex labels create`.
@@ -1429,7 +1432,29 @@ async fn exec_labels(
                     &[],
                 )
                 .await?;
-            output::print_output(&data, format)?;
+
+            let filtered = if let Some(ref kw) = l.keyword {
+                let kw_lower = kw.to_lowercase();
+                if let Some(arr) = data.as_array() {
+                    let kept: Vec<serde_json::Value> = arr
+                        .iter()
+                        .filter(|item| {
+                            item.get("name")
+                                .and_then(|v| v.as_str())
+                                .map(|name| name.to_lowercase().contains(&kw_lower))
+                                .unwrap_or(false)
+                        })
+                        .cloned()
+                        .collect();
+                    serde_json::Value::Array(kept)
+                } else {
+                    data
+                }
+            } else {
+                data
+            };
+
+            output::print_output(&filtered, format)?;
         }
         LabelsCmds::Create(c) => {
             let body = json!({
