@@ -36,6 +36,8 @@ pub enum ProjexCommands {
     Versions(VersionsArgs),
     /// Manage effort / work-hour records.
     Efforts(EffortsArgs),
+    /// Manage labels in a project.
+    Labels(LabelsArgs),
 }
 
 // ───────────────────────── Projects ─────────────────────────────────────
@@ -568,6 +570,78 @@ pub struct EffortsCreateArgs {
     pub description: Option<String>,
 }
 
+// ───────────────────────── Labels ────────────────────────────────────────
+
+/// Arguments for `projex labels`.
+#[derive(Debug, Args)]
+pub struct LabelsArgs {
+    #[command(subcommand)]
+    pub command: LabelsCmds,
+}
+
+/// Label operations.
+#[derive(Debug, Subcommand)]
+pub enum LabelsCmds {
+    /// List labels in a project.
+    List(LabelListArgs),
+    /// Create a new label.
+    Create(LabelCreateArgs),
+    /// Update an existing label.
+    Update(LabelUpdateArgs),
+    /// Delete a label.
+    Delete(LabelDeleteArgs),
+}
+
+/// Arguments for `projex labels list`.
+#[derive(Debug, Args)]
+pub struct LabelListArgs {
+    /// Project space ID. Get via: yunxiao projex projects search
+    #[arg(long)]
+    pub space_id: String,
+}
+
+/// Arguments for `projex labels create`.
+#[derive(Debug, Args)]
+pub struct LabelCreateArgs {
+    /// Project space ID. Get via: yunxiao projex projects search
+    #[arg(long)]
+    pub space_id: String,
+    /// Label name.
+    #[arg(long)]
+    pub name: String,
+    /// Label color (e.g., #A773E0, #FF0000).
+    #[arg(long)]
+    pub color: String,
+}
+
+/// Arguments for `projex labels update`.
+#[derive(Debug, Args)]
+pub struct LabelUpdateArgs {
+    /// Project space ID. Get via: yunxiao projex projects search
+    #[arg(long)]
+    pub space_id: String,
+    /// Label ID. Get via: yunxiao projex labels list --space-id <SPACE_ID>
+    #[arg(long)]
+    pub label_id: String,
+    /// New label name (optional).
+    #[arg(long)]
+    pub name: Option<String>,
+    /// New label color (e.g., #A773E0, #FF0000) (optional).
+    #[arg(long)]
+    pub color: Option<String>,
+}
+
+/// Arguments for `projex labels delete`.
+#[derive(Debug, Args)]
+pub struct LabelDeleteArgs {
+    /// Project space ID. Get via: yunxiao projex projects search
+    #[arg(long)]
+    pub space_id: String,
+    /// Label ID. Get via: yunxiao projex labels list --space-id <SPACE_ID>
+    #[arg(long)]
+    pub label_id: String,
+}
+
 // ─────────────────────────── Execute ────────────────────────────────────
 
 /// Execute the `projex` subcommand tree.
@@ -592,6 +666,7 @@ pub async fn execute(
         ProjexCommands::Sprints(s) => exec_sprints(s, &client, &org_id, format).await,
         ProjexCommands::Versions(v) => exec_versions(v, &client, &org_id, format).await,
         ProjexCommands::Efforts(e) => exec_efforts(e, &client, &org_id, format).await,
+        ProjexCommands::Labels(l) => exec_labels(l, &client, &org_id, format).await,
     }
 }
 
@@ -785,9 +860,10 @@ async fn exec_projects(
             }
 
             // Build extraConditions if scope is provided
-            let extra_conditions_str = l.scope.as_ref().map(|scope| {
-                json!({ "scope": scope }).to_string()
-            });
+            let extra_conditions_str = l
+                .scope
+                .as_ref()
+                .map(|scope| json!({ "scope": scope }).to_string());
 
             loop {
                 let conditions_str = if conditions.is_empty() {
@@ -1324,6 +1400,80 @@ async fn exec_efforts(
                         c.workitem_id
                     ),
                     &body,
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+    }
+    Ok(())
+}
+
+// ─────────────────────────── Labels ─────────────────────────────────────
+
+/// Execute label sub-operations.
+async fn exec_labels(
+    args: &LabelsArgs,
+    client: &ApiClient,
+    org_id: &Option<String>,
+    format: &OutputFormat,
+) -> Result<()> {
+    let oid = require_org(org_id)?;
+    match &args.command {
+        LabelsCmds::List(l) => {
+            let data = client
+                .get(
+                    &format!(
+                        "/oapi/v1/projex/organizations/{oid}/projects/{}/labels",
+                        l.space_id
+                    ),
+                    &[],
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+        LabelsCmds::Create(c) => {
+            let body = json!({
+                "name": c.name,
+                "color": c.color,
+            });
+            let data = client
+                .post(
+                    &format!(
+                        "/oapi/v1/projex/organizations/{oid}/projects/{}/labels",
+                        c.space_id
+                    ),
+                    &body,
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+        LabelsCmds::Update(u) => {
+            let mut body = json!({});
+            if let Some(ref n) = u.name {
+                body["name"] = json!(n);
+            }
+            if let Some(ref c) = u.color {
+                body["color"] = json!(c);
+            }
+            let data = client
+                .put(
+                    &format!(
+                        "/oapi/v1/projex/organizations/{oid}/projects/{}/labels/{}",
+                        u.space_id, u.label_id
+                    ),
+                    &body,
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+        LabelsCmds::Delete(d) => {
+            let data = client
+                .delete(
+                    &format!(
+                        "/oapi/v1/projex/organizations/{oid}/projects/{}/labels/{}",
+                        d.space_id, d.label_id
+                    ),
+                    &[],
                 )
                 .await?;
             output::print_output(&data, format)?;

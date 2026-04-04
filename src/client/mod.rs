@@ -4,12 +4,12 @@
 //! header (`x-yunxiao-token`), and timeout settings.
 
 use crate::error::{CliError, Result};
+use http::Extensions;
 use log::debug;
 use reqwest::header::{HeaderMap, HeaderValue};
-use reqwest_middleware::{ClientBuilder, ClientWithMiddleware, Middleware, Next};
 use reqwest::{Request, Response};
+use reqwest_middleware::{ClientBuilder, ClientWithMiddleware, Middleware, Next};
 use std::time::Duration;
-use http::Extensions;
 
 /// Captured headers from request and response for debugging.
 #[derive(Debug, Clone, Default)]
@@ -161,7 +161,8 @@ impl ApiClient {
         debug!("Request body: {}", body);
 
         let body_str = body.to_string();
-        let resp = self.http
+        let resp = self
+            .http
             .post(&url)
             .header(reqwest::header::CONTENT_TYPE, "application/json")
             .body(body_str)
@@ -178,7 +179,8 @@ impl ApiClient {
         debug!("Request body: {}", body);
 
         let body_str = body.to_string();
-        let resp = self.http
+        let resp = self
+            .http
             .put(&url)
             .header(reqwest::header::CONTENT_TYPE, "application/json")
             .body(body_str)
@@ -209,7 +211,8 @@ impl ApiClient {
         debug!("Request body: {}", body);
 
         let body_str = body.to_string();
-        let resp = self.http
+        let resp = self
+            .http
             .post(&url)
             .header(reqwest::header::CONTENT_TYPE, "application/json")
             .body(body_str)
@@ -220,10 +223,7 @@ impl ApiClient {
     }
 
     /// Handle response and return both headers and body.
-    async fn handle_response_with_headers(
-        &self,
-        resp: reqwest::Response,
-    ) -> Result<ApiResponse> {
+    async fn handle_response_with_headers(&self, resp: reqwest::Response) -> Result<ApiResponse> {
         let status = resp.status();
         let url = resp.url().to_string();
         let response_headers: HeaderMap = resp.headers().clone();
@@ -254,10 +254,7 @@ impl ApiClient {
 
     /// Process an HTTP response, returning the JSON body on success or a
     /// [`CliError::Api`] on non-2xx status codes.
-    async fn handle_response(
-        &self,
-        resp: reqwest::Response,
-    ) -> Result<serde_json::Value> {
+    async fn handle_response(&self, resp: reqwest::Response) -> Result<serde_json::Value> {
         let status = resp.status();
         let url = resp.url().to_string();
 
@@ -276,7 +273,6 @@ impl ApiClient {
             Err(CliError::Api(format!("HTTP {status} from {url}: {body}")))
         }
     }
-
 }
 
 #[cfg(test)]
