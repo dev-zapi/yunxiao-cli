@@ -641,6 +641,8 @@ fn get_header_int(headers: &HeaderMap, key: &str) -> Option<u32> {
 // ─────────────────────────── Projects ───────────────────────────────────
 
 /// Execute project sub-operations.
+///
+/// API docs: <https://help.aliyun.com/zh/yunxiao/developer-reference/searchprojects?spm=a2c4g.11186623.help-menu-150040.d_5_0_7_0_4.23dc1b82xEGVGs>
 async fn exec_projects(
     args: &ProjectsArgs,
     client: &ApiClient,
