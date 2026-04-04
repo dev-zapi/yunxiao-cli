@@ -302,9 +302,9 @@ mod tests {
     #[test]
     fn api_client_new_different_timeouts() {
         let client = ApiClient::new("tok", "https://api.test.com", 5).unwrap();
-        assert_eq!(client.timeout, Duration::from_secs(5));
+        assert_eq!(client._timeout, Duration::from_secs(5));
 
         let client = ApiClient::new("tok", "https://api.test.com", 300).unwrap();
-        assert_eq!(client.timeout, Duration::from_secs(300));
+        assert_eq!(client._timeout, Duration::from_secs(300));
     }
 }

@@ -701,6 +701,12 @@ async fn exec_projects(
                 }));
             }
 
+            let conditions_str = if conditions.is_empty() {
+                None
+            } else {
+                Some(json!({ "conditionGroups": [conditions] }).to_string())
+            };
+
             let body = json!({
                 "page": s.page,
                 "perPage": s.per_page,
@@ -712,13 +718,7 @@ async fn exec_projects(
                     SortOrder::Desc => "desc",
                     SortOrder::Asc => "asc",
                 },
-                "conditions": if conditions.is_empty() {
-                    None
-                } else {
-                    Some(json!({
-                        "conditionGroups": [conditions]
-                    }))
-                },
+                "conditions": conditions_str,
             });
 
             let resp = client
@@ -778,11 +778,17 @@ async fn exec_projects(
             }
 
             // Build extraConditions if scope is provided
-            let extra_conditions = l.scope.as_ref().map(|scope| json!({
-                "scope": scope
-            }));
+            let extra_conditions_str = l.scope.as_ref().map(|scope| {
+                json!({ "scope": scope }).to_string()
+            });
 
             loop {
+                let conditions_str = if conditions.is_empty() {
+                    None
+                } else {
+                    Some(json!({ "conditionGroups": [conditions.clone()] }).to_string())
+                };
+
                 let body = json!({
                     "page": current_page,
                     "perPage": per_page,
@@ -794,14 +800,8 @@ async fn exec_projects(
                         SortOrder::Desc => "desc",
                         SortOrder::Asc => "asc",
                     },
-                    "conditions": if conditions.is_empty() {
-                        None
-                    } else {
-                        Some(json!({
-                            "conditionGroups": [conditions.clone()]
-                        }))
-                    },
-                    "extraConditions": extra_conditions,
+                    "conditions": conditions_str,
+                    "extraConditions": extra_conditions_str,
                 });
 
                 let resp = client
