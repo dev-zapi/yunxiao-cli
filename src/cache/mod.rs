@@ -1,10 +1,11 @@
 //! Cache layer for the YunXiao CLI.
 //!
-//! Stores JSON files under `~/.shell/yunxiao-cli/` keyed by a caller-chosen
-//! string. Each cached value is written as `{key}.json`.
+//! Stores JSON files under `$XDG_CACHE_HOME/yunxiao-cli/` (defaults to
+//! `~/.cache/yunxiao-cli/`) keyed by a caller-chosen string.
+//! Each cached value is written as `{key}.json`.
 //!
-//! The cache directory follows the project specification:
-//! - Path: `~/.shell/yunxiao-cli/`
+//! The cache directory follows the XDG Base Directory Specification:
+//! - Path: `$XDG_CACHE_HOME/yunxiao-cli/` (defaults to `~/.cache/yunxiao-cli/`)
 //! - Contents: Token-bound user ID, organization info, project info,
 //!   temporary API response cache, runtime intermediate data.
 //! - Cleanup: Supports manual `clear_cache()` command, no automatic deletion.
@@ -13,14 +14,18 @@ use crate::error::{CliError, Result};
 use log::debug;
 use std::path::PathBuf;
 
-/// Returns the cache directory: `~/.shell/yunxiao-cli/`.
+/// Returns the cache directory: `$XDG_CACHE_HOME/yunxiao-cli/`.
 ///
-/// Per the project specification, runtime cache data is stored under
-/// `~/.shell/yunxiao-cli/` (distinct from the config directory at
-/// `~/.config/yunxiao-cli/`).
+/// Per the XDG Base Directory Specification, runtime cache data is stored under
+/// `$XDG_CACHE_HOME/yunxiao-cli/` (defaults to `~/.cache/yunxiao-cli/`),
+/// distinct from the config directory at `~/.config/yunxiao-cli/`.
 pub fn cache_dir() -> PathBuf {
-    let home = dirs::home_dir().expect("Cannot determine home directory");
-    home.join(".shell").join("yunxiao-cli")
+    let base = dirs::cache_dir().unwrap_or_else(|| {
+        dirs::home_dir()
+            .expect("Cannot determine home directory")
+            .join(".cache")
+    });
+    base.join("yunxiao-cli")
 }
 
 /// Ensures the cache directory exists, creating it if necessary.
@@ -99,12 +104,12 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn cache_dir_is_under_shell() {
+    fn cache_dir_is_under_cache() {
         let dir = cache_dir();
         let home = dirs::home_dir().unwrap();
-        // Should be ~/.shell/yunxiao-cli/
+        // Should be ~/.cache/yunxiao-cli/ (XDG_CACHE_HOME)
         assert!(dir.starts_with(&home));
-        assert!(dir.to_string_lossy().contains(".shell"));
+        assert!(dir.to_string_lossy().contains(".cache"));
         assert!(dir.to_string_lossy().contains("yunxiao-cli"));
     }
 

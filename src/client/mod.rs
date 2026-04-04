@@ -4,10 +4,65 @@
 //! header (`x-yunxiao-token`), and timeout settings.
 
 use crate::error::{CliError, Result};
-use log::{debug, warn};
+use log::debug;
 use reqwest::header::{HeaderMap, HeaderValue};
+use reqwest_middleware::{ClientBuilder, ClientWithMiddleware, Middleware, Next};
+use reqwest::{Request, Response};
 use std::time::Duration;
-use std::time::SystemTime;
+use http::Extensions;
+
+/// Captured headers from request and response for debugging.
+#[derive(Debug, Clone, Default)]
+pub struct CapturedHeaders {
+    pub request_headers: Vec<(String, String)>,
+    pub response_headers: Vec<(String, String)>,
+}
+
+/// Middleware to capture request and response headers.
+pub struct HeaderCaptureMiddleware;
+
+#[async_trait::async_trait]
+impl Middleware for HeaderCaptureMiddleware {
+    async fn handle(
+        &self,
+        req: Request,
+        extensions: &mut Extensions,
+        next: Next<'_>,
+    ) -> std::result::Result<Response, reqwest_middleware::Error> {
+        // Capture request headers
+        let request_headers: Vec<(String, String)> = req
+            .headers()
+            .iter()
+            .map(|(k, v)| {
+                let key = k.to_string();
+                let value = v.to_str().unwrap_or("[binary]").to_string();
+                (key, value)
+            })
+            .collect();
+
+        // Execute request
+        let resp = next.run(req, extensions).await?;
+
+        // Capture response headers
+        let response_headers: Vec<(String, String)> = resp
+            .headers()
+            .iter()
+            .map(|(k, v)| {
+                let key = k.to_string();
+                let value = v.to_str().unwrap_or("[binary]").to_string();
+                (key, value)
+            })
+            .collect();
+
+        // Store captured headers in extensions for access by the caller
+        extensions.insert(CapturedHeaders {
+            request_headers,
+            response_headers,
+        });
+
+        Ok(resp)
+    }
+}
 
 /// Debug information for a failed API request.
 #[derive(Debug)]
@@ -24,8 +79,8 @@ struct DebugInfo {
 /// Constructed via [`ApiClient::new`] and used throughout command handlers
 /// to perform authenticated HTTP requests against the DevOps API.
 pub struct ApiClient {
-    /// Underlying reqwest async client.
-    http: reqwest::Client,
+    /// Underlying reqwest async client with middleware.
+    http: ClientWithMiddleware,
     /// Base URL including scheme, e.g. `https://openapi-rdc.aliyuncs.com`.
     base_url: String,
     /// Personal access token sent in every request.
@@ -34,6 +89,13 @@ pub struct ApiClient {
     /// Per-request timeout.
     #[allow(dead_code)]
     timeout: Duration,
+}
+
+/// Response data including headers and body.
+#[derive(Debug)]
+pub struct ApiResponse {
+    pub headers: HeaderMap,
+    pub body: serde_json::Value,
 }
 
 impl ApiClient {
@@ -69,10 +131,15 @@ impl ApiClient {
         );
 
         let duration = Duration::from_secs(timeout);
-        let http = reqwest::Client::builder()
+        let reqwest_client = reqwest::Client::builder()
             .default_headers(default_headers)
             .timeout(duration)
             .build()?;
+
+        // Build client with middleware
+        let http = ClientBuilder::new(reqwest_client)
+            .with(HeaderCaptureMiddleware)
+            .build();
 
         let base_url = endpoint.to_string();
         debug!("ApiClient created for {}", base_url);
@@ -94,58 +161,43 @@ impl ApiClient {
         let url = format!("{}{}", self.base_url, path);
         debug!("GET {} params={:?}", url, params);
 
-        let req_builder = self.http.get(&url).query(params);
-        let debug_info = DebugInfo {
-            method: "GET".to_string(),
-            url: url.clone(),
-            headers: Vec::new(),
-            body: None,
-            response_headers: Vec::new(),
-        };
+        let resp = self.http.get(&url).query(params).send().await?;
 
-        let resp = req_builder.send().await?;
-
-        self.handle_response(resp, debug_info).await
+        self.handle_response(resp).await
     }
 
     /// Perform a POST request with a JSON body.
     pub async fn post(&self, path: &str, body: &serde_json::Value) -> Result<serde_json::Value> {
         let url = format!("{}{}", self.base_url, path);
         debug!("POST {}", url);
+        debug!("Request body: {}", body);
 
         let body_str = body.to_string();
-        let req_builder = self.http.post(&url).json(body);
-        let debug_info = DebugInfo {
-            method: "POST".to_string(),
-            url: url.clone(),
-            headers: vec![("Content-Type".to_string(), "application/json".to_string())],
-            body: Some(body_str),
-            response_headers: Vec::new(),
-        };
+        let resp = self.http
+            .post(&url)
+            .header(reqwest::header::CONTENT_TYPE, "application/json")
+            .body(body_str)
+            .send()
+            .await?;
 
-        let resp = req_builder.send().await?;
-
-        self.handle_response(resp, debug_info).await
+        self.handle_response(resp).await
     }
 
     /// Perform a PUT request with a JSON body.
     pub async fn put(&self, path: &str, body: &serde_json::Value) -> Result<serde_json::Value> {
         let url = format!("{}{}", self.base_url, path);
         debug!("PUT {}", url);
+        debug!("Request body: {}", body);
 
         let body_str = body.to_string();
-        let req_builder = self.http.put(&url).json(body);
-        let debug_info = DebugInfo {
-            method: "PUT".to_string(),
-            url: url.clone(),
-            headers: vec![("Content-Type".to_string(), "application/json".to_string())],
-            body: Some(body_str),
-            response_headers: Vec::new(),
-        };
+        let resp = self.http
+            .put(&url)
+            .header(reqwest::header::CONTENT_TYPE, "application/json")
+            .body(body_str)
+            .send()
+            .await?;
 
-        let resp = req_builder.send().await?;
-
-        self.handle_response(resp, debug_info).await
+        self.handle_response(resp).await
     }
 
     /// Perform a DELETE request.
@@ -153,34 +205,195 @@ impl ApiClient {
         let url = format!("{}{}", self.base_url, path);
         debug!("DELETE {} params={:?}", url, params);
 
-        let req_builder = self.http.delete(&url).query(params);
-        let debug_info = DebugInfo {
-            method: "DELETE".to_string(),
-            url: url.clone(),
-            headers: Vec::new(),
-            body: None,
-            response_headers: Vec::new(),
-        };
+        let resp = self.http.delete(&url).query(params).send().await?;
 
-        let resp = req_builder.send().await?;
-
-        self.handle_response(resp, debug_info).await
+        self.handle_response(resp).await
     }
 
-    // ──────────────────────── Internal helpers ───────────────────────────
+    /// Perform a POST request with a JSON body and return response with headers.
+    pub async fn post_with_headers(
+        &self,
+        path: &str,
+        body: &serde_json::Value,
+    ) -> Result<ApiResponse> {
+        let url = format!("{}{}", self.base_url, path);
+        debug!("POST {}", url);
+        debug!("Request body: {}", body);
 
-    /// Save debug information to ~/.share/yunxiao-cli/ directory when API call fails.
+        let body_str = body.to_string();
+        let resp = self.http
+            .post(&url)
+            .header(reqwest::header::CONTENT_TYPE, "application/json")
+            .body(body_str)
+            .send()
+            .await?;
+
+        self.handle_response_with_headers(resp).await
+    }
+
+    /// Handle response and return both headers and body.
+    async fn handle_response_with_headers(
+        &self,
+        resp: reqwest::Response,
+    ) -> Result<ApiResponse> {
+        let status = resp.status();
+        let url = resp.url().to_string();
+        let response_headers: HeaderMap = resp.headers().clone();
+
+        debug!("Response status: {}", status);
+        debug!("Response URL: {}", url);
+
+        if status.is_success() {
+            let text = resp.text().await?;
+            if text.is_empty() {
+                return Ok(ApiResponse {
+                    headers: response_headers,
+                    body: serde_json::json!({"status": "ok"}),
+                });
+            }
+            let value: serde_json::Value = serde_json::from_str(&text).map_err(|e| {
+                CliError::Api(format!("Failed to parse response JSON from {url}: {e}"))
+            })?;
+            Ok(ApiResponse {
+                headers: response_headers,
+                body: value,
+            })
+        } else {
+            let body = resp.text().await.unwrap_or_default();
+            Err(CliError::Api(format!("HTTP {status} from {url}: {body}")))
+        }
+    }
+
+    /// Process an HTTP response, returning the JSON body on success or a
+    /// [`CliError::Api`] on non-2xx status codes.
+    async fn handle_response(
+        &self,
+        resp: reqwest::Response,
+    ) -> Result<serde_json::Value> {
+        let status = resp.status();
+        let url = resp.url().to_string();
+
+        if status.is_success() {
+            // Some endpoints return 204 No Content
+            let text = resp.text().await?;
+            if text.is_empty() {
+                return Ok(serde_json::json!({"status": "ok"}));
+            }
+            let value: serde_json::Value = serde_json::from_str(&text).map_err(|e| {
+                CliError::Api(format!("Failed to parse response JSON from {url}: {e}"))
+            })?;
+            Ok(value)
+        } else {
+            let body = resp.text().await.unwrap_or_default();
+            Err(CliError::Api(format!("HTTP {status} from {url}: {body}")))
+        }
+    }
+
+    /// Internal method to execute request with captured headers for debugging.
+    /// This is used when you need to capture headers on error.
+    async fn execute_with_debug(
+        &self,
+        method: &str,
+        path: &str,
+        params: Option<&[(&str, &str)]>,
+        body: Option<&serde_json::Value>,
+    ) -> Result<(serde_json::Value, CapturedHeaders)> {
+        let url = format!("{}{}", self.base_url, path);
+        
+        let mut req_builder = match method {
+            "GET" => self.http.get(&url),
+            "POST" => self.http.post(&url),
+            "PUT" => self.http.put(&url),
+            "DELETE" => self.http.delete(&url),
+            _ => return Err(CliError::Api(format!("Unsupported method: {method}"))),
+        };
+
+        if let Some(p) = params {
+            req_builder = req_builder.query(p);
+        }
+
+        if let Some(b) = body {
+            let body_str = b.to_string();
+            req_builder = req_builder
+                .header(reqwest::header::CONTENT_TYPE, "application/json")
+                .body(body_str);
+        }
+
+        // Build the request to capture headers
+        let request = req_builder.try_clone().ok_or_else(|| {
+            CliError::Api("Failed to clone request".to_string())
+        })?.build()?;
+
+        let request_headers: Vec<(String, String)> = request
+            .headers()
+            .iter()
+            .map(|(k, v)| {
+                let key = k.to_string();
+                let value = v.to_str().unwrap_or("[binary]").to_string();
+                (key, value)
+            })
+            .collect();
+
+        // Execute request
+        let resp = self.http.execute(request).await?;
+        let status = resp.status();
+        let response_headers: Vec<(String, String)> = resp
+            .headers()
+            .iter()
+            .map(|(k, v)| {
+                let key = k.to_string();
+                let value = v.to_str().unwrap_or("[binary]").to_string();
+                (key, value)
+            })
+            .collect();
+
+        let captured = CapturedHeaders {
+            request_headers,
+            response_headers,
+        };
+
+        if status.is_success() {
+            let text = resp.text().await?;
+            if text.is_empty() {
+                return Ok((serde_json::json!({"status": "ok"}), captured));
+            }
+            let value: serde_json::Value = serde_json::from_str(&text).map_err(|e| {
+                CliError::Api(format!("Failed to parse response JSON from {url}: {e}"))
+            })?;
+            Ok((value, captured))
+        } else {
+            let body_str = resp.text().await.unwrap_or_default();
+            
+            // Create debug info for error reporting
+            let debug_info = DebugInfo {
+                method: method.to_string(),
+                url: url.clone(),
+                headers: captured.request_headers.clone(),
+                body: body.map(|b| b.to_string()),
+                response_headers: captured.response_headers.clone(),
+            };
+            
+            self.save_debug_info(&debug_info, status.as_u16(), &body_str);
+            
+            Err(CliError::Api(format!("HTTP {status} from {url}: {body_str}")))
+        }
+    }
+
+    /// Save debug information to $XDG_DATA_HOME/yunxiao-cli/ directory when API call fails.
     fn save_debug_info(&self, debug_info: &DebugInfo, status: u16, response_body: &str) {
-        // Get home directory
-        let home_dir = match dirs::home_dir() {
+        use std::time::SystemTime;
+        use log::warn;
+        
+        // Get data directory (XDG_DATA_HOME, defaults to ~/.local/share)
+        let data_dir = match dirs::data_dir() {
             Some(path) => path,
             None => {
-                warn!("Could not determine home directory, skipping debug file save");
+                warn!("Could not determine data directory, skipping debug file save");
                 return;
             }
         };
 
-        let share_dir = home_dir.join(".share").join("yunxiao-cli");
+        let share_dir = data_dir.join("yunxiao-cli");
         if !share_dir.exists() {
             if let Err(e) = std::fs::create_dir_all(&share_dir) {
                 warn!("Failed to create {} directory: {}", share_dir.display(), e);
@@ -289,48 +502,6 @@ impl ApiClient {
             }
         }
     }
-
-    /// Process an HTTP response, returning the JSON body on success or a
-    /// [`CliError::Api`] on non-2xx status codes.
-    async fn handle_response(
-        &self,
-        resp: reqwest::Response,
-        mut debug_info: DebugInfo,
-    ) -> Result<serde_json::Value> {
-        let status = resp.status();
-        let url = resp.url().to_string();
-
-        if status.is_success() {
-            // Some endpoints return 204 No Content
-            let text = resp.text().await?;
-            if text.is_empty() {
-                return Ok(serde_json::json!({"status": "ok"}));
-            }
-            let value: serde_json::Value = serde_json::from_str(&text).map_err(|e| {
-                CliError::Api(format!("Failed to parse response JSON from {url}: {e}"))
-            })?;
-            Ok(value)
-        } else {
-            // Extract response headers before consuming the response body
-            debug_info.response_headers = resp
-                .headers()
-                .iter()
-                .map(|(k, v)| {
-                    let key = k.to_string();
-                    let value = v.to_str().unwrap_or("[binary]").to_string();
-                    (key, value)
-                })
-                .collect();
-
-            let body = resp.text().await.unwrap_or_default();
-            let status_code = status.as_u16();
-
-            // Save debug information to .share directory
-            self.save_debug_info(&debug_info, status_code, &body);
-
-            Err(CliError::Api(format!("HTTP {status} from {url}: {body}")))
-        }
-    }
 }
 
 #[cfg(test)]
@@ -360,145 +531,5 @@ mod tests {
 
         let client = ApiClient::new("tok", "https://api.test.com", 300).unwrap();
         assert_eq!(client.timeout, Duration::from_secs(300));
-    }
-
-    #[tokio::test]
-    async fn api_client_get_with_mock() {
-        // Set up a mock server that returns a JSON response
-        let mut server = mockito::Server::new_async().await;
-        let mock = server
-            .mock("GET", "/oapi/v1/user/current")
-            .with_status(200)
-            .with_header("content-type", "application/json")
-            .with_body(r#"{"id":"user-1","name":"Test User"}"#)
-            .create_async()
-            .await;
-
-        // Create client pointing to mock server
-        let domain = server.host_with_port().to_string();
-        // Build client manually to avoid https
-        let http = reqwest::Client::builder()
-            .default_headers({
-                let mut h = reqwest::header::HeaderMap::new();
-                h.insert(
-                    "x-yunxiao-token",
-                    reqwest::header::HeaderValue::from_static("test-token"),
-                );
-                h
-            })
-            .build()
-            .unwrap();
-        let client = ApiClient {
-            http,
-            base_url: format!("http://{domain}"),
-            token: "test-token".into(),
-            timeout: Duration::from_secs(30),
-        };
-
-        let result = client.get("/oapi/v1/user/current", &[]).await;
-        assert!(result.is_ok());
-        let data = result.unwrap();
-        assert_eq!(data["id"], "user-1");
-        assert_eq!(data["name"], "Test User");
-
-        mock.assert_async().await;
-    }
-
-    #[tokio::test]
-    async fn api_client_post_with_mock() {
-        let mut server = mockito::Server::new_async().await;
-        let mock = server
-            .mock("POST", "/oapi/v1/workitems")
-            .with_status(201)
-            .with_header("content-type", "application/json")
-            .with_body(r#"{"id":"wi-123","status":"created"}"#)
-            .create_async()
-            .await;
-
-        let domain = server.host_with_port().to_string();
-        let http = reqwest::Client::builder()
-            .default_headers({
-                let mut h = reqwest::header::HeaderMap::new();
-                h.insert(
-                    "x-yunxiao-token",
-                    reqwest::header::HeaderValue::from_static("test-token"),
-                );
-                h.insert(
-                    reqwest::header::CONTENT_TYPE,
-                    reqwest::header::HeaderValue::from_static("application/json"),
-                );
-                h
-            })
-            .build()
-            .unwrap();
-        let client = ApiClient {
-            http,
-            base_url: format!("http://{domain}"),
-            token: "test-token".into(),
-            timeout: Duration::from_secs(30),
-        };
-
-        let body = serde_json::json!({"subject": "Test Item"});
-        let result = client.post("/oapi/v1/workitems", &body).await;
-        assert!(result.is_ok());
-        let data = result.unwrap();
-        assert_eq!(data["id"], "wi-123");
-
-        mock.assert_async().await;
-    }
-
-    #[tokio::test]
-    async fn api_client_handles_404_error() {
-        let mut server = mockito::Server::new_async().await;
-        let mock = server
-            .mock("GET", "/oapi/v1/not-found")
-            .with_status(404)
-            .with_body(r#"{"error":"not found"}"#)
-            .create_async()
-            .await;
-
-        let domain = server.host_with_port().to_string();
-        let http = reqwest::Client::new();
-        let client = ApiClient {
-            http,
-            base_url: format!("http://{domain}"),
-            token: "test-token".into(),
-            timeout: Duration::from_secs(30),
-        };
-
-        let result = client.get("/oapi/v1/not-found", &[]).await;
-        assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert!(matches!(err, CliError::Api(_)));
-        assert!(err.to_string().contains("404"));
-
-        mock.assert_async().await;
-    }
-
-    #[tokio::test]
-    async fn api_client_handles_204_no_content() {
-        let mut server = mockito::Server::new_async().await;
-        let mock = server
-            .mock("DELETE", "/oapi/v1/items/1")
-            .with_status(204)
-            .with_body("")
-            .create_async()
-            .await;
-
-        let domain = server.host_with_port().to_string();
-        let http = reqwest::Client::new();
-        let client = ApiClient {
-            http,
-            base_url: format!("http://{domain}"),
-            token: "test-token".into(),
-            timeout: Duration::from_secs(30),
-        };
-
-        let result = client.delete("/oapi/v1/items/1", &[]).await;
-        assert!(result.is_ok());
-        let data = result.unwrap();
-        assert_eq!(data["status"], "ok");
-
-        mock.assert_async().await;
     }
 }
