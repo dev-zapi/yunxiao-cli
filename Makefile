@@ -20,7 +20,7 @@ PROFILE_FLAG := --profile $(PROFILE)
 .DEFAULT_GOAL := help
 
 # Phony targets
-.PHONY: help build dev release test lint clean dist dist-all install uninstall
+.PHONY: help build dev release test lint clean dist dist-all install uninstall install-skill uninstall-skill
 
 ##@ Build
 
@@ -117,6 +117,17 @@ install: release
 uninstall:
 	@rm -f $(HOME)/.local/bin/yunxiao
 	@echo "Uninstalled yunxiao from $(HOME)/.local/bin/"
+
+## Install skill file to $HOME/.agents/skills/yunxiao-cli/
+install-skill:
+	@mkdir -p $(HOME)/.agents/skills/yunxiao-cli
+	@cp SKILL.md $(HOME)/.agents/skills/yunxiao-cli/SKILL.md
+	@echo "Installed skill to $(HOME)/.agents/skills/yunxiao-cli/"
+
+## Remove skill from $HOME/.agents/skills/yunxiao-cli/
+uninstall-skill:
+	@rm -rf $(HOME)/.agents/skills/yunxiao-cli
+	@echo "Uninstalled skill from $(HOME)/.agents/skills/"
 
 ##@ Clean
 
