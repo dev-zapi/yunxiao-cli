@@ -131,6 +131,19 @@ yunxiao projex sprints create --space-id <PROJECT_ID> --name "迭代1" --org-id 
 
 # 列出版本
 yunxiao projex versions list --space-id <PROJECT_ID> --org-id <ORG_ID>
+
+# 列出标签
+yunxiao projex labels list --space-id <PROJECT_ID> --org-id <ORG_ID>
+
+# 按名称关键词过滤标签（不区分大小写）
+yunxiao projex labels list --space-id <PROJECT_ID> --keyword "bug" --org-id <ORG_ID>
+
+# 创建标签（颜色格式：#RRGGBB）
+yunxiao projex labels create --space-id <PROJECT_ID> --name "bug" --color "#FF0000" --org-id <ORG_ID>
+
+# 更新标签名称或颜色
+yunxiao projex labels update --space-id <PROJECT_ID> --label-id <LABEL_ID> --name "缺陷" --org-id <ORG_ID>
+yunxiao projex labels update --space-id <PROJECT_ID> --label-id <LABEL_ID> --color "#00FF00" --org-id <ORG_ID>
 ```
 
 ### 代码管理（Codeup）
