@@ -588,8 +588,6 @@ pub enum LabelsCmds {
     Create(LabelCreateArgs),
     /// Update an existing label.
     Update(LabelUpdateArgs),
-    /// Delete a label.
-    Delete(LabelDeleteArgs),
 }
 
 /// Arguments for `projex labels list`.
@@ -632,17 +630,6 @@ pub struct LabelUpdateArgs {
     /// New label color (e.g., #A773E0, #FF0000) (optional).
     #[arg(long)]
     pub color: Option<String>,
-}
-
-/// Arguments for `projex labels delete`.
-#[derive(Debug, Args)]
-pub struct LabelDeleteArgs {
-    /// Project space ID. Get via: yunxiao projex projects search
-    #[arg(long)]
-    pub space_id: String,
-    /// Label ID. Get via: yunxiao projex labels list --space-id <SPACE_ID>
-    #[arg(long)]
-    pub label_id: String,
 }
 
 // ─────────────────────────── Execute ────────────────────────────────────
@@ -1487,18 +1474,6 @@ async fn exec_labels(
                         u.space_id, u.label_id
                     ),
                     &body,
-                )
-                .await?;
-            output::print_output(&data, format)?;
-        }
-        LabelsCmds::Delete(d) => {
-            let data = client
-                .delete(
-                    &format!(
-                        "/oapi/v1/projex/organizations/{oid}/projects/{}/labels/{}",
-                        d.space_id, d.label_id
-                    ),
-                    &[],
                 )
                 .await?;
             output::print_output(&data, format)?;
