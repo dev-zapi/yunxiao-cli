@@ -140,6 +140,17 @@ pub enum SortOrder {
     Asc,
 }
 
+/// Description format for workitem.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
+pub enum DescriptionFormat {
+    /// Rich text format (富文本).
+    #[value(name = "text")]
+    Text,
+    /// Markdown format (Markdown格式).
+    #[value(name = "markdown")]
+    Markdown,
+}
+
 /// Arguments for `projex projects get`.
 #[derive(Debug, Args)]
 pub struct ProjectGetArgs {
@@ -253,6 +264,15 @@ pub struct WiCreateArgs {
     /// Priority. Get via: yunxiao projex workitems fields --space-id <SPACE_ID> --type-id <TYPE_ID>
     #[arg(long)]
     pub priority: Option<String>,
+    /// Work item description (optional, directly input).
+    #[arg(long)]
+    pub description: Option<String>,
+    /// Work item description file path (optional, read from file).
+    #[arg(long)]
+    pub description_file: Option<String>,
+    /// Description format: text (richtext) or markdown (default: markdown).
+    #[arg(long, value_enum, default_value = "markdown")]
+    pub description_format: DescriptionFormat,
     /// Dynamic field in format "fieldId=value", can be used multiple times.
     /// Use "yunxiao projex workitems fields --space-id <SPACE_ID> --type-id <TYPE_ID>" to get available field IDs.
     #[arg(long = "field")]
@@ -280,6 +300,15 @@ pub struct WiUpdateArgs {
     /// New priority. Get via: yunxiao projex workitems fields --space-id <SPACE_ID> --type-id <TYPE_ID>
     #[arg(long)]
     pub priority: Option<String>,
+    /// New description (optional, directly input).
+    #[arg(long)]
+    pub description: Option<String>,
+    /// New description file path (optional, read from file).
+    #[arg(long)]
+    pub description_file: Option<String>,
+    /// New description format: text (richtext) or markdown.
+    #[arg(long, value_enum)]
+    pub description_format: Option<DescriptionFormat>,
     /// Dynamic field in format "fieldId=value", can be used multiple times.
     /// Use "yunxiao projex workitems fields --space-id <SPACE_ID> --type-id <TYPE_ID>" to get available field IDs.
     #[arg(long = "field")]
@@ -698,6 +727,29 @@ fn parse_dynamic_fields(fields: &[String]) -> Vec<(String, String)> {
         .collect()
 }
 
+/// Resolve description content from args.
+fn resolve_description(
+    description: Option<&String>,
+    description_file: Option<&String>,
+) -> Result<Option<String>> {
+    if let Some(content) = description {
+        return Ok(Some(content.to_string()));
+    }
+    if let Some(path) = description_file {
+        let content = std::fs::read_to_string(path)?;
+        return Ok(Some(content));
+    }
+    Ok(None)
+}
+
+/// Convert DescriptionFormat to API formatType string.
+fn format_type_to_api(format: DescriptionFormat) -> &'static str {
+    match format {
+        DescriptionFormat::Text => "RICHTEXT",
+        DescriptionFormat::Markdown => "MARKDOWN",
+    }
+}
+
 /// Print pagination information from response headers.
 fn print_pagination_info(headers: &HeaderMap) {
     if let Some(total) = get_header_int(headers, "x-total") {
@@ -1007,17 +1059,25 @@ async fn exec_workitems(
                 "spaceId": c.space_id,
             });
             if let Some(ref assignee) = c.assignee {
-                body["assignee"] = json!(assignee);
+                body["assignedTo"] = json!(assignee);
             }
             if let Some(ref sid) = c.sprint_id {
-                body["sprintId"] = json!(sid);
+                body["sprint"] = json!(sid);
             }
             if let Some(ref prio) = c.priority {
                 body["priority"] = json!(prio);
             }
 
+            let desc = resolve_description(c.description.as_ref(), c.description_file.as_ref())?;
+            if let Some(ref content) = desc {
+                body["description"] = json!(content);
+                body["formatType"] = json!(format_type_to_api(c.description_format));
+            }
+
             for (key, value) in parse_dynamic_fields(&c.fields) {
-                body[key] = json!(value);
+                if key != "description" && key != "formatType" {
+                    body[key] = json!(value);
+                }
             }
 
             let data = client
@@ -1034,7 +1094,7 @@ async fn exec_workitems(
                 body["subject"] = json!(s);
             }
             if let Some(ref a) = u.assignee {
-                body["assignee"] = json!(a);
+                body["assignedTo"] = json!(a);
             }
             if let Some(ref st) = u.status {
                 body["status"] = json!(st);
@@ -1043,8 +1103,18 @@ async fn exec_workitems(
                 body["priority"] = json!(p);
             }
 
+            let desc = resolve_description(u.description.as_ref(), u.description_file.as_ref())?;
+            if let Some(ref content) = desc {
+                body["description"] = json!(content);
+                if let Some(format) = u.description_format {
+                    body["formatType"] = json!(format_type_to_api(format));
+                }
+            }
+
             for (key, value) in parse_dynamic_fields(&u.fields) {
-                body[key] = json!(value);
+                if key != "description" && key != "formatType" {
+                    body[key] = json!(value);
+                }
             }
 
             let data = client

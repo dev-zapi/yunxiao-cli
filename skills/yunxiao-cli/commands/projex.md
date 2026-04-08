@@ -20,6 +20,7 @@
 | `yunxiao projex workitems search` | 搜索工作项 |
 | `yunxiao projex workitems get` | 查看工作项详情 |
 | `yunxiao projex workitems create` | 创建工作项 |
+| `yunxiao projex workitems update` | 更新工作项 |
 | `yunxiao projex workitems types` | 列出工作项类型 |
 | `yunxiao projex workitems fields` | 查看字段配置 |
 
@@ -180,18 +181,98 @@ yunxiao projex workitems create --space-id <PROJECT_ID> --category <category> --
 | `--space-id` | 项目 ID | 是 |
 | `--category` | 工作项类别（Req/Task/Bug） | 是 |
 | `--subject` | 标题 | 是 |
+| `--assignee` | 负责人用户 ID | 否 |
+| `--sprint-id` | 迭代 ID | 否 |
+| `--priority` | 优先级 ID | 否 |
+| `--description` | 描述内容（直接输入） | 否 |
+| `--description-file` | 描述文件路径（从文件读取） | 否 |
+| `--description-format` | 描述格式：text（富文本）或 markdown（默认 markdown） | 否 |
+| `--field` | 动态字段，格式 `fieldId=value`，可多次使用 | 否 |
+
+### 描述参数说明
+
+- `--description`：直接输入描述文本，优先级高于 `--description-file`
+- `--description-file`：从指定文件读取描述内容
+- `--description-format`：
+  - `markdown`（默认）：Markdown 格式，对应 API 的 `MARKDOWN`
+  - `text`：富文本格式，对应 API 的 `RICHTEXT`
 
 ### 示例
 
 ```bash
-# 创建需求
+# 创建需求（基本）
 yunxiao projex workitems create --space-id proj-xxxxxxxx --category Req --subject "用户登录功能" --org-id org-xxxxxxxx
+
+# 创建带描述的需求（Markdown 格式）
+yunxiao projex workitems create --space-id proj-xxxxxxxx --category Req --subject "用户登录功能" \
+  --description "## 功能说明\n\n- 支持用户名密码登录\n- 支持手机号登录" \
+  --org-id org-xxxxxxxx
+
+# 从文件读取描述
+yunxiao projex workitems create --space-id proj-xxxxxxxx --category Req --subject "API 设计文档" \
+  --description-file ./api-design.md \
+  --org-id org-xxxxxxxx
+
+# 使用富文本格式描述
+yunxiao projex workitems create --space-id proj-xxxxxxxx --category Task --subject "修复样式问题" \
+  --description "<p>这是一个富文本描述</p>" \
+  --description-format text \
+  --org-id org-xxxxxxxx
 
 # 创建任务
 yunxiao projex workitems create --space-id proj-xxxxxxxx --category Task --subject "编写单元测试" --org-id org-xxxxxxxx
 
 # 创建缺陷
 yunxiao projex workitems create --space-id proj-xxxxxxxx --category Bug --subject "登录页面加载缓慢" --org-id org-xxxxxxxx
+```
+
+---
+
+## 更新工作项
+
+### 基本用法
+
+```bash
+yunxiao projex workitems update --space-id <PROJECT_ID> --workitem-id <WORKITEM_ID> --org-id <ORG_ID>
+```
+
+### 参数
+
+| 参数 | 说明 | 必需 |
+|------|------|------|
+| `--org-id` | 组织 ID | 是 |
+| `--space-id` | 项目 ID | 是 |
+| `--workitem-id` | 工作项 ID | 是 |
+| `--subject` | 新标题 | 否 |
+| `--assignee` | 新负责人用户 ID | 否 |
+| `--status` | 新状态 ID | 否 |
+| `--priority` | 新优先级 ID | 否 |
+| `--description` | 新描述内容（直接输入） | 否 |
+| `--description-file` | 新描述文件路径 | 否 |
+| `--description-format` | 新描述格式：text 或 markdown | 否 |
+| `--field` | 动态字段，格式 `fieldId=value`，可多次使用 | 否 |
+
+### 示例
+
+```bash
+# 更新标题
+yunxiao projex workitems update --space-id proj-xxxxxxxx --workitem-id wi-xxxxxxxx \
+  --subject "更新后的标题" --org-id org-xxxxxxxx
+
+# 更新描述（Markdown 格式）
+yunxiao projex workitems update --space-id proj-xxxxxxxx --workitem-id wi-xxxxxxxx \
+  --description "## 更新内容\n\n- 新增功能 A\n- 修复问题 B" \
+  --description-format markdown \
+  --org-id org-xxxxxxxx
+
+# 从文件更新描述
+yunxiao projex workitems update --space-id proj-xxxxxxxx --workitem-id wi-xxxxxxxx \
+  --description-file ./new-description.md \
+  --org-id org-xxxxxxxx
+
+# 更新状态和负责人
+yunxiao projex workitems update --space-id proj-xxxxxxxx --workitem-id wi-xxxxxxxx \
+  --status "status-xxx" --assignee "user-xxx" --org-id org-xxxxxxxx
 ```
 
 ---
@@ -428,14 +509,21 @@ yunxiao projex workitems search --space-id $PROJECT_ID --category Bug --org-id o
 ### 创建完整工作项流程
 
 ```bash
-# 创建需求
-yunxiao projex workitems create --space-id proj-xxx --category Req --subject "新功能需求" --org-id org-xxx
+# 创建需求（带描述）
+yunxiao projex workitems create --space-id proj-xxx --category Req --subject "新功能需求" \
+  --description "## 需求说明\n\n- 功能点 1\n- 功能点 2" \
+  --org-id org-xxx
 
 # 创建迭代
 yunxiao projex sprints create --space-id proj-xxx --name "迭代1" --org-id org-xxx
 
 # 创建标签
 yunxiao projex labels create --space-id proj-xxx --name "高优先级" --color "#FF0000" --org-id org-xxx
+
+# 更新工作项描述（从文件读取）
+yunxiao projex workitems update --space-id proj-xxx --workitem-id wi-xxx \
+  --description-file ./detailed-spec.md \
+  --org-id org-xxx
 ```
 
 ### 查看迭代进度
