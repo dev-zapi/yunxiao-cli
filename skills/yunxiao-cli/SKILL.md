@@ -10,13 +10,6 @@ cli_version: ">=0.1.0"
 
 阿里云云效（YunXiao）DevOps 平台的命令行工具，用于通过终端管理完整的 DevOps 生命周期。
 
-## 使用前提
-
-1. 登录云效控制台获取个人访问令牌（PAT）
-2. 使用以下方式之一配置认证：
-   - 环境变量: `export YUNXIAO_CLI_TOKEN=<your_token>`
-   - 配置文件: `~/.config/yunxiao/config.toml`
-
 ## 详细手册
 
 完整命令手册请参阅 [commands/](./commands/) 目录下的各模块文档。
