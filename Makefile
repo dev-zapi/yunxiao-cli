@@ -118,10 +118,10 @@ uninstall:
 	@rm -f $(HOME)/.local/bin/yunxiao
 	@echo "Uninstalled yunxiao from $(HOME)/.local/bin/"
 
-## Install skill file to $HOME/.agents/skills/yunxiao-cli/
+## Install skill files to $HOME/.agents/skills/yunxiao-cli/
 install-skill:
 	@mkdir -p $(HOME)/.agents/skills/yunxiao-cli
-	@cp SKILL.md $(HOME)/.agents/skills/yunxiao-cli/SKILL.md
+	@cp -r skills/yunxiao-cli/* $(HOME)/.agents/skills/yunxiao-cli/
 	@echo "Installed skill to $(HOME)/.agents/skills/yunxiao-cli/"
 
 ## Remove skill from $HOME/.agents/skills/yunxiao-cli/
