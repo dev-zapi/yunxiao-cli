@@ -4,6 +4,55 @@
 
 ---
 
+## Git 提交规则
+
+**当 AI 助手完成功能、修复 Bug 或工作项时，必须自动提交代码。**
+
+### 提交流程
+
+1. **检查工作目录状态**
+   ```bash
+   git status
+   ```
+
+2. **如果有未提交的变更，自动提交**
+   ```bash
+   git add <相关文件>
+   git commit -m "<描述性消息>"
+   ```
+
+3. **提交消息格式**
+   - `feat(module): 描述` - 新功能
+   - `fix(module): 描述` - Bug 修复
+   - `docs: 描述` - 文档更新
+   - `refactor(module): 描述` - 代码重构
+   - `test(module): 描述` - 测试相关
+
+### 提交示例
+
+```bash
+# 功能开发
+git add src/cli/commands/projex.rs skills/yunxiao-cli/commands/projex.md
+git commit -m "feat(projex): add independent description parameters for workitem create/update"
+
+# Bug 修复
+git add src/client/mod.rs
+git commit -m "fix(client): handle timeout error correctly"
+
+# 文档更新
+git add README.md
+git commit -m "docs: update installation instructions"
+```
+
+### 注意事项
+
+- **不要提交**包含敏感信息的文件（.env、credentials.json 等）
+- **不要提交**生成的临时文件或构建产物
+- 提交前确保 `make check` 通过
+- 如果用户明确要求不提交，则跳过自动提交
+
+---
+
 ## 项目概述
 
 **YunXiao CLI** 是阿里云云效（DevOps）平台的命令行工具，基于 Rust 开发，提供对云效 API 的完整访问能力。
