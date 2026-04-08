@@ -14,10 +14,6 @@ cli_version: ">=0.1.0"
 
 完整命令手册请参阅 [commands/](./commands/) 目录下的各模块文档。
 
-## 快速开始
-
-详见 [getting-started.md](./getting-started.md)。
-
 ## 配置说明
 
 详见 [configuration.md](./configuration.md)。
