@@ -29,12 +29,12 @@ cli_version: ">=0.1.0"
 
 ## Help 命令
 
-如果本手册未找到所需信息，可使用 `--help` 获取命令帮助：
+如果本手册未找到所需信息，可使用 `--help` 获取命令帮助。命令可能有多级子命令，可以逐级尝试：
 
 ```bash
 yunxiao-cli --help                    # 查看全局帮助
 yunxiao-cli <command> --help          # 查看子命令帮助
-yunxiao-cli <command> <sub> --help    # 查看子子命令帮助
+yunxiao-cli <command> <sub> --help    # 查看更深层级的帮助
 ```
 
 ## 配置说明
