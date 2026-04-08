@@ -92,7 +92,7 @@ yunxiao-cli flow pipelines list
 yunxiao-cli projex workitems search --space-id <PROJECT_ID> --category Req
 
 # 查看工作项类型字段配置
-yunxiao-cli projex workitems type-fields --project-id <PROJECT_ID> --type-id <TYPE_ID>
+yunxiao-cli projex workitems fields --project-id <PROJECT_ID> --type-id <TYPE_ID>
 ```
 
 ## 📋 命令列表

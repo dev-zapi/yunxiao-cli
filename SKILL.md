@@ -121,7 +121,7 @@ yunxiao projex workitems types --space-id <PROJECT_ID> --category Req --org-id <
 yunxiao projex workitems types --space-id <PROJECT_ID> --keyword "需求" --org-id <ORG_ID>
 
 # 查看工作项类型字段配置
-yunxiao projex workitems type-fields --project-id <PROJECT_ID> --type-id <TYPE_ID> --org-id <ORG_ID>
+yunxiao projex workitems fields --project-id <PROJECT_ID> --type-id <TYPE_ID> --org-id <ORG_ID>
 
 # 列出迭代
 yunxiao projex sprints list --space-id <PROJECT_ID> --org-id <ORG_ID>

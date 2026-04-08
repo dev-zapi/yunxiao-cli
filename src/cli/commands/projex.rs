@@ -193,6 +193,8 @@ pub enum WorkitemsCmds {
     Update(WiUpdateArgs),
     /// List work-item types in a space.
     Types(WiTypesArgs),
+    /// Get field configuration for a work-item type.
+    Fields(WiFieldsArgs),
     /// Manage work-item comments.
     Comments(WiCommentsArgs),
     /// Manage work-item attachments.
@@ -296,6 +298,17 @@ pub struct WiTypesArgs {
     /// Filter results locally by type name (case-insensitive substring).
     #[arg(long)]
     pub keyword: Option<String>,
+}
+
+/// Arguments for `projex workitems fields`.
+#[derive(Debug, Args)]
+pub struct WiFieldsArgs {
+    /// Project ID. Get via: yunxiao projex projects search
+    #[arg(long)]
+    pub project_id: String,
+    /// Work-item type ID. Get via: yunxiao projex workitems types --space-id <SPACE_ID>
+    #[arg(long)]
+    pub type_id: String,
 }
 
 // ───── Work-item comments ───────────────────────────────────────────────
@@ -1086,6 +1099,19 @@ async fn exec_workitems(
             };
 
             output::print_output(&filtered, format)?;
+        }
+        WorkitemsCmds::Fields(f) => {
+            // API docs: https://help.aliyun.com/zh/yunxiao/developer-reference/getworkitemtypefieldconfig
+            let data = client
+                .get(
+                    &format!(
+                        "/oapi/v1/projex/organizations/{oid}/projects/{}/workitemTypes/{}/fields",
+                        f.project_id, f.type_id
+                    ),
+                    &[],
+                )
+                .await?;
+            output::print_output(&data, format)?;
         }
         WorkitemsCmds::Comments(c) => match &c.command {
             WiCommentsCmds::List(l) => {
