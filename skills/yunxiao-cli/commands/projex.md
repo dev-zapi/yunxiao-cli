@@ -23,6 +23,7 @@
 | `yunxiao projex workitems update` | 更新工作项 |
 | `yunxiao projex workitems types` | 列出工作项类型 |
 | `yunxiao projex workitems fields` | 查看字段配置 |
+| `yunxiao projex workitems flow` | 查看工作流信息 |
 
 ### 迭代管理
 
@@ -329,6 +330,81 @@ yunxiao projex workitems fields --project-id <PROJECT_ID> --type-id <TYPE_ID> --
 
 ```bash
 yunxiao projex workitems fields --project-id proj-xxxxxxxx --type-id type-xxxxxxxx --org-id org-xxxxxxxx
+```
+
+---
+
+## 查看工作流信息
+
+### 基本用法
+
+有两种模式可以查询工作流信息：
+
+**模式 A**：通过工作项 ID 获取该工作项的工作流信息
+
+```bash
+yunxiao projex workitems flow --workitem-id <WORKITEM_ID> --org-id <ORG_ID>
+```
+
+**模式 B**：通过项目 ID + 工作项类型 ID 获取该类型的工作流状态列表
+
+```bash
+yunxiao projex workitems flow --space-id <PROJECT_ID> --type-id <TYPE_ID> --org-id <ORG_ID>
+```
+
+### 参数
+
+| 参数 | 说明 | 必需 |
+|------|------|------|
+| `--org-id` | 组织 ID | 是 |
+| `--workitem-id` | 工作项 ID（模式 A） | 模式 A 必需 |
+| `--space-id` | 项目 ID（模式 B） | 模式 B 必需 |
+| `--type-id` | 工作项类型 ID（模式 B） | 模式 B 必需 |
+
+### 返回字段说明
+
+| 字段 | 说明 |
+|------|------|
+| `id` | 工作流 ID |
+| `name` | 工作流名称 |
+| `defaultStatusId` | 默认状态 ID |
+| `statuses` | 状态列表数组 |
+
+### statuses 数组元素
+
+| 字段 | 说明 |
+|------|------|
+| `id` | 状态 ID |
+| `name` | 状态名称（中文） |
+| `nameEn` | 状态名称（英文） |
+| `displayName` | 状态显示名称 |
+
+### 示例
+
+```bash
+# 模式 A：获取某个工作项的工作流信息
+yunxiao projex workitems flow --workitem-id wi-xxxxxxxx --org-id org-xxxxxxxx
+
+# 模式 B：获取工作项类型的工作流状态列表
+# 1. 先查询工作项类型 ID
+yunxiao projex workitems types --space-id proj-xxxxxxxx --category Req --org-id org-xxxxxxxx
+
+# 2. 使用类型 ID 查询工作流
+yunxiao projex workitems flow --space-id proj-xxxxxxxx --type-id 9uy29901re573f561d69jn40 --org-id org-xxxxxxxx
+```
+
+### 典型使用场景
+
+```bash
+# 场景：查询产品类需求的工作流状态
+# 1. 获取项目 ID
+yunxiao projex projects search --keyword "项目名" --org-id org-xxx
+
+# 2. 获取需求类型 ID（产品类需求）
+yunxiao projex workitems types --space-id proj-xxx --category Req --org-id org-xxx
+
+# 3. 查询该类型的工作流
+yunxiao projex workitems flow --space-id proj-xxx --type-id <TYPE_ID> --org-id org-xxx
 ```
 
 ---
