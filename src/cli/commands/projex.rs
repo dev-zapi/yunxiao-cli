@@ -210,6 +210,8 @@ pub enum WorkitemsCmds {
     Comments(WiCommentsArgs),
     /// Manage work-item attachments.
     Attachments(WiAttachmentsArgs),
+    /// Get workflow information for a work item.
+    Flow(WiFlowArgs),
 }
 
 /// Arguments for `projex workitems search`.
@@ -408,6 +410,22 @@ pub struct WiAttachmentsListArgs {
     /// Work item ID. Get via: yunxiao projex workitems search --space-id <SPACE_ID> --category <CATEGORY>
     #[arg(long)]
     pub workitem_id: String,
+}
+
+// ───── Work-item workflow ───────────────────────────────────────────────
+
+/// Arguments for `projex workitems flow`.
+#[derive(Debug, Args)]
+pub struct WiFlowArgs {
+    /// Work item ID. Get via: yunxiao projex workitems search --space-id <SPACE_ID> --category <CATEGORY>
+    #[arg(long)]
+    pub workitem_id: Option<String>,
+    /// Project space ID. Required when using --type-id. Get via: yunxiao projex projects search
+    #[arg(long)]
+    pub space_id: Option<String>,
+    /// Work-item type ID. Required when using --space-id. Get via: yunxiao projex workitems types --space-id <SPACE_ID>
+    #[arg(long)]
+    pub type_id: Option<String>,
 }
 
 // ───────────────────────── Sprints ──────────────────────────────────────
@@ -1224,6 +1242,40 @@ async fn exec_workitems(
                 output::print_output(&data, format)?;
             }
         },
+        WorkitemsCmds::Flow(f) => {
+            if let Some(ref workitem_id) = f.workitem_id {
+                // Get workflow info for a specific work item
+                // API docs: https://help.aliyun.com/zh/yunxiao/developer-reference/getworkitemworkflowinfo-get-work-item-workflow-information
+                let data = client
+                    .get(
+                        &format!(
+                            "/oapi/v1/projex/organizations/{oid}/workitems/{}/workflow",
+                            workitem_id
+                        ),
+                        &[],
+                    )
+                    .await?;
+                output::print_output(&data, format)?;
+            } else if let (Some(ref space_id), Some(ref type_id)) = (&f.space_id, &f.type_id) {
+                // Get workflow status list for a work item type
+                // API docs: https://help.aliyun.com/zh/yunxiao/developer-reference/getworkitemworkflow-get-a-list-of-the-status-of-the-work-item
+                let data = client
+                    .get(
+                        &format!(
+                            "/oapi/v1/projex/organizations/{oid}/projects/{}/workitemTypes/{}/workflows",
+                            space_id, type_id
+                        ),
+                        &[],
+                    )
+                    .await?;
+                output::print_output(&data, format)?;
+            } else {
+                return Err(crate::error::CliError::Config(
+                    "Either --workitem-id or both --space-id and --type-id must be provided."
+                        .into(),
+                ));
+            }
+        }
     }
     Ok(())
 }
