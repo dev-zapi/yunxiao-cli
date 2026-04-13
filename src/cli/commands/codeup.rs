@@ -386,6 +386,12 @@ pub struct MrCreateArgs {
     /// Description body (optional).
     #[arg(long)]
     pub description: Option<String>,
+    /// Source project ID (optional, defaults to repo_id).
+    #[arg(long)]
+    pub source_project_id: Option<i64>,
+    /// Target project ID (optional, defaults to repo_id).
+    #[arg(long)]
+    pub target_project_id: Option<i64>,
 }
 
 // ── MR Comments ─────────────────────────────────────────────────────────
@@ -801,9 +807,17 @@ async fn exec_mr(
             output::print_output(&data, format)?;
         }
         MrCmds::Create(c) => {
+            let source_project_id = c
+                .source_project_id
+                .unwrap_or_else(|| c.repo_id.parse().unwrap_or(0));
+            let target_project_id = c
+                .target_project_id
+                .unwrap_or_else(|| c.repo_id.parse().unwrap_or(0));
             let mut body = json!({
                 "sourceBranch": c.source,
+                "sourceProjectId": source_project_id,
                 "targetBranch": c.target,
+                "targetProjectId": target_project_id,
                 "title": c.title,
             });
             if let Some(ref d) = c.description {

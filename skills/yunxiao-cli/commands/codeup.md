@@ -175,15 +175,24 @@ yunxiao codeup mr create --repo-id <REPO_ID> --source <source> --target <target>
 | `--source` | 来源分支 | 是 |
 | `--target` | 目标分支 | 是 |
 | `--title` | MR 标题 | 是 |
+| `--description` | MR 描述 | 否 |
+| `--source-project-id` | 源仓库 ID（默认使用 repo_id） | 否 |
+| `--target-project-id` | 目标仓库 ID（默认使用 repo_id） | 否 |
 
 ### 示例
 
 ```bash
-# 创建 MR: feature/new -> main
+# 同库 MR: feature/new -> main（简化用法）
 yunxiao codeup mr create --repo-id repo-xxxxxxxx --source feature/new --target main --title "添加新功能" --org-id org-xxxxxxxx
 
-# 创建 MR: bugfix/login -> develop
+# 同库 MR: bugfix/login -> develop
 yunxiao codeup mr create --repo-id repo-xxxxxxxx --source bugfix/login --target develop --title "修复登录问题" --org-id org-xxxxxxxx
+
+# 跨库 MR: 从 fork 仓库合并到主仓库
+yunxiao codeup mr create --repo-id fork-repo-xxx \
+    --source feature/new --target main --title "添加新功能" \
+    --source-project-id fork-repo-xxx --target-project-id main-repo-xxx \
+    --org-id org-xxxxxxxx
 ```
 
 ---
