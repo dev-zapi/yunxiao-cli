@@ -751,7 +751,8 @@ fn resolve_description(
     description_file: Option<&String>,
 ) -> Result<Option<String>> {
     if let Some(content) = description {
-        return Ok(Some(content.to_string()));
+        let processed = content.replace("\\n", "\n");
+        return Ok(Some(processed));
     }
     if let Some(path) = description_file {
         let content = std::fs::read_to_string(path)?;
