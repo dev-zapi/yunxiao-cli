@@ -49,26 +49,28 @@ pub struct WiSearchArgs {
     /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
-    /// Work-item category (e.g. Req, Task, Bug). Get via: yunxiao projex workitems types --space-id <SPACE_ID>
-    #[arg(long)]
-    pub category: String,
+    /// Work-item category, can be specified multiple times (e.g. -c Req -c Task).
+    /// Defaults to Req, Task, and Bug when omitted.
+    /// Get available categories via: yunxiao projex workitems types --space-id <SPACE_ID>
+    #[arg(short = 'c', long = "category")]
+    pub category: Vec<String>,
     /// Optional keyword filter.
-    #[arg(long)]
+    #[arg(short = 'k', long)]
     pub keyword: Option<String>,
     /// Filter by serial number (e.g. PROJ-123).
-    #[arg(long)]
+    #[arg(short = 'n', long)]
     pub serial_number: Option<String>,
     /// Filter by version ID. Get via: yunxiao projex versions list --space-id <SPACE_ID>
-    #[arg(long)]
+    #[arg(short = 'v', long)]
     pub version_id: Option<String>,
     /// Filter by sprint ID. Get via: yunxiao projex sprints list --space-id <SPACE_ID>
-    #[arg(long)]
+    #[arg(short = 'S', long)]
     pub sprint_id: Option<String>,
     /// Page size.
-    #[arg(long, default_value = "20")]
+    #[arg(short = 'P', long, default_value = "20")]
     pub page_size: u32,
     /// Page number.
-    #[arg(long, default_value = "1")]
+    #[arg(short = 'p', long, default_value = "1")]
     pub page: u32,
 }
 
@@ -78,7 +80,7 @@ pub struct WiGetArgs {
     /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
-    /// Work item ID. Get via: yunxiao projex workitems search --space-id <SPACE_ID> --category <CATEGORY>
+    /// Work item ID. Get via: yunxiao projex workitems search --space-id <SPACE_ID>
     #[arg(long)]
     pub workitem_id: String,
 }
@@ -125,7 +127,7 @@ pub struct WiUpdateArgs {
     /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
-    /// Work item ID. Get via: yunxiao projex workitems search --space-id <SPACE_ID> --category <CATEGORY>
+    /// Work item ID. Get via: yunxiao projex workitems search --space-id <SPACE_ID>
     #[arg(long)]
     pub workitem_id: String,
     /// New subject (optional).
@@ -202,7 +204,7 @@ pub struct WiCommentsListArgs {
     /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
-    /// Work item ID. Get via: yunxiao projex workitems search --space-id <SPACE_ID> --category <CATEGORY>
+    /// Work item ID. Get via: yunxiao projex workitems search --space-id <SPACE_ID>
     #[arg(long)]
     pub workitem_id: String,
 }
@@ -213,7 +215,7 @@ pub struct WiCommentsCreateArgs {
     /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
-    /// Work item ID. Get via: yunxiao projex workitems search --space-id <SPACE_ID> --category <CATEGORY>
+    /// Work item ID. Get via: yunxiao projex workitems search --space-id <SPACE_ID>
     #[arg(long)]
     pub workitem_id: String,
     /// Comment content.
@@ -241,7 +243,7 @@ pub struct WiAttachmentsListArgs {
     /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
-    /// Work item ID. Get via: yunxiao projex workitems search --space-id <SPACE_ID> --category <CATEGORY>
+    /// Work item ID. Get via: yunxiao projex workitems search --space-id <SPACE_ID>
     #[arg(long)]
     pub workitem_id: String,
 }
@@ -249,7 +251,7 @@ pub struct WiAttachmentsListArgs {
 /// Arguments for `projex workitems flow`.
 #[derive(Debug, Args)]
 pub struct WiFlowArgs {
-    /// Work item ID. Get via: yunxiao projex workitems search --space-id <SPACE_ID> --category <CATEGORY>
+    /// Work item ID. Get via: yunxiao projex workitems search --space-id <SPACE_ID>
     #[arg(long)]
     pub workitem_id: Option<String>,
     /// Project space ID. Required when using --type-id. Get via: yunxiao projex projects search
@@ -482,6 +484,37 @@ pub(super) async fn exec_workitems(
     Ok(())
 }
 
+fn resolve_search_categories(categories: &[String]) -> String {
+    if categories.is_empty() {
+        "Req,Task,Bug".to_string()
+    } else {
+        categories.join(",")
+    }
+}
+
+fn build_workitems_search_body(s: &WiSearchArgs) -> serde_json::Value {
+    let categories = resolve_search_categories(&s.category);
+    let conditions_str = ConditionBuilder::new()
+        .opt_string_contains("subject", s.keyword.as_deref())
+        .opt_string_contains("serialNumber", s.serial_number.as_deref())
+        .opt_multi_list_contains("version", "version", s.version_id.as_deref())
+        .opt_list_contains("sprint", "sprint", s.sprint_id.as_deref())
+        .build();
+
+    let mut body = json!({
+        "category": categories,
+        "spaceId": s.space_id,
+        "page": s.page,
+        "perPage": s.page_size,
+    });
+
+    if let Some(conds) = conditions_str {
+        body["conditions"] = json!(conds);
+    }
+
+    body
+}
+
 /// Execute work-item search.
 ///
 /// API docs: <https://help.aliyun.com/zh/yunxiao/developer-reference/searchworkitems>
@@ -491,23 +524,7 @@ async fn exec_workitems_search(
     client: &ApiClient,
     format: &OutputFormat,
 ) -> Result<()> {
-    let conditions_str = ConditionBuilder::new()
-        .opt_string_contains("subject", s.keyword.as_deref())
-        .opt_string_contains("serialNumber", s.serial_number.as_deref())
-        .opt_multi_list_contains("version", "version", s.version_id.as_deref())
-        .opt_list_contains("sprint", "sprint", s.sprint_id.as_deref())
-        .build();
-
-    let mut body = json!({
-        "category": s.category,
-        "spaceId": s.space_id,
-        "page": s.page,
-        "perPage": s.page_size,
-    });
-
-    if let Some(conds) = conditions_str {
-        body["conditions"] = json!(conds);
-    }
+    let body = build_workitems_search_body(s);
 
     let resp = client
         .post_with_headers(
@@ -520,3 +537,7 @@ async fn exec_workitems_search(
     output::print_output(&resp.body, format)?;
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "workitems_tests.rs"]
+mod tests;

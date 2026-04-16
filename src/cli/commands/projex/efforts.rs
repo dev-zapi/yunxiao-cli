@@ -42,7 +42,7 @@ pub struct EffortsCreateArgs {
     /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
-    /// Work item ID. Get via: yunxiao projex workitems search --space-id <SPACE_ID> --category <CATEGORY>
+    /// Work item ID. Get via: yunxiao projex workitems search --space-id <SPACE_ID>
     #[arg(long)]
     pub workitem_id: String,
     /// Duration in hours.

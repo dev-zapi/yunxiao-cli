@@ -114,7 +114,13 @@ yunxiao projex workitems search --space-id <PROJECT_ID> --org-id <ORG_ID>
 |------|------|------|
 | `--org-id` | 组织 ID | 是 |
 | `--space-id` | 项目 ID（spaceId） | 是 |
-| `--category` | 工作项类别 | 否 |
+| `-c`, `--category` | 工作项类别，可多次传入；省略时默认搜索 `Req`、`Task`、`Bug` | 否 |
+| `-k`, `--keyword` | 标题关键词过滤 | 否 |
+| `-n`, `--serial-number` | 按编号过滤（如 PROJ-123） | 否 |
+| `-v`, `--version-id` | 按版本 ID 过滤 | 否 |
+| `-S`, `--sprint-id` | 按迭代 ID 过滤 | 否 |
+| `-p`, `--page` | 页码 | 否（默认 1） |
+| `-P`, `--page-size` | 每页数量 | 否（默认 20） |
 
 ### 工作项类别
 
@@ -124,6 +130,9 @@ yunxiao projex workitems search --space-id <PROJECT_ID> --org-id <ORG_ID>
 | `Task` | 任务 |
 | `Bug` | 缺陷 |
 
+支持多次传入，例如：`-c Req -c Task`。
+不传 `--category` 时，CLI 会默认传 `Req,Task,Bug` 给搜索接口。
+
 ### 示例
 
 ```bash
@@ -131,13 +140,28 @@ yunxiao projex workitems search --space-id <PROJECT_ID> --org-id <ORG_ID>
 yunxiao projex workitems search --space-id proj-xxxxxxxx --org-id org-xxxxxxxx
 
 # 查看需求
-yunxiao projex workitems search --space-id proj-xxxxxxxx --category Req --org-id org-xxxxxxxx
+yunxiao projex workitems search --space-id proj-xxxxxxxx -c Req --org-id org-xxxxxxxx
 
 # 查看任务
-yunxiao projex workitems search --space-id proj-xxxxxxxx --category Task --org-id org-xxxxxxxx
+yunxiao projex workitems search --space-id proj-xxxxxxxx -c Task --org-id org-xxxxxxxx
 
 # 查看缺陷
-yunxiao projex workitems search --space-id proj-xxxxxxxx --category Bug --org-id org-xxxxxxxx
+yunxiao projex workitems search --space-id proj-xxxxxxxx -c Bug --org-id org-xxxxxxxx
+
+# 同时查看需求和任务
+yunxiao projex workitems search --space-id proj-xxxxxxxx -c Req -c Task --org-id org-xxxxxxxx
+
+# 按关键词搜索
+yunxiao projex workitems search --space-id proj-xxxxxxxx -c Req -k "登录" --org-id org-xxxxxxxx
+
+# 按编号查找
+yunxiao projex workitems search --space-id proj-xxxxxxxx -c Req -n PROJ-123 --org-id org-xxxxxxxx
+
+# 按版本过滤（version-id 通过 versions list 获取）
+yunxiao projex workitems search --space-id proj-xxxxxxxx -c Req -v 6e7f811c... --org-id org-xxxxxxxx
+
+# 按迭代过滤（sprint-id 通过 sprints list 获取）
+yunxiao projex workitems search --space-id proj-xxxxxxxx -c Req -S sprint-xxx --org-id org-xxxxxxxx
 ```
 
 ---
@@ -576,10 +600,10 @@ yunxiao projex projects search --keyword "demo" --org-id org-xxx
 PROJECT_ID=$(yunxiao projex projects search --keyword "demo" --org-id org-xxx --output json | jq -r '.[0].id')
 
 # 查看需求
-yunxiao projex workitems search --space-id $PROJECT_ID --category Req --org-id org-xxx
+yunxiao projex workitems search --space-id $PROJECT_ID -c Req --org-id org-xxx
 
 # 查看缺陷
-yunxiao projex workitems search --space-id $PROJECT_ID --category Bug --org-id org-xxx
+yunxiao projex workitems search --space-id $PROJECT_ID -c Bug --org-id org-xxx
 ```
 
 ### 创建完整工作项流程
@@ -608,8 +632,20 @@ yunxiao projex workitems update --space-id proj-xxx --workitem-id wi-xxx \
 # 列出迭代
 yunxiao projex sprints list --space-id proj-xxx --org-id org-xxx
 
-# 查看迭代中的工作项（需手动过滤）
-yunxiao projex workitems search --space-id proj-xxx --org-id org-xxx
+# 查看某个迭代中的工作项
+SPRINT_ID=$(yunxiao projex sprints list --space-id proj-xxx --org-id org-xxx --output json | jq -r '.[0].id')
+yunxiao projex workitems search --space-id proj-xxx -c Req -S $SPRINT_ID --org-id org-xxx
+```
+
+### 查看版本内工作项
+
+```bash
+# 列出版本
+yunxiao projex versions list --space-id proj-xxx --org-id org-xxx
+
+# 查看某个版本中的工作项
+VERSION_ID=$(yunxiao projex versions list --space-id proj-xxx --org-id org-xxx --output json | jq -r '.[0].id')
+yunxiao projex workitems search --space-id proj-xxx -c Req -v $VERSION_ID --org-id org-xxx
 ```
 
 ---
