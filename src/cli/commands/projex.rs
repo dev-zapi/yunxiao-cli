@@ -226,6 +226,15 @@ pub struct WiSearchArgs {
     /// Optional keyword filter.
     #[arg(long)]
     pub keyword: Option<String>,
+    /// Filter by serial number (e.g. PROJ-123).
+    #[arg(long)]
+    pub serial_number: Option<String>,
+    /// Filter by version ID. Get via: yunxiao projex versions list --space-id <SPACE_ID>
+    #[arg(long)]
+    pub version_id: Option<String>,
+    /// Filter by sprint ID. Get via: yunxiao projex sprints list --space-id <SPACE_ID>
+    #[arg(long)]
+    pub sprint_id: Option<String>,
     /// Page size.
     #[arg(long, default_value = "20")]
     pub page_size: u32,
@@ -1303,6 +1312,42 @@ async fn exec_workitems_search(
             "toValue": null,
             "className": "string",
             "format": "input"
+        }));
+    }
+
+    // Add serial number filter if provided
+    if let Some(ref sn) = s.serial_number {
+        conditions.push(json!({
+            "fieldIdentifier": "serialNumber",
+            "operator": "CONTAINS",
+            "value": [sn],
+            "toValue": null,
+            "className": "string",
+            "format": "input"
+        }));
+    }
+
+    // Add version filter if provided
+    if let Some(ref vid) = s.version_id {
+        conditions.push(json!({
+            "fieldIdentifier": "version",
+            "operator": "CONTAINS",
+            "value": [vid],
+            "toValue": null,
+            "className": "version",
+            "format": "multiList"
+        }));
+    }
+
+    // Add sprint filter if provided
+    if let Some(ref sid) = s.sprint_id {
+        conditions.push(json!({
+            "fieldIdentifier": "sprint",
+            "operator": "CONTAINS",
+            "value": [sid],
+            "toValue": null,
+            "className": "sprint",
+            "format": "list"
         }));
     }
 
