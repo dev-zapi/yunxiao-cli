@@ -41,6 +41,8 @@ pub enum WorkitemsCmds {
     Attachments(WiAttachmentsArgs),
     /// Get workflow information for a work item.
     Flow(WiFlowArgs),
+    /// Manage work-item relations (parent, sub, associated, depend_on, depended_by).
+    Relations(WiRelationsArgs),
 }
 
 /// Arguments for `projex workitems search`.
@@ -262,6 +264,63 @@ pub struct WiFlowArgs {
     pub type_id: Option<String>,
 }
 
+/// Arguments for `projex workitems relations`.
+#[derive(Debug, Args)]
+pub struct WiRelationsArgs {
+    #[command(subcommand)]
+    pub command: WiRelationsCmds,
+}
+
+/// Relation operations.
+#[derive(Debug, Subcommand)]
+pub enum WiRelationsCmds {
+    /// List relation records for a work item.
+    List(WiRelationsListArgs),
+    /// Create a relation between two work items.
+    Create(WiRelationsCreateArgs),
+    /// Delete a relation between two work items.
+    Delete(WiRelationsDeleteArgs),
+}
+
+/// Arguments for `projex workitems relations list`.
+#[derive(Debug, Args)]
+pub struct WiRelationsListArgs {
+    /// Work item ID. Get via: yunxiao projex workitems search --space-id <SPACE_ID>
+    #[arg(long)]
+    pub workitem_id: String,
+    /// Relation type: PARENT, SUB, ASSOCIATED, DEPEND_ON, DEPENDED_BY.
+    #[arg(long)]
+    pub relation_type: String,
+}
+
+/// Arguments for `projex workitems relations create`.
+#[derive(Debug, Args)]
+pub struct WiRelationsCreateArgs {
+    /// Source work item ID. Get via: yunxiao projex workitems search --space-id <SPACE_ID>
+    #[arg(long)]
+    pub workitem_id: String,
+    /// Target work item ID to relate to.
+    #[arg(long)]
+    pub target_workitem_id: String,
+    /// Relation type: PARENT, SUB, ASSOCIATED, DEPEND_ON, DEPENDED_BY.
+    #[arg(long)]
+    pub relation_type: String,
+}
+
+/// Arguments for `projex workitems relations delete`.
+#[derive(Debug, Args)]
+pub struct WiRelationsDeleteArgs {
+    /// Source work item ID. Get via: yunxiao projex workitems search --space-id <SPACE_ID>
+    #[arg(long)]
+    pub workitem_id: String,
+    /// Target work item ID to remove relation from.
+    #[arg(long)]
+    pub target_workitem_id: String,
+    /// Relation type: PARENT, SUB, ASSOCIATED, DEPEND_ON, DEPENDED_BY.
+    #[arg(long)]
+    pub relation_type: String,
+}
+
 /// Execute work-item sub-operations.
 pub(super) async fn exec_workitems(
     args: &WorkitemsArgs,
@@ -480,6 +539,52 @@ pub(super) async fn exec_workitems(
                 ));
             }
         }
+        WorkitemsCmds::Relations(r) => match &r.command {
+            WiRelationsCmds::List(l) => {
+                let data = client
+                    .get(
+                        &format!(
+                            "/oapi/v1/projex/organizations/{oid}/workitems/{}/relationRecords",
+                            l.workitem_id
+                        ),
+                        &[("relationType", l.relation_type.as_str())],
+                    )
+                    .await?;
+                output::print_output(&data, format)?;
+            }
+            WiRelationsCmds::Create(c) => {
+                let body = json!({
+                    "relationType": c.relation_type,
+                    "workitemId": c.target_workitem_id,
+                });
+                let data = client
+                    .post(
+                        &format!(
+                            "/oapi/v1/projex/organizations/{oid}/workitems/{}/relationRecords",
+                            c.workitem_id
+                        ),
+                        &body,
+                    )
+                    .await?;
+                output::print_output(&data, format)?;
+            }
+            WiRelationsCmds::Delete(d) => {
+                let body = json!({
+                    "relationType": d.relation_type,
+                    "workitemId": d.target_workitem_id,
+                });
+                let data = client
+                    .delete_with_body(
+                        &format!(
+                            "/oapi/v1/projex/organizations/{oid}/workitems/{}/relationRecords",
+                            d.workitem_id
+                        ),
+                        &body,
+                    )
+                    .await?;
+                output::print_output(&data, format)?;
+            }
+        },
     }
     Ok(())
 }

@@ -200,6 +200,27 @@ impl ApiClient {
         self.handle_response(resp).await
     }
 
+    /// Perform a DELETE request with a JSON body.
+    pub async fn delete_with_body(
+        &self,
+        path: &str,
+        body: &serde_json::Value,
+    ) -> Result<serde_json::Value> {
+        let url = format!("{}{}", self.base_url, path);
+        debug!("DELETE {} body={}", url, body);
+
+        let body_str = body.to_string();
+        let resp = self
+            .http
+            .delete(&url)
+            .header(reqwest::header::CONTENT_TYPE, "application/json")
+            .body(body_str)
+            .send()
+            .await?;
+
+        self.handle_response(resp).await
+    }
+
     /// Perform a POST request with a JSON body and return response with headers.
     pub async fn post_with_headers(
         &self,

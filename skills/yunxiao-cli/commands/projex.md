@@ -24,6 +24,9 @@
 | `yunxiao projex workitems types` | 列出工作项类型 |
 | `yunxiao projex workitems fields` | 查看字段配置 |
 | `yunxiao projex workitems flow` | 查看工作流信息 |
+| `yunxiao projex workitems relations list` | 列出工作项关联项 |
+| `yunxiao projex workitems relations create` | 创建工作项关联 |
+| `yunxiao projex workitems relations delete` | 删除工作项关联 |
 
 ### 迭代管理
 
@@ -426,6 +429,106 @@ yunxiao projex workitems types --space-id proj-xxx --category Req --org-id org-x
 
 # 3. 查询该类型的工作流
 yunxiao projex workitems flow --space-id proj-xxx --type-id <TYPE_ID> --org-id org-xxx
+```
+
+---
+
+## 工作项关联管理
+
+管理工作项之间的关联关系（父项、子项、关联项、依赖项、支撑项）。
+
+### 关联类型
+
+| 值 | 含义 |
+|----|------|
+| `PARENT` | 父项 |
+| `SUB` | 子项 |
+| `ASSOCIATED` | 关联项 |
+| `DEPEND_ON` | 依赖项 |
+| `DEPENDED_BY` | 支撑项 |
+
+### 列出关联项
+
+```bash
+yunxiao projex workitems relations list --workitem-id <WORKITEM_ID> --relation-type <TYPE> --org-id <ORG_ID>
+```
+
+#### 参数
+
+| 参数 | 说明 | 必需 |
+|------|------|------|
+| `--org-id` | 组织 ID | 是 |
+| `--workitem-id` | 工作项 ID | 是 |
+| `--relation-type` | 关联类型 | 是 |
+
+#### 示例
+
+```bash
+# 列出工作项的子项
+yunxiao projex workitems relations list --workitem-id wi-xxxxxxxx --relation-type SUB --org-id org-xxxxxxxx
+
+# 列出工作项的关联项
+yunxiao projex workitems relations list --workitem-id wi-xxxxxxxx --relation-type ASSOCIATED --org-id org-xxxxxxxx
+```
+
+### 创建关联
+
+```bash
+yunxiao projex workitems relations create --workitem-id <WORKITEM_ID> --target-workitem-id <TARGET_ID> --relation-type <TYPE> --org-id <ORG_ID>
+```
+
+#### 参数
+
+| 参数 | 说明 | 必需 |
+|------|------|------|
+| `--org-id` | 组织 ID | 是 |
+| `--workitem-id` | 源工作项 ID | 是 |
+| `--target-workitem-id` | 目标工作项 ID | 是 |
+| `--relation-type` | 关联类型 | 是 |
+
+#### 示例
+
+```bash
+# 将工作项 B 设为工作项 A 的子项
+yunxiao projex workitems relations create --workitem-id wi-A --target-workitem-id wi-B --relation-type SUB --org-id org-xxxxxxxx
+
+# 创建关联关系
+yunxiao projex workitems relations create --workitem-id wi-A --target-workitem-id wi-B --relation-type ASSOCIATED --org-id org-xxxxxxxx
+```
+
+### 删除关联
+
+```bash
+yunxiao projex workitems relations delete --workitem-id <WORKITEM_ID> --target-workitem-id <TARGET_ID> --relation-type <TYPE> --org-id <ORG_ID>
+```
+
+#### 参数
+
+| 参数 | 说明 | 必需 |
+|------|------|------|
+| `--org-id` | 组织 ID | 是 |
+| `--workitem-id` | 源工作项 ID | 是 |
+| `--target-workitem-id` | 目标工作项 ID | 是 |
+| `--relation-type` | 关联类型 | 是 |
+
+#### 示例
+
+```bash
+yunxiao projex workitems relations delete --workitem-id wi-A --target-workitem-id wi-B --relation-type SUB --org-id org-xxxxxxxx
+```
+
+### 典型使用场景
+
+```bash
+# 场景：创建工作项后立即设置父子关系
+# 1. 创建子工作项
+yunxiao projex workitems create --space-id proj-xxx --type-id <TYPE_ID> --subject "子任务" --org-id org-xxx
+
+# 2. 将新建的工作项关联为父工作项的子项
+yunxiao projex workitems relations create --workitem-id <PARENT_ID> --target-workitem-id <NEW_CHILD_ID> --relation-type SUB --org-id org-xxx
+
+# 3. 查看父工作项的所有子项
+yunxiao projex workitems relations list --workitem-id <PARENT_ID> --relation-type SUB --org-id org-xxx
 ```
 
 ---

@@ -47,7 +47,7 @@
 | DeleteWorkitemAllComment | 删除所有工作项评论 | ❌ **未实现** | 需补充 |
 | GetWorkitemAttachmentCreatemeta | 获取附件创建元数据 | ❌ **未实现** | 需补充 |
 | GetWorkitemTimeTypeList | 获取时间类型列表 | ❌ **未实现** | 需补充 |
-| GetWorkitemRelations | 获取工作项关联 | ❌ **未实现** | 需补充 |
+| GetWorkitemRelations | 获取工作项关联 | ✅ 已实现 | `projex workitems relations list` |
 | GetCustomFieldOption | 获取自定义字段选项 | ❌ **未实现** | 需补充 |
 | GetWorkItemActivity | 获取工作项活动 | ❌ **未实现** | 需补充 |
 | GetWorkItemWorkFlowInfo | 获取工作流信息 | ❌ **未实现** | 需补充 |
