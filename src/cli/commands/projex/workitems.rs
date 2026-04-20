@@ -91,9 +91,9 @@ pub struct WiCreateArgs {
     /// Project space ID. Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: String,
-    /// Category (Req, Task, Bug, etc.). Get via: yunxiao projex workitems types --space-id <SPACE_ID>
+    /// Work-item type ID (required). Get via: yunxiao projex workitems types --space-id <SPACE_ID>
     #[arg(long)]
-    pub category: String,
+    pub type_id: String,
     /// Work-item subject / title.
     #[arg(long)]
     pub subject: String,
@@ -286,9 +286,9 @@ pub(super) async fn exec_workitems(
         }
         WorkitemsCmds::Create(c) => {
             let mut body = json!({
-                "category": c.category,
                 "subject": c.subject,
                 "spaceId": c.space_id,
+                "workitemTypeId": c.type_id,
             });
             if let Some(ref assignee) = c.assignee {
                 body["assignedTo"] = json!(assignee);

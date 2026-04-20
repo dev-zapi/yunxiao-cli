@@ -195,7 +195,7 @@ yunxiao projex workitems get --space-id proj-xxxxxxxx --workitem-id wi-xxxxxxxx 
 ### 基本用法
 
 ```bash
-yunxiao projex workitems create --space-id <PROJECT_ID> --category <category> --subject <subject> --org-id <ORG_ID>
+yunxiao projex workitems create --space-id <PROJECT_ID> --type-id <TYPE_ID> --subject <subject> --org-id <ORG_ID>
 ```
 
 ### 参数
@@ -204,7 +204,7 @@ yunxiao projex workitems create --space-id <PROJECT_ID> --category <category> --
 |------|------|------|
 | `--org-id` | 组织 ID | 是 |
 | `--space-id` | 项目 ID | 是 |
-| `--category` | 工作项类别（Req/Task/Bug） | 是 |
+| `--type-id` | 工作项类型 ID。通过 `yunxiao projex workitems types --space-id <SPACE_ID>` 获取 | 是 |
 | `--subject` | 标题 | 是 |
 | `--assignee` | 负责人用户 ID | 否 |
 | `--sprint-id` | 迭代 ID | 否 |
@@ -226,29 +226,26 @@ yunxiao projex workitems create --space-id <PROJECT_ID> --category <category> --
 
 ```bash
 # 创建需求（基本）
-yunxiao projex workitems create --space-id proj-xxxxxxxx --category Req --subject "用户登录功能" --org-id org-xxxxxxxx
+# 先获取工作项类型 ID
+yunxiao projex workitems types --space-id proj-xxxxxxxx --category Req --org-id org-xxxxxxxx
+# 使用返回的类型 ID 创建工作项
+yunxiao projex workitems create --space-id proj-xxxxxxxx --type-id type-xxxxxxxx --subject "用户登录功能" --org-id org-xxxxxxxx
 
 # 创建带描述的需求（Markdown 格式）
-yunxiao projex workitems create --space-id proj-xxxxxxxx --category Req --subject "用户登录功能" \
+yunxiao projex workitems create --space-id proj-xxxxxxxx --type-id type-xxxxxxxx --subject "用户登录功能" \
   --description "## 功能说明\n\n- 支持用户名密码登录\n- 支持手机号登录" \
   --org-id org-xxxxxxxx
 
 # 从文件读取描述
-yunxiao projex workitems create --space-id proj-xxxxxxxx --category Req --subject "API 设计文档" \
+yunxiao projex workitems create --space-id proj-xxxxxxxx --type-id type-xxxxxxxx --subject "API 设计文档" \
   --description-file ./api-design.md \
   --org-id org-xxxxxxxx
 
 # 使用富文本格式描述
-yunxiao projex workitems create --space-id proj-xxxxxxxx --category Task --subject "修复样式问题" \
+yunxiao projex workitems create --space-id proj-xxxxxxxx --type-id type-xxxxxxxx --subject "修复样式问题" \
   --description "<p>这是一个富文本描述</p>" \
   --description-format text \
   --org-id org-xxxxxxxx
-
-# 创建任务
-yunxiao projex workitems create --space-id proj-xxxxxxxx --category Task --subject "编写单元测试" --org-id org-xxxxxxxx
-
-# 创建缺陷
-yunxiao projex workitems create --space-id proj-xxxxxxxx --category Bug --subject "登录页面加载缓慢" --org-id org-xxxxxxxx
 ```
 
 ---
@@ -609,8 +606,11 @@ yunxiao projex workitems search --space-id $PROJECT_ID -c Bug --org-id org-xxx
 ### 创建完整工作项流程
 
 ```bash
-# 创建需求（带描述）
-yunxiao projex workitems create --space-id proj-xxx --category Req --subject "新功能需求" \
+# 1. 先获取工作项类型 ID
+yunxiao projex workitems types --space-id proj-xxx --category Req --org-id org-xxx
+
+# 2. 创建需求（带描述）
+yunxiao projex workitems create --space-id proj-xxx --type-id type-xxx --subject "新功能需求" \
   --description "## 需求说明\n\n- 功能点 1\n- 功能点 2" \
   --org-id org-xxx
 
@@ -677,7 +677,20 @@ yunxiao projex workitems search --space-id proj-xxx --org-id org-xxx
 
 ### "Invalid category"
 
-**原因**: 类别参数错误
+**原因**: 搜索时类别参数错误
 
 **解决方案**:
 使用正确的类别值：`Req`, `Task`, `Bug`
+
+### "工作项类型id不能为空"
+
+**原因**: 创建工作项时未提供 `--type-id` 参数
+
+**解决方案**:
+```bash
+# 先获取工作项类型 ID
+yunxiao projex workitems types --space-id proj-xxx --category Req --org-id org-xxx
+
+# 使用返回的类型 ID 创建工作项
+yunxiao projex workitems create --space-id proj-xxx --type-id <TYPE_ID> --subject "标题" --org-id org-xxx
+```
