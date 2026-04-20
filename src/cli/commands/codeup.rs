@@ -386,6 +386,9 @@ pub struct MrCreateArgs {
     /// Description body (optional).
     #[arg(long)]
     pub description: Option<String>,
+    /// Related work-item ID. Repeat to associate multiple work items.
+    #[arg(long = "workitem-id", value_name = "WORKITEM_ID")]
+    pub workitem_ids: Vec<String>,
     /// Source project ID (optional, defaults to repo_id).
     #[arg(long)]
     pub source_project_id: Option<i64>,
@@ -448,6 +451,34 @@ pub struct MrPatchsetsArgs {
     /// Merge request ID. Get via: yunxiao codeup mr list --repo-id <REPO_ID>
     #[arg(long)]
     pub mr_id: String,
+}
+
+fn build_mr_create_body(c: &MrCreateArgs) -> Result<serde_json::Value> {
+    let source_project_id = c
+        .source_project_id
+        .unwrap_or_else(|| c.repo_id.parse().unwrap_or(0));
+    let target_project_id = c
+        .target_project_id
+        .unwrap_or_else(|| c.repo_id.parse().unwrap_or(0));
+    let mut body = json!({
+        "sourceBranch": c.source,
+        "sourceProjectId": source_project_id,
+        "targetBranch": c.target,
+        "targetProjectId": target_project_id,
+        "title": c.title,
+    });
+    if let Some(ref d) = c.description {
+        body["description"] = json!(d);
+    }
+    if !c.workitem_ids.is_empty() {
+        if c.workitem_ids.iter().any(|id| id.contains(',')) {
+            return Err(crate::error::CliError::Config(
+                "Each --workitem-id must be a single work item ID and cannot contain commas. Repeat --workitem-id to associate multiple work items.".into(),
+            ));
+        }
+        body["workItemIds"] = json!(c.workitem_ids.join(","));
+    }
+    Ok(body)
 }
 
 // ─────────────────────────── Execute ────────────────────────────────────
@@ -807,22 +838,7 @@ async fn exec_mr(
             output::print_output(&data, format)?;
         }
         MrCmds::Create(c) => {
-            let source_project_id = c
-                .source_project_id
-                .unwrap_or_else(|| c.repo_id.parse().unwrap_or(0));
-            let target_project_id = c
-                .target_project_id
-                .unwrap_or_else(|| c.repo_id.parse().unwrap_or(0));
-            let mut body = json!({
-                "sourceBranch": c.source,
-                "sourceProjectId": source_project_id,
-                "targetBranch": c.target,
-                "targetProjectId": target_project_id,
-                "title": c.title,
-            });
-            if let Some(ref d) = c.description {
-                body["description"] = json!(d);
-            }
+            let body = build_mr_create_body(c)?;
             let data = client
                 .post(
                     &format!(
@@ -875,4 +891,105 @@ async fn exec_mr(
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cli::Cli;
+    use clap::Parser;
+
+    #[test]
+    fn build_mr_create_body_includes_workitem_ids() {
+        let args = MrCreateArgs {
+            repo_id: "2813489".into(),
+            source: "feature/login".into(),
+            target: "master".into(),
+            title: "Add login".into(),
+            description: Some("desc".into()),
+            workitem_ids: vec!["wi-1".into(), "wi-2".into()],
+            source_project_id: None,
+            target_project_id: None,
+        };
+
+        let body = build_mr_create_body(&args).unwrap();
+
+        assert_eq!(body["sourceProjectId"], 2813489);
+        assert_eq!(body["targetProjectId"], 2813489);
+        assert_eq!(body["workItemIds"], "wi-1,wi-2");
+        assert_eq!(body["description"], "desc");
+    }
+
+    #[test]
+    fn build_mr_create_body_omits_empty_workitem_ids() {
+        let args = MrCreateArgs {
+            repo_id: "2813489".into(),
+            source: "feature/login".into(),
+            target: "master".into(),
+            title: "Add login".into(),
+            description: None,
+            workitem_ids: Vec::new(),
+            source_project_id: Some(1),
+            target_project_id: Some(2),
+        };
+
+        let body = build_mr_create_body(&args).unwrap();
+
+        assert_eq!(body["sourceProjectId"], 1);
+        assert_eq!(body["targetProjectId"], 2);
+        assert!(body.get("workItemIds").is_none());
+        assert!(body.get("description").is_none());
+    }
+
+    #[test]
+    fn build_mr_create_body_rejects_comma_in_single_workitem_id() {
+        let args = MrCreateArgs {
+            repo_id: "2813489".into(),
+            source: "feature/login".into(),
+            target: "master".into(),
+            title: "Add login".into(),
+            description: None,
+            workitem_ids: vec!["wi-1,wi-2".into()],
+            source_project_id: None,
+            target_project_id: None,
+        };
+
+        let err = build_mr_create_body(&args).unwrap_err();
+
+        assert!(err.to_string().contains("cannot contain commas"));
+    }
+
+    #[test]
+    fn cli_parses_repeated_workitem_id_flags() {
+        let cli = Cli::parse_from([
+            "yunxiao",
+            "codeup",
+            "mr",
+            "create",
+            "--repo-id",
+            "2813489",
+            "--source",
+            "feature/login",
+            "--target",
+            "master",
+            "--title",
+            "Add login",
+            "--workitem-id",
+            "wi-1",
+            "--workitem-id",
+            "wi-2",
+        ]);
+
+        let crate::cli::Commands::Codeup(codeup) = cli.command else {
+            panic!("expected codeup command");
+        };
+        let CodeupCommands::Mr(mr) = codeup.command else {
+            panic!("expected mr command");
+        };
+        let MrCmds::Create(args) = mr.command else {
+            panic!("expected mr create command");
+        };
+
+        assert_eq!(args.workitem_ids, vec!["wi-1", "wi-2"]);
+    }
 }

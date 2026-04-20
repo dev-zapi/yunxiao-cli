@@ -176,6 +176,7 @@ yunxiao codeup mr create --repo-id <REPO_ID> --source <source> --target <target>
 | `--target` | 目标分支 | 是 |
 | `--title` | MR 标题 | 是 |
 | `--description` | MR 描述 | 否 |
+| `--workitem-id` | 关联工作项 ID，可多次传入 | 否 |
 | `--source-project-id` | 源仓库 ID（默认使用 repo_id） | 否 |
 | `--target-project-id` | 目标仓库 ID（默认使用 repo_id） | 否 |
 
@@ -192,6 +193,12 @@ yunxiao codeup mr create --repo-id repo-xxxxxxxx --source bugfix/login --target 
 yunxiao codeup mr create --repo-id fork-repo-xxx \
     --source feature/new --target main --title "添加新功能" \
     --source-project-id fork-repo-xxx --target-project-id main-repo-xxx \
+    --org-id org-xxxxxxxx
+
+# 创建 MR 并关联多个工作项
+yunxiao codeup mr create --repo-id repo-xxxxxxxx \
+    --source feature/login --target main --title "登录功能" \
+    --workitem-id wi-xxxxxxxx --workitem-id wi-yyyyyyyy \
     --org-id org-xxxxxxxx
 ```
 
