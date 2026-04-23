@@ -118,6 +118,9 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Verify release assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
