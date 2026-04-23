@@ -14,30 +14,25 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
-  release:
-    name: Release Linux x86_64
+  prepare_release:
+    name: Prepare Release
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      tag: ${{ steps.get_tag.outputs.tag }}
+      checkout_ref: ${{ steps.get_ref.outputs.checkout_ref }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
         with:
-          targets: x86_64-unknown-linux-gnu
-
-      - name: Build release binary
-        run: cargo build --release --target x86_64-unknown-linux-gnu
-
-      - name: Package binary
-        run: |
-          mkdir -p dist
-          cp target/x86_64-unknown-linux-gnu/release/yunxiao-cli dist/
-          cd dist
-          tar -czf yunxiao-cli-linux-amd64.tar.gz yunxiao-cli
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', github.event.inputs.tag) || github.ref }}
+          fetch-depth: 0
 
       - name: Determine release tag
         id: get_tag
@@ -48,14 +43,90 @@ jobs:
             echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ steps.get_tag.outputs.tag }}
-          name: Release ${{ steps.get_tag.outputs.tag }}
-          files: dist/yunxiao-cli-linux-amd64.tar.gz
-          draft: false
-          prerelease: false
-          generate_release_notes: true
+      - name: Determine checkout ref
+        id: get_ref
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "checkout_ref=refs/tags/${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "checkout_ref=${GITHUB_REF}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Ensure draft release exists
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "${{ steps.get_tag.outputs.tag }}" >/dev/null 2>&1; then
+            echo "Release ${{ steps.get_tag.outputs.tag }} already exists"
+          else
+            gh release create "${{ steps.get_tag.outputs.tag }}" --title "Release ${{ steps.get_tag.outputs.tag }}" --draft --generate-notes
+          fi
+
+  build_and_upload:
+    name: Release ${{ matrix.name }}
+    needs: prepare_release
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux x86_64
+            runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary_name: yunxiao-cli
+            asset_name: yunxiao-cli-linux-amd64.tar.gz
+          - name: macOS arm64
+            runner: macos-14
+            target: aarch64-apple-darwin
+            binary_name: yunxiao-cli
+            asset_name: yunxiao-cli-darwin-arm64.tar.gz
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare_release.outputs.checkout_ref }}
+          fetch-depth: 0
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package binary
+        run: |
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/${{ matrix.binary_name }} dist/
+          cd dist
+          tar -czf ${{ matrix.asset_name }} ${{ matrix.binary_name }}
+
+      - name: Upload release asset
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ needs.prepare_release.outputs.tag }}" "dist/${{ matrix.asset_name }}" --clobber
+
+  publish_release:
+    name: Publish Release
+    needs:
+      - prepare_release
+      - build_and_upload
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Verify release assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          assets=$(gh release view "${{ needs.prepare_release.outputs.tag }}" --json assets --jq '.assets[].name')
+          printf '%s\n' "$assets" | grep -Fx 'yunxiao-cli-linux-amd64.tar.gz' >/dev/null
+          printf '%s\n' "$assets" | grep -Fx 'yunxiao-cli-darwin-arm64.tar.gz' >/dev/null
+
+      - name: Publish release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "${{ needs.prepare_release.outputs.tag }}" --draft=false
