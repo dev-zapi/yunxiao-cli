@@ -31,8 +31,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', github.event.inputs.tag) || github.ref }}
           fetch-depth: 0
+
+      - name: Fetch all tags
+        run: git fetch --tags
+
+      - name: Verify and checkout tag (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          TAG="${{ github.event.inputs.tag }}"
+          if ! git rev-parse "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "::error::Tag '$TAG' does not exist. Please create and push the tag first:"
+            echo "::error::  git tag $TAG && git push origin $TAG"
+            exit 1
+          fi
+          git checkout "refs/tags/$TAG"
 
       - name: Determine release tag
         id: get_tag
