@@ -83,9 +83,15 @@ pub struct SprintsUpdateArgs {
     /// New end date (optional).
     #[arg(long)]
     pub end_date: Option<String>,
-    /// New status (optional).
+    /// Iteration capacity in hours (optional).
     #[arg(long)]
-    pub status: Option<String>,
+    pub capacity_hours: Option<i32>,
+    /// Iteration description (optional).
+    #[arg(long)]
+    pub description: Option<String>,
+    /// Iteration owner user IDs (optional, can be specified multiple times).
+    #[arg(long)]
+    pub owner: Vec<String>,
 }
 
 /// Execute sprint sub-operations.
@@ -151,8 +157,14 @@ pub(super) async fn exec_sprints(
             if let Some(ref ed) = u.end_date {
                 body["endDate"] = json!(ed);
             }
-            if let Some(ref s) = u.status {
-                body["status"] = json!(s);
+            if let Some(cap) = u.capacity_hours {
+                body["capacityHours"] = json!(cap);
+            }
+            if let Some(ref d) = u.description {
+                body["description"] = json!(d);
+            }
+            if !u.owner.is_empty() {
+                body["owners"] = json!(u.owner);
             }
             let data = client
                 .put(

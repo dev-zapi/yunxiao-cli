@@ -33,7 +33,9 @@
 | 命令 | 说明 |
 |------|------|
 | `yunxiao projex sprints list` | 列出迭代 |
+| `yunxiao projex sprints get` | 查看迭代详情 |
 | `yunxiao projex sprints create` | 创建迭代 |
+| `yunxiao projex sprints update` | 更新迭代 |
 
 ### 版本管理
 
@@ -556,6 +558,30 @@ yunxiao projex sprints list --space-id proj-xxxxxxxx --org-id org-xxxxxxxx
 
 ---
 
+## 查看迭代详情
+
+### 基本用法
+
+```bash
+yunxiao projex sprints get --space-id <PROJECT_ID> --sprint-id <SPRINT_ID> --org-id <ORG_ID>
+```
+
+### 参数
+
+| 参数 | 说明 | 必需 |
+|------|------|------|
+| `--org-id` | 组织 ID | 是 |
+| `--space-id` | 项目 ID | 是 |
+| `--sprint-id` | 迭代 ID | 是 |
+
+### 示例
+
+```bash
+yunxiao projex sprints get --space-id proj-xxxxxxxx --sprint-id sprint-xxxxxxxx --org-id org-xxxxxxxx
+```
+
+---
+
 ## 创建迭代
 
 ### 基本用法
@@ -576,6 +602,50 @@ yunxiao projex sprints create --space-id <PROJECT_ID> --name <name> --org-id <OR
 
 ```bash
 yunxiao projex sprints create --space-id proj-xxxxxxxx --name "迭代1" --org-id org-xxxxxxxx
+```
+
+---
+
+## 更新迭代
+
+### 基本用法
+
+```bash
+yunxiao projex sprints update --space-id <PROJECT_ID> --sprint-id <SPRINT_ID> --org-id <ORG_ID>
+```
+
+### 参数
+
+| 参数 | 说明 | 必需 |
+|------|------|------|
+| `--org-id` | 组织 ID | 是 |
+| `--space-id` | 项目 ID | 是 |
+| `--sprint-id` | 迭代 ID | 是 |
+| `--name` | 新名称 | 否 |
+| `--start-date` | 新开始日期 (YYYY-MM-DD) | 否 |
+| `--end-date` | 新结束日期 (YYYY-MM-DD) | 否 |
+| `--capacity-hours` | 新工时容量 | 否 |
+| `--description` | 新描述 | 否 |
+| `--owner` | 负责人用户 ID，可多次指定 | 否 |
+
+### 示例
+
+```bash
+# 更新名称
+yunxiao projex sprints update --space-id proj-xxxxxxxx --sprint-id sprint-xxxxxxxx \
+  --name "新迭代名称" --org-id org-xxxxxxxx
+
+# 更新日期
+yunxiao projex sprints update --space-id proj-xxxxxxxx --sprint-id sprint-xxxxxxxx \
+  --start-date "2025-03-01" --end-date "2025-03-31" --org-id org-xxxxxxxx
+
+# 更新工时容量和描述
+yunxiao projex sprints update --space-id proj-xxxxxxxx --sprint-id sprint-xxxxxxxx \
+  --capacity-hours 200 --description "新增功能迭代" --org-id org-xxxxxxxx
+
+# 更新负责人
+yunxiao projex sprints update --space-id proj-xxxxxxxx --sprint-id sprint-xxxxxxxx \
+  --owner "user-xxx" --org-id org-xxxxxxxx
 ```
 
 ---
