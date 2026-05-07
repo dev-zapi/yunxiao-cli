@@ -1,6 +1,6 @@
 # 配置说明
 
-详细说明 YunXiao CLI 的配置系统、优先级和参数。
+详细说明 YunXiao CLI 的命令行参数和环境变量配置。
 
 ---
 
@@ -12,8 +12,7 @@
 |--------|----------|------|
 | 1（最高） | 命令行参数 | `--output json`, `--timeout 60` |
 | 2 | 环境变量 | `YUNXIAO_CLI_TOKEN`, `YUNXIAO_CLI_OUTPUT` |
-| 3 | 配置文件 | `~/.config/yunxiao/config.toml` |
-| 4（最低） | 默认值 | `json`, `30秒`, `warn` |
+| 3（最低） | 默认值 | `json`, `30秒`, `warn` |
 
 ---
 
@@ -32,42 +31,6 @@
 
 ---
 
-## 配置文件
-
-### 配置文件路径
-
-- **Linux/macOS**: `~/.config/yunxiao/config.toml`
-- **Windows**: `%APPDATA%\yunxiao\config.toml`
-
-查看配置文件路径：
-```bash
-yunxiao config path
-```
-
-### 配置文件示例
-
-```toml
-# 个人访问令牌
-token = "pt_xxxxxxxxxxxxxxxxxxxx"
-
-# API 端点域名（默认：openapi-rdc.aliyuncs.com）
-domain = "openapi-rdc.aliyuncs.com"
-
-# 默认组织 ID
-organization_id = "org-xxxxxxxx"
-
-# 默认输出格式：json | text | table | markdown
-default_output = "table"
-
-# 日志级别：debug | info | warn | error
-log_level = "warn"
-
-# 请求超时时间（秒，默认 30）
-timeout = 30
-```
-
----
-
 ## 配置管理命令
 
 ### 查看配置
@@ -75,9 +38,6 @@ timeout = 30
 ```bash
 # 查看所有配置
 yunxiao config list
-
-# 查看配置文件路径
-yunxiao config path
 
 # 获取单个配置项
 yunxiao config get token
@@ -130,9 +90,6 @@ yunxiao config delete token
 # 环境变量
 export YUNXIAO_CLI_TOKEN="pt_xxx"
 
-# 配置文件
-yunxiao config set token pt_xxx
-
 # 命令行参数
 yunxiao --token pt_xxx
 ```
@@ -150,9 +107,6 @@ yunxiao org list
 ```bash
 # 环境变量
 export YUNXIAO_CLI_ORG_ID="org-xxx"
-
-# 配置文件
-yunxiao config set organization_id org-xxx
 
 # 命令行参数
 yunxiao --org-id org-xxx
@@ -173,9 +127,6 @@ yunxiao --org-id org-xxx
 # 环境变量
 export YUNXIAO_CLI_OUTPUT="table"
 
-# 配置文件
-yunxiao config set default_output table
-
 # 命令行参数
 yunxiao --output table
 ```
@@ -192,9 +143,6 @@ yunxiao --output table
 ```bash
 # 环境变量
 export YUNXIAO_CLI_TIMEOUT="60"
-
-# 配置文件
-yunxiao config set timeout 60
 
 # 命令行参数
 yunxiao --timeout 60
@@ -215,9 +163,6 @@ yunxiao --timeout 60
 # 环境变量
 export YUNXIAO_CLI_LOG_LEVEL="debug"
 
-# 配置文件
-yunxiao config set log_level debug
-
 # 命令行参数
 yunxiao --log-level debug
 ```
@@ -234,9 +179,6 @@ yunxiao --log-level debug
 ```bash
 # 环境变量
 export YUNXIAO_CLI_ENDPOINT="custom.example.com"
-
-# 配置文件
-yunxiao config set domain custom.example.com
 
 # 命令行参数
 yunxiao --endpoint custom.example.com
@@ -258,33 +200,9 @@ export YUNXIAO_CLI_ORG_ID="org-prod"
 export YUNXIAO_CLI_TOKEN="pt-prod-token"
 ```
 
-### 使用配置文件切换
-
-创建多个配置文件：
-```bash
-# 开发配置
-~/.config/yunxiao/config.dev.toml
-
-# 生产配置
-~/.config/yunxiao/config.prod.toml
-```
-
-切换配置：
-```bash
-# 使用符号链接
-ln -sf ~/.config/yunxiao/config.dev.toml ~/.config/yunxiao/config.toml
-```
-
 ---
 
 ## 安全建议
-
-### 不要提交令牌到代码仓库
-
-```bash
-# 添加到 .gitignore
-echo "config.toml" >> .gitignore
-```
 
 ### 使用环境变量管理敏感信息
 
@@ -303,14 +221,6 @@ echo "YUNXIAO_CLI_TOKEN=pt_xxx" >> .env
 ---
 
 ## 故障排查
-
-### 配置文件不存在
-
-```bash
-yunxiao config path
-# 手动创建
-mkdir -p ~/.config/yunxiao
-```
 
 ### 配置项未生效
 
