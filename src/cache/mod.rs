@@ -11,7 +11,9 @@
 //! - Cleanup: Supports manual `clear_cache()` command, no automatic deletion.
 
 use crate::error::{CliError, Result};
+use chrono::{DateTime, Utc};
 use log::debug;
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 /// Returns the cache directory: `$XDG_CACHE_HOME/yunxiao-cli/`.
@@ -98,6 +100,88 @@ pub fn delete_cache(key: &str) -> Result<()> {
     Ok(())
 }
 
+/// Cached entry with expiration time.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CachedEntry<T> {
+    /// The cached value.
+    pub value: T,
+    /// Timestamp when this entry was created.
+    pub created_at: DateTime<Utc>,
+    /// Timestamp when this entry expires (optional).
+    pub expires_at: Option<DateTime<Utc>>,
+}
+
+impl<T> CachedEntry<T> {
+    /// Create a new cached entry with optional expiration.
+    pub fn new(value: T, ttl_seconds: Option<u64>) -> Self {
+        let now = Utc::now();
+        let expires_at = ttl_seconds.map(|ttl| now + chrono::Duration::seconds(ttl as i64));
+        Self {
+            value,
+            created_at: now,
+            expires_at,
+        }
+    }
+
+    /// Check if this entry has expired.
+    pub fn is_expired(&self) -> bool {
+        if let Some(expires_at) = self.expires_at {
+            Utc::now() > expires_at
+        } else {
+            false
+        }
+    }
+}
+
+/// Write a typed value to the cache with optional TTL.
+///
+/// The value is wrapped in a CachedEntry and stored at `<cache_dir>/<key>.json`.
+pub fn write_cache_with_ttl<T: Serialize + Clone>(
+    key: &str,
+    value: &T,
+    ttl_seconds: Option<u64>,
+) -> Result<()> {
+    ensure_cache_dir()?;
+    let entry = CachedEntry::new(value.clone(), ttl_seconds);
+    let path = cache_dir().join(format!("{key}.json"));
+    let content = serde_json::to_string_pretty(&entry)?;
+    std::fs::write(&path, content)?;
+    debug!(
+        "Wrote cache entry '{}' to {} (TTL: {:?}s)",
+        key,
+        path.display(),
+        ttl_seconds
+    );
+    Ok(())
+}
+
+/// Read a typed value from the cache with expiration check.
+///
+/// Returns `Ok(None)` if the cache entry does not exist or has expired.
+pub fn read_cache_with_ttl<T: for<'de> Deserialize<'de>>(key: &str) -> Result<Option<T>> {
+    let path = cache_dir().join(format!("{key}.json"));
+    if !path.exists() {
+        debug!("Cache miss for key '{}'", key);
+        return Ok(None);
+    }
+
+    let content = std::fs::read_to_string(&path).map_err(|e| {
+        CliError::Cache(format!("Failed to read cache file {}: {e}", path.display()))
+    })?;
+
+    let entry: CachedEntry<T> = serde_json::from_str(&content)
+        .map_err(|e| CliError::Cache(format!("Corrupt cache file {} : {e}", path.display())))?;
+
+    if entry.is_expired() {
+        debug!("Cache entry '{}' has expired, removing", key);
+        delete_cache(key)?;
+        return Ok(None);
+    }
+
+    debug!("Cache hit for key '{}'", key);
+    Ok(Some(entry.value))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -115,6 +199,9 @@ mod tests {
 
     #[test]
     fn write_and_read_cache_roundtrip() {
+        // Ensure cache directory exists before test
+        ensure_cache_dir().unwrap();
+
         let key = "test_roundtrip";
         let value = json!({"name": "test", "count": 42});
 
@@ -175,5 +262,49 @@ mod tests {
         // Both should be gone
         assert!(read_cache("clear_test_a").unwrap().is_none());
         assert!(read_cache("clear_test_b").unwrap().is_none());
+    }
+
+    #[test]
+    fn cached_entry_with_ttl_expires_correctly() {
+        use serde_json::json;
+
+        let key = "test_ttl_expiry";
+        let value = json!({"data": "test"});
+
+        // Write with very short TTL (1 second)
+        write_cache_with_ttl(key, &value, Some(1)).unwrap();
+
+        // Should be available immediately
+        let result = read_cache_with_ttl::<serde_json::Value>(key).unwrap();
+        assert!(result.is_some());
+
+        // Wait for expiration
+        std::thread::sleep(std::time::Duration::from_secs(2));
+
+        // Should be expired now
+        let result = read_cache_with_ttl::<serde_json::Value>(key).unwrap();
+        assert!(result.is_none());
+
+        // Cleanup
+        delete_cache(key).unwrap();
+    }
+
+    #[test]
+    fn cached_entry_without_ttl_never_expires() {
+        use serde_json::json;
+
+        let key = "test_no_ttl";
+        let value = json!({"permanent": "data"});
+
+        // Write without TTL
+        write_cache_with_ttl(key, &value, None).unwrap();
+
+        // Should be available
+        let result = read_cache_with_ttl::<serde_json::Value>(key).unwrap();
+        assert!(result.is_some());
+        assert_eq!(result.unwrap()["permanent"], "data");
+
+        // Cleanup
+        delete_cache(key).unwrap();
     }
 }

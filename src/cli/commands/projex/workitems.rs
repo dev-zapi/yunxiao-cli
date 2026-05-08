@@ -1,6 +1,7 @@
 //! Work-item sub-operations for `projex workitems`.
 
 use clap::{Args, Subcommand};
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use super::condition::ConditionBuilder;
@@ -8,10 +9,154 @@ use super::{
     format_type_to_api, parse_dynamic_fields, print_pagination_info, require_org,
     resolve_description, DescriptionFormat,
 };
+use crate::cache::{read_cache_with_ttl, write_cache_with_ttl};
 use crate::client::ApiClient;
 use crate::config::types::OutputFormat;
 use crate::error::Result;
 use crate::output;
+
+/// Standard fields that should be placed in the body top-level (not customFieldValues).
+const STANDARD_FIELDS: &[&str] = &[
+    "subject",
+    "description",
+    "assignedTo",
+    "sprint",
+    "spaceId",
+    "workitemTypeId",
+    "formatType",
+];
+
+/// Field configuration from the GetWorkitemTypeFieldConfig API.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct FieldConfig {
+    field_id: String,
+    field_name: String,
+    field_format: String,
+    required: bool,
+}
+
+/// Cache key for field configurations.
+fn field_config_cache_key(org_id: &str, space_id: &str, type_id: &str) -> String {
+    format!("field_config_{}_{}_{}", org_id, space_id, type_id)
+}
+
+/// Fetch field configurations from API or cache.
+///
+/// Cache TTL: 1 hour (3600 seconds).
+async fn get_field_configs(
+    client: &ApiClient,
+    org_id: &str,
+    space_id: &str,
+    type_id: &str,
+) -> Result<std::collections::HashMap<String, FieldConfig>> {
+    let cache_key = field_config_cache_key(org_id, space_id, type_id);
+
+    // Try to read from cache first
+    if let Some(cached) =
+        read_cache_with_ttl::<std::collections::HashMap<String, FieldConfig>>(&cache_key)?
+    {
+        return Ok(cached);
+    }
+
+    // Fetch from API
+    let data = client
+        .get(
+            &format!(
+                "/oapi/v1/projex/organizations/{org_id}/projects/{space_id}/workitemTypes/{type_id}/fields"
+            ),
+            &[],
+        )
+        .await?;
+
+    // Parse response
+    let mut configs = std::collections::HashMap::new();
+
+    if let Some(fields) = data.as_array() {
+        for field in fields {
+            let field_id = field
+                .get("fieldIdentifier")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+
+            let config = FieldConfig {
+                field_id: field_id.to_string(),
+                field_name: field
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string(),
+                field_format: field
+                    .get("className")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("string")
+                    .to_string(),
+                required: field
+                    .get("required")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false),
+            };
+
+            configs.insert(field_id.to_string(), config);
+        }
+    }
+
+    // Write to cache with 1 hour TTL
+    write_cache_with_ttl(&cache_key, &configs, Some(3600))?;
+
+    Ok(configs)
+}
+
+/// Build a custom field value based on its format type.
+fn build_custom_field_value(field_id: &str, value: &str, field_format: &str) -> serde_json::Value {
+    match field_format {
+        "list" => json!({
+            "fieldId": field_id,
+            "fieldFormat": "list",
+            "values": [{"identifier": value}]
+        }),
+        "multiList" => {
+            let identifiers: Vec<&str> = value.split(',').collect();
+            let values: Vec<serde_json::Value> = identifiers
+                .iter()
+                .map(|id| json!({"identifier": id.trim()}))
+                .collect();
+            json!({
+                "fieldId": field_id,
+                "fieldFormat": "multiList",
+                "values": values
+            })
+        }
+        "string" | "text" | "input" => json!({
+            "fieldId": field_id,
+            "fieldFormat": field_format,
+            "value": value
+        }),
+        "date" => json!({
+            "fieldId": field_id,
+            "fieldFormat": "date",
+            "value": value
+        }),
+        "number" | "integer" => {
+            let num: serde_json::Value = if let Ok(n) = value.parse::<i64>() {
+                json!(n)
+            } else if let Ok(n) = value.parse::<f64>() {
+                json!(n)
+            } else {
+                json!(value)
+            };
+            json!({
+                "fieldId": field_id,
+                "fieldFormat": field_format,
+                "value": num
+            })
+        }
+        _ => json!({
+            "fieldId": field_id,
+            "fieldFormat": field_format,
+            "value": value
+        }),
+    }
+}
 
 /// Arguments for `projex workitems`.
 #[derive(Debug, Args)]
@@ -132,6 +277,9 @@ pub struct WiUpdateArgs {
     /// Work item ID. Get via: yunxiao projex workitems search --space-id <SPACE_ID>
     #[arg(long)]
     pub workitem_id: String,
+    /// Work-item type ID (optional, for field validation). Get via: yunxiao projex workitems get --space-id <SPACE_ID> --workitem-id <ID>
+    #[arg(long)]
+    pub type_id: Option<String>,
     /// New subject (optional).
     #[arg(long)]
     pub subject: Option<String>,
@@ -344,19 +492,21 @@ pub(super) async fn exec_workitems(
             output::print_output(&data, format)?;
         }
         WorkitemsCmds::Create(c) => {
+            // Fetch field configurations to identify custom fields
+            let field_configs = get_field_configs(client, oid, &c.space_id, &c.type_id).await?;
+
+            // Build base body with standard fields
             let mut body = json!({
                 "subject": c.subject,
                 "spaceId": c.space_id,
                 "workitemTypeId": c.type_id,
             });
+
             if let Some(ref assignee) = c.assignee {
                 body["assignedTo"] = json!(assignee);
             }
             if let Some(ref sid) = c.sprint_id {
                 body["sprint"] = json!(sid);
-            }
-            if let Some(ref prio) = c.priority {
-                body["priority"] = json!(prio);
             }
 
             let desc = resolve_description(c.description.as_ref(), c.description_file.as_ref())?;
@@ -365,10 +515,54 @@ pub(super) async fn exec_workitems(
                 body["formatType"] = json!(format_type_to_api(c.description_format));
             }
 
-            for (key, value) in parse_dynamic_fields(&c.fields) {
-                if key != "description" && key != "formatType" {
-                    body[key] = json!(value);
+            // Build customFieldValues array
+            let mut custom_field_values = Vec::new();
+
+            // Handle priority field
+            if let Some(ref prio) = c.priority {
+                if let Some(config) = field_configs.get("priority") {
+                    custom_field_values.push(build_custom_field_value(
+                        "priority",
+                        prio,
+                        &config.field_format,
+                    ));
+                } else {
+                    // Fallback: treat as list type
+                    custom_field_values.push(json!({
+                        "fieldId": "priority",
+                        "fieldFormat": "list",
+                        "values": [{"identifier": prio}]
+                    }));
                 }
+            }
+
+            // Handle --field dynamic parameters
+            for (key, value) in parse_dynamic_fields(&c.fields) {
+                if STANDARD_FIELDS.contains(&key.as_str()) {
+                    // Standard field: add to body top-level
+                    body[key] = json!(value);
+                } else {
+                    // Custom field: add to customFieldValues
+                    if let Some(config) = field_configs.get(&key) {
+                        custom_field_values.push(build_custom_field_value(
+                            &key,
+                            &value,
+                            &config.field_format,
+                        ));
+                    } else {
+                        // Unknown field: use default format
+                        custom_field_values.push(json!({
+                            "fieldId": key,
+                            "fieldFormat": "string",
+                            "value": value
+                        }));
+                    }
+                }
+            }
+
+            // Add customFieldValues to body if not empty
+            if !custom_field_values.is_empty() {
+                body["customFieldValues"] = json!(custom_field_values);
             }
 
             let data = client
@@ -380,7 +574,17 @@ pub(super) async fn exec_workitems(
             output::print_output(&data, format)?;
         }
         WorkitemsCmds::Update(u) => {
+            // Fetch field configurations if type_id is provided
+            let field_configs = if let Some(ref type_id) = u.type_id {
+                get_field_configs(client, oid, &u.space_id, type_id).await?
+            } else {
+                std::collections::HashMap::new()
+            };
+
+            // Build base body
             let mut body = json!({});
+
+            // Standard fields
             if let Some(ref s) = u.subject {
                 body["subject"] = json!(s);
             }
@@ -389,9 +593,6 @@ pub(super) async fn exec_workitems(
             }
             if let Some(ref st) = u.status {
                 body["status"] = json!(st);
-            }
-            if let Some(ref p) = u.priority {
-                body["priority"] = json!(p);
             }
 
             let desc = resolve_description(u.description.as_ref(), u.description_file.as_ref())?;
@@ -402,10 +603,54 @@ pub(super) async fn exec_workitems(
                 }
             }
 
-            for (key, value) in parse_dynamic_fields(&u.fields) {
-                if key != "description" && key != "formatType" {
-                    body[key] = json!(value);
+            // Build customFieldValues array
+            let mut custom_field_values = Vec::new();
+
+            // Handle priority field
+            if let Some(ref p) = u.priority {
+                if let Some(config) = field_configs.get("priority") {
+                    custom_field_values.push(build_custom_field_value(
+                        "priority",
+                        p,
+                        &config.field_format,
+                    ));
+                } else {
+                    // Fallback: treat as list type
+                    custom_field_values.push(json!({
+                        "fieldId": "priority",
+                        "fieldFormat": "list",
+                        "values": [{"identifier": p}]
+                    }));
                 }
+            }
+
+            // Handle --field dynamic parameters
+            for (key, value) in parse_dynamic_fields(&u.fields) {
+                if STANDARD_FIELDS.contains(&key.as_str()) {
+                    // Standard field: add to body top-level
+                    body[key] = json!(value);
+                } else {
+                    // Custom field: add to customFieldValues
+                    if let Some(config) = field_configs.get(&key) {
+                        custom_field_values.push(build_custom_field_value(
+                            &key,
+                            &value,
+                            &config.field_format,
+                        ));
+                    } else {
+                        // Unknown field or no type_id provided: use default format
+                        custom_field_values.push(json!({
+                            "fieldId": key,
+                            "fieldFormat": "string",
+                            "value": value
+                        }));
+                    }
+                }
+            }
+
+            // Add customFieldValues to body if not empty
+            if !custom_field_values.is_empty() {
+                body["customFieldValues"] = json!(custom_field_values);
             }
 
             let data = client

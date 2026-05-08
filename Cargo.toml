@@ -25,6 +25,7 @@ thiserror = "2"
 anyhow = "1"
 comfy-table = "7"
 urlencoding = "2"
+chrono = { version = "0.4", features = ["serde"] }
 
 [dev-dependencies]
 mockito = "1"
