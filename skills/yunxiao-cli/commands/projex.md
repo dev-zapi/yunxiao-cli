@@ -214,6 +214,7 @@ yunxiao projex workitems create --space-id <PROJECT_ID> --type-id <TYPE_ID> --su
 | `--assignee` | 负责人用户 ID | 否 |
 | `--sprint-id` | 迭代 ID | 否 |
 | `--priority` | 优先级 ID（自动识别为 list 类型字段） | 否 |
+| `--labels` | 标签 ID 列表（逗号分隔）。通过 `yunxiao projex labels list --space-id <SPACE_ID>` 获取 | 否 |
 | `--description` | 描述内容（直接输入） | 否 |
 | `--description-file` | 描述文件路径（从文件读取） | 否 |
 | `--description-format` | 描述格式：text（富文本）或 markdown（默认 markdown） | 否 |
@@ -289,6 +290,21 @@ yunxiao projex workitems create --space-id proj-xxxxxxxx --type-id type-xxxxxxxx
   --field "seriousLevel=serious-id" \
   --field "customNote=这是备注" \
   --org-id org-xxxxxxxx
+
+# 创建带标签的工作项（标签 ID 逗号分隔）
+# 先获取标签 ID
+yunxiao projex labels list --space-id proj-xxxxxxxx --org-id org-xxxxxxxx
+# 创建时关联标签
+yunxiao projex workitems create --space-id proj-xxxxxxxx --type-id type-xxxxxxxx \
+  --subject "高优先级任务" \
+  --labels "label-id-1,label-id-2" \
+  --org-id org-xxxxxxxx
+
+# 通过 --field 参数设置标签（效果与 --labels 相同）
+yunxiao projex workitems create --space-id proj-xxxxxxxx --type-id type-xxxxxxxx \
+  --subject "重要功能" \
+  --field "labels=label-id-1,label-id-2" \
+  --org-id org-xxxxxxxx
 ```
 
 ---
@@ -313,6 +329,7 @@ yunxiao projex workitems update --space-id <PROJECT_ID> --workitem-id <WORKITEM_
 | `--assignee` | 新负责人用户 ID | 否 |
 | `--status` | 新状态 ID | 否 |
 | `--priority` | 新优先级 ID（自动识别为 list 类型字段） | 否 |
+| `--labels` | 新标签 ID 列表（逗号分隔）。通过 `yunxiao projex labels list --space-id <SPACE_ID>` 获取 | 否 |
 | `--description` | 新描述内容（直接输入） | 否 |
 | `--description-file` | 新描述文件路径 | 否 |
 | `--description-format` | 新描述格式：text 或 markdown | 否 |
@@ -358,6 +375,16 @@ yunxiao projex workitems update --space-id proj-xxxxxxxx --workitem-id wi-xxxxxx
   --type-id type-xxxxxxxx \
   --field "seriousLevel=new-serious-id" \
   --field "customNote=更新后的备注" \
+  --org-id org-xxxxxxxx
+
+# 更新工作项标签
+yunxiao projex workitems update --space-id proj-xxxxxxxx --workitem-id wi-xxxxxxxx \
+  --labels "label-id-1,label-id-2,label-id-3" \
+  --org-id org-xxxxxxxx
+
+# 通过 --field 参数更新标签（效果与 --labels 相同）
+yunxiao projex workitems update --space-id proj-xxxxxxxx --workitem-id wi-xxxxxxxx \
+  --field "labels=label-id-1,label-id-2" \
   --org-id org-xxxxxxxx
 ```
 

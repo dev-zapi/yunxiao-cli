@@ -24,6 +24,13 @@ const STANDARD_FIELDS: &[&str] = &[
     "spaceId",
     "workitemTypeId",
     "formatType",
+    "status",
+    "labels",
+    "participants",
+    "trackers",
+    "verifier",
+    "versions",
+    "parentId",
 ];
 
 /// Field configuration from the GetWorkitemTypeFieldConfig API.
@@ -104,6 +111,12 @@ async fn get_field_configs(
     write_cache_with_ttl(&cache_key, &configs, Some(3600))?;
 
     Ok(configs)
+}
+
+/// Parse comma-separated string into a JSON array.
+fn parse_array_field(value: &str) -> serde_json::Value {
+    let items: Vec<&str> = value.split(',').map(|s| s.trim()).collect();
+    serde_json::Value::Array(items.iter().map(|s| json!(s)).collect())
 }
 
 /// Build a custom field value based on its format type.
@@ -253,6 +266,9 @@ pub struct WiCreateArgs {
     /// Priority. Get via: yunxiao projex workitems fields --space-id <SPACE_ID> --type-id <TYPE_ID>
     #[arg(long)]
     pub priority: Option<String>,
+    /// Labels (comma-separated label IDs). Get via: yunxiao projex labels list --space-id <SPACE_ID>
+    #[arg(long)]
+    pub labels: Option<String>,
     /// Work item description (optional, directly input).
     #[arg(long)]
     pub description: Option<String>,
@@ -292,6 +308,9 @@ pub struct WiUpdateArgs {
     /// New priority. Get via: yunxiao projex workitems fields --space-id <SPACE_ID> --type-id <TYPE_ID>
     #[arg(long)]
     pub priority: Option<String>,
+    /// New labels (comma-separated label IDs). Get via: yunxiao projex labels list --space-id <SPACE_ID>
+    #[arg(long)]
+    pub labels: Option<String>,
     /// New description (optional, directly input).
     #[arg(long)]
     pub description: Option<String>,
@@ -508,6 +527,9 @@ pub(super) async fn exec_workitems(
             if let Some(ref sid) = c.sprint_id {
                 body["sprint"] = json!(sid);
             }
+            if let Some(ref labels) = c.labels {
+                body["labels"] = parse_array_field(labels);
+            }
 
             let desc = resolve_description(c.description.as_ref(), c.description_file.as_ref())?;
             if let Some(ref content) = desc {
@@ -540,7 +562,12 @@ pub(super) async fn exec_workitems(
             for (key, value) in parse_dynamic_fields(&c.fields) {
                 if STANDARD_FIELDS.contains(&key.as_str()) {
                     // Standard field: add to body top-level
-                    body[key] = json!(value);
+                    // Handle array fields specially
+                    if ["labels", "participants", "trackers", "versions"].contains(&key.as_str()) {
+                        body[key] = parse_array_field(&value);
+                    } else {
+                        body[key] = json!(value);
+                    }
                 } else {
                     // Custom field: add to customFieldValues
                     if let Some(config) = field_configs.get(&key) {
@@ -594,6 +621,9 @@ pub(super) async fn exec_workitems(
             if let Some(ref st) = u.status {
                 body["status"] = json!(st);
             }
+            if let Some(ref labels) = u.labels {
+                body["labels"] = parse_array_field(labels);
+            }
 
             let desc = resolve_description(u.description.as_ref(), u.description_file.as_ref())?;
             if let Some(ref content) = desc {
@@ -628,7 +658,12 @@ pub(super) async fn exec_workitems(
             for (key, value) in parse_dynamic_fields(&u.fields) {
                 if STANDARD_FIELDS.contains(&key.as_str()) {
                     // Standard field: add to body top-level
-                    body[key] = json!(value);
+                    // Handle array fields specially
+                    if ["labels", "participants", "trackers", "versions"].contains(&key.as_str()) {
+                        body[key] = parse_array_field(&value);
+                    } else {
+                        body[key] = json!(value);
+                    }
                 } else {
                     // Custom field: add to customFieldValues
                     if let Some(config) = field_configs.get(&key) {
