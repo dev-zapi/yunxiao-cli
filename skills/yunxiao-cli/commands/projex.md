@@ -225,42 +225,8 @@ yunxiao projex workitems create --space-id <PROJECT_ID> --type-id <TYPE_ID> --su
 - `--description`：直接输入描述文本，优先级高于 `--description-file`
 - `--description-file`：从指定文件读取描述内容
 - `--description-format`：
-  - `markdown`（默认）：Markdown 格式，对应 API 的 `MARKDOWN`
-  - `text`：富文本格式，对应 API 的 `RICHTEXT`
-
-### 自定义字段处理
-
-CLI 自动处理自定义字段的 API 格式转换：
-
-**创建工作项**：自定义字段放入 `customFieldValues` 对象
-
-```json
-{
-  "customFieldValues": {
-    "priority": "priority-id",
-    "seriousLevel": "seriousLevel-id"
-  }
-}
-```
-
-**更新工作项**：所有字段直接放在顶层 body
-
-```json
-{
-  "status": "status-id",
-  "priority": "priority-id",
-  "seriousLevel": "seriousLevel-id"
-}
-```
-
-**字段值说明**：
-- `list` 类型字段（如 priority, seriousLevel）：直接使用选项 ID
-- 不需要了解字段类型，CLI 自动转换格式
-
-**注意**：
-- 标准字段（`subject`, `assignedTo`, `sprint` 等）始终放在请求顶层
-- 创建和更新的 API 格式不同
-- 字段配置缓存 1 小时（用于未来可能的验证功能）
+  - `markdown`（默认）：Markdown 格式
+  - `text`：富文本格式
 
 ### 示例
 
@@ -334,22 +300,17 @@ yunxiao projex workitems update --space-id <PROJECT_ID> --workitem-id <WORKITEM_
 | `--org-id` | 组织 ID | 是 |
 | `--space-id` | 项目 ID | 是 |
 | `--workitem-id` | 工作项 ID | 是 |
-| `--type-id` | 工作项类型 ID（可选，用于字段验证）。不提供时自定义字段使用默认格式 | 否 |
 | `--subject` | 新标题 | 否 |
 | `--assignee` | 新负责人用户 ID | 否 |
 | `--status` | 新状态 ID | 否 |
 | `--priority` | 新优先级 ID | 否 |
-| `--labels` | 新标签 ID 列表（逗号分隔）。通过 `yunxiao projex labels list --space-id <SPACE_ID>` 获取 | 否 |
+| `--labels` | 新标签 ID 列表（逗号分隔） | 否 |
 | `--description` | 新描述内容（直接输入） | 否 |
 | `--description-file` | 新描述文件路径 | 否 |
 | `--description-format` | 新描述格式：text 或 markdown | 否 |
 | `--field` | 动态字段，格式 `fieldId=value`，可多次使用 | 否 |
 
-### 自定义字段处理
-
-**更新操作**：所有字段（包括 priority, seriousLevel 等）直接放在顶层 body。
-
-**示例**
+### 示例
 
 ```bash
 # 更新标题
@@ -957,27 +918,4 @@ yunxiao projex workitems types --space-id proj-xxx --category Req --org-id org-x
 
 # 使用返回的类型 ID 创建工作项
 yunxiao projex workitems create --space-id proj-xxx --type-id <TYPE_ID> --subject "标题" --org-id org-xxx
-```
-
-### "字段不能为空" (v0.1.0+ 已修复)
-
-**原因**: 旧版本 CLI 未正确处理自定义字段格式
-
-**解决方案**:
-- 升级到 v0.1.0 或更高版本
-- 自定义字段（如 priority, seriousLevel）现在自动放入 `customFieldValues` 数组
-- 字段类型自动识别，无需手动处理
-
-### 字段配置缓存过期
-
-**说明**: 字段配置缓存 1 小时
-
-**影响**: 工作项类型字段配置更新后，可能需要等待缓存过期才能生效
-
-**解决方案**:
-```bash
-# 清理缓存（如果需要立即生效）
-yunxiao-cli config clear-cache
-
-# 或者等待 1 小时缓存自动过期
 ```
