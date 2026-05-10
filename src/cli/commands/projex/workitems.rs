@@ -15,12 +15,7 @@ use crate::config::types::OutputFormat;
 use crate::error::Result;
 use crate::output;
 
-/// Standard fields that should be placed in the body top-level (not customFieldValues).
-/// Based on field type: NativeField, Application, Role, SystemCustomField -> top-level
-/// CustomField -> customFieldValues
-const STANDARD_FIELD_TYPES: &[&str] = &["NativeField", "Application", "Role", "SystemCustomField"];
-
-/// Standard fields that should be placed in the body top-level (not customFieldValues).
+/// Standard fields that should be placed in the body top-level.
 const STANDARD_FIELDS: &[&str] = &[
     "subject",
     "description",
@@ -45,7 +40,6 @@ struct FieldConfig {
     field_name: String,
     field_format: String,
     required: bool,
-    field_type: String,
 }
 
 /// Cache key for field configurations.
@@ -107,11 +101,6 @@ async fn get_field_configs(
                     .get("required")
                     .and_then(|v| v.as_bool())
                     .unwrap_or(false),
-                field_type: field
-                    .get("type")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("")
-                    .to_string(),
             };
 
             configs.insert(field_id.to_string(), config);
@@ -128,58 +117,6 @@ async fn get_field_configs(
 fn parse_array_field(value: &str) -> serde_json::Value {
     let items: Vec<&str> = value.split(',').map(|s| s.trim()).collect();
     serde_json::Value::Array(items.iter().map(|s| json!(s)).collect())
-}
-
-/// Build a custom field value based on its format type.
-fn build_custom_field_value(field_id: &str, value: &str, field_format: &str) -> serde_json::Value {
-    match field_format {
-        "list" => json!({
-            "fieldIdentifier": field_id,
-            "className": "list",
-            "values": [{"id": value}]
-        }),
-        "multiList" => {
-            let identifiers: Vec<&str> = value.split(',').collect();
-            let values: Vec<serde_json::Value> = identifiers
-                .iter()
-                .map(|id| json!({"id": id.trim()}))
-                .collect();
-            json!({
-                "fieldIdentifier": field_id,
-                "className": "multiList",
-                "values": values
-            })
-        }
-        "string" | "text" | "input" => json!({
-            "fieldIdentifier": field_id,
-            "className": field_format,
-            "value": value
-        }),
-        "date" => json!({
-            "fieldIdentifier": field_id,
-            "className": "date",
-            "value": value
-        }),
-        "number" | "integer" => {
-            let num: serde_json::Value = if let Ok(n) = value.parse::<i64>() {
-                json!(n)
-            } else if let Ok(n) = value.parse::<f64>() {
-                json!(n)
-            } else {
-                json!(value)
-            };
-            json!({
-                "fieldIdentifier": field_id,
-                "className": field_format,
-                "value": num
-            })
-        }
-        _ => json!({
-            "fieldIdentifier": field_id,
-            "className": field_format,
-            "value": value
-        }),
-    }
 }
 
 /// Arguments for `projex workitems`.
@@ -523,7 +460,7 @@ pub(super) async fn exec_workitems(
         }
         WorkitemsCmds::Create(c) => {
             // Fetch field configurations to identify custom fields
-            let field_configs = get_field_configs(client, oid, &c.space_id, &c.type_id).await?;
+            let _field_configs = get_field_configs(client, oid, &c.space_id, &c.type_id).await?;
 
             // Build base body with standard fields
             let mut body = json!({
@@ -548,66 +485,26 @@ pub(super) async fn exec_workitems(
                 body["formatType"] = json!(format_type_to_api(c.description_format));
             }
 
-            // Build customFieldValues array
-            let mut custom_field_values = Vec::new();
+            // Build customFieldValues object (simple key-value format)
+            let mut custom_field_values = serde_json::Map::new();
 
             // Handle priority field
             if let Some(ref prio) = c.priority {
-                if let Some(config) = field_configs.get("priority") {
-                    custom_field_values.push(build_custom_field_value(
-                        "priority",
-                        prio,
-                        &config.field_format,
-                    ));
-                } else {
-                    // Fallback: treat as list type
-                    custom_field_values.push(json!({
-                        "fieldId": "priority",
-                        "fieldFormat": "list",
-                        "values": [{"identifier": prio}]
-                    }));
-                }
+                custom_field_values.insert("priority".to_string(), json!(prio));
             }
 
             // Handle --field dynamic parameters
             for (key, value) in parse_dynamic_fields(&c.fields) {
                 if STANDARD_FIELDS.contains(&key.as_str()) {
                     // Standard field: add to body top-level
-                    // Handle array fields specially
                     if ["labels", "participants", "trackers", "versions"].contains(&key.as_str()) {
                         body[key] = parse_array_field(&value);
                     } else {
                         body[key] = json!(value);
                     }
                 } else {
-                    // Check if field should be top-level based on type
-                    if let Some(config) = field_configs.get(&key) {
-                        if STANDARD_FIELD_TYPES.contains(&config.field_type.as_str()) {
-                            // Top-level field based on type
-                            if ["labels", "participants", "trackers", "versions"].contains(&key.as_str()) {
-                                body[key] = parse_array_field(&value);
-                            } else if config.field_format == "list" || config.field_format == "user" {
-                                // List/User fields at top level use simple value
-                                body[key] = json!(value);
-                            } else {
-                                body[key] = json!(value);
-                            }
-                        } else {
-                            // Custom field: add to customFieldValues
-                            custom_field_values.push(build_custom_field_value(
-                                &key,
-                                &value,
-                                &config.field_format,
-                            ));
-                        }
-                    } else {
-                        // Unknown field: use default format in customFieldValues
-                        custom_field_values.push(json!({
-                            "fieldIdentifier": key,
-                            "className": "string",
-                            "value": value
-                        }));
-                    }
+                    // Custom field: add to customFieldValues object
+                    custom_field_values.insert(key, json!(value));
                 }
             }
 
@@ -628,7 +525,7 @@ pub(super) async fn exec_workitems(
         }
         WorkitemsCmds::Update(u) => {
             // Fetch field configurations if type_id is provided
-            let field_configs = if let Some(ref type_id) = u.type_id {
+            let _field_configs = if let Some(ref type_id) = u.type_id {
                 get_field_configs(client, oid, &u.space_id, type_id).await?
             } else {
                 std::collections::HashMap::new()
@@ -659,53 +556,26 @@ pub(super) async fn exec_workitems(
                 }
             }
 
-            // Build customFieldValues array
-            let mut custom_field_values = Vec::new();
+            // Build customFieldValues object (simple key-value format)
+            let mut custom_field_values = serde_json::Map::new();
 
             // Handle priority field
             if let Some(ref p) = u.priority {
-                if let Some(config) = field_configs.get("priority") {
-                    custom_field_values.push(build_custom_field_value(
-                        "priority",
-                        p,
-                        &config.field_format,
-                    ));
-                } else {
-                    // Fallback: treat as list type
-                    custom_field_values.push(json!({
-                        "fieldId": "priority",
-                        "fieldFormat": "list",
-                        "values": [{"identifier": p}]
-                    }));
-                }
+                custom_field_values.insert("priority".to_string(), json!(p));
             }
 
             // Handle --field dynamic parameters
             for (key, value) in parse_dynamic_fields(&u.fields) {
                 if STANDARD_FIELDS.contains(&key.as_str()) {
                     // Standard field: add to body top-level
-                    // Handle array fields specially
                     if ["labels", "participants", "trackers", "versions"].contains(&key.as_str()) {
                         body[key] = parse_array_field(&value);
                     } else {
                         body[key] = json!(value);
                     }
                 } else {
-                    // Custom field: add to customFieldValues
-                    if let Some(config) = field_configs.get(&key) {
-                        custom_field_values.push(build_custom_field_value(
-                            &key,
-                            &value,
-                            &config.field_format,
-                        ));
-                    } else {
-                        // Unknown field or no type_id provided: use default format
-                        custom_field_values.push(json!({
-                            "fieldId": key,
-                            "fieldFormat": "string",
-                            "value": value
-                        }));
-                    }
+                    // Custom field: add to customFieldValues object
+                    custom_field_values.insert(key, json!(value));
                 }
             }
 
