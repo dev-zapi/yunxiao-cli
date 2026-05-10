@@ -556,32 +556,18 @@ pub(super) async fn exec_workitems(
                 }
             }
 
-            // Build customFieldValues object (simple key-value format)
-            let mut custom_field_values = serde_json::Map::new();
-
-            // Handle priority field
+            // Handle priority field - put in top-level body
             if let Some(ref p) = u.priority {
-                custom_field_values.insert("priority".to_string(), json!(p));
+                body["priority"] = json!(p);
             }
 
-            // Handle --field dynamic parameters
+            // Handle --field dynamic parameters - all go to top-level body for update
             for (key, value) in parse_dynamic_fields(&u.fields) {
-                if STANDARD_FIELDS.contains(&key.as_str()) {
-                    // Standard field: add to body top-level
-                    if ["labels", "participants", "trackers", "versions"].contains(&key.as_str()) {
-                        body[key] = parse_array_field(&value);
-                    } else {
-                        body[key] = json!(value);
-                    }
+                if ["labels", "participants", "trackers", "versions"].contains(&key.as_str()) {
+                    body[key] = parse_array_field(&value);
                 } else {
-                    // Custom field: add to customFieldValues object
-                    custom_field_values.insert(key, json!(value));
+                    body[key] = json!(value);
                 }
-            }
-
-            // Add customFieldValues to body if not empty
-            if !custom_field_values.is_empty() {
-                body["customFieldValues"] = json!(custom_field_values);
             }
 
             let data = client
