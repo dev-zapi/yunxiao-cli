@@ -213,7 +213,7 @@ yunxiao projex workitems create --space-id <PROJECT_ID> --type-id <TYPE_ID> --su
 | `--subject` | 标题 | 是 |
 | `--assignee` | 负责人用户 ID | 否 |
 | `--sprint-id` | 迭代 ID | 否 |
-| `--priority` | 优先级 ID（自动识别为 list 类型字段） | 否 |
+| `--priority` | 优先级 ID | 否 |
 | `--labels` | 标签 ID 列表（逗号分隔）。通过 `yunxiao projex labels list --space-id <SPACE_ID>` 获取 | 否 |
 | `--description` | 描述内容（直接输入） | 否 |
 | `--description-file` | 描述文件路径（从文件读取） | 否 |
@@ -304,7 +304,7 @@ yunxiao projex workitems update --space-id <PROJECT_ID> --workitem-id <WORKITEM_
 | `--assignee` | 新负责人用户 ID | 否 |
 | `--status` | 新状态 ID | 否 |
 | `--priority` | 新优先级 ID | 否 |
-| `--labels` | 新标签 ID 列表（逗号分隔） | 否 |
+| `--labels` | 新标签 ID 列表（逗号分隔）。通过 `yunxiao projex labels list --space-id <SPACE_ID>` 获取 | 否 |
 | `--description` | 新描述内容（直接输入） | 否 |
 | `--description-file` | 新描述文件路径 | 否 |
 | `--description-format` | 新描述格式：text 或 markdown | 否 |
@@ -918,4 +918,17 @@ yunxiao projex workitems types --space-id proj-xxx --category Req --org-id org-x
 
 # 使用返回的类型 ID 创建工作项
 yunxiao projex workitems create --space-id proj-xxx --type-id <TYPE_ID> --subject "标题" --org-id org-xxx
+```
+
+### 字段配置缓存
+
+CLI 会缓存工作项类型的字段配置，避免重复请求。
+
+**缓存清理**:
+```bash
+# 清理所有缓存
+yunxiao config clear-cache
+
+# 或手动删除缓存文件
+rm ~/.cache/yunxiao-cli/field_config_*.json
 ```
