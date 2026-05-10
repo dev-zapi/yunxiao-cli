@@ -228,29 +228,39 @@ yunxiao projex workitems create --space-id <PROJECT_ID> --type-id <TYPE_ID> --su
   - `markdown`（默认）：Markdown 格式，对应 API 的 `MARKDOWN`
   - `text`：富文本格式，对应 API 的 `RICHTEXT`
 
-### 自定义字段处理（v0.1.0+）
+### 自定义字段处理
 
-CLI 会自动处理自定义字段：
+CLI 自动处理自定义字段的 API 格式转换：
 
-1. **自动获取字段配置**：创建工作项前自动调用 `GetWorkitemTypeFieldConfig` API
-2. **字段类型识别**：根据字段配置识别字段类型（list, multiList, string, date, number）
-3. **正确的 API 格式**：自定义字段自动放入 `customFieldValues` 数组
-4. **缓存机制**：字段配置缓存 1 小时，减少 API 调用
+**创建工作项**：自定义字段放入 `customFieldValues` 对象
 
-**字段类型对应格式**：
+```json
+{
+  "customFieldValues": {
+    "priority": "priority-id",
+    "seriousLevel": "seriousLevel-id"
+  }
+}
+```
 
-| 字段类型 | API 格式 | 示例 |
-|---------|---------|------|
-| `list` | `{"fieldId":"xxx","fieldFormat":"list","values":[{"identifier":"xxx"}]}` | `--field priority=xxx` |
-| `multiList` | 支持多个 identifier（逗号分隔） | `--field tags=a,b,c` |
-| `string`/`text` | `{"fieldId":"xxx","fieldFormat":"string","value":"xxx"}` | `--field note=文本内容` |
-| `date` | `{"fieldId":"xxx","fieldFormat":"date","value":"2025-01-01"}` | `--field dueDate=2025-01-01` |
-| `number` | `{"fieldId":"xxx","fieldFormat":"number","value":100}` | `--field estimate=100` |
+**更新工作项**：所有字段直接放在顶层 body
+
+```json
+{
+  "status": "status-id",
+  "priority": "priority-id",
+  "seriousLevel": "seriousLevel-id"
+}
+```
+
+**字段值说明**：
+- `list` 类型字段（如 priority, seriousLevel）：直接使用选项 ID
+- 不需要了解字段类型，CLI 自动转换格式
 
 **注意**：
-- 标准字段（`subject`, `assignedTo`, `sprint` 等）放在请求顶层
-- 自定义字段（如 `priority`, `seriousLevel`）放入 `customFieldValues`
-- 不需要手动了解字段类型，CLI 自动处理
+- 标准字段（`subject`, `assignedTo`, `sprint` 等）始终放在请求顶层
+- 创建和更新的 API 格式不同
+- 字段配置缓存 1 小时（用于未来可能的验证功能）
 
 ### 示例
 
@@ -277,7 +287,7 @@ yunxiao projex workitems create --space-id proj-xxxxxxxx --type-id type-xxxxxxxx
   --description-format text \
   --org-id org-xxxxxxxx
 
-# 创建带优先级的缺陷（自动识别 list 类型）
+# 创建带优先级的缺陷
 yunxiao projex workitems create --space-id proj-xxxxxxxx --type-id bug-type-id \
   --subject "登录页面报错" \
   --priority "1025f7ffdb587024db6a3e845b" \
@@ -328,21 +338,18 @@ yunxiao projex workitems update --space-id <PROJECT_ID> --workitem-id <WORKITEM_
 | `--subject` | 新标题 | 否 |
 | `--assignee` | 新负责人用户 ID | 否 |
 | `--status` | 新状态 ID | 否 |
-| `--priority` | 新优先级 ID（自动识别为 list 类型字段） | 否 |
+| `--priority` | 新优先级 ID | 否 |
 | `--labels` | 新标签 ID 列表（逗号分隔）。通过 `yunxiao projex labels list --space-id <SPACE_ID>` 获取 | 否 |
 | `--description` | 新描述内容（直接输入） | 否 |
 | `--description-file` | 新描述文件路径 | 否 |
 | `--description-format` | 新描述格式：text 或 markdown | 否 |
 | `--field` | 动态字段，格式 `fieldId=value`，可多次使用 | 否 |
 
-### 自定义字段处理（v0.1.0+）
+### 自定义字段处理
 
-- 提供 `--type-id` 时：自动获取字段配置，正确处理字段类型
-- 不提供 `--type-id` 时：自定义字段使用默认 string 格式
+**更新操作**：所有字段（包括 priority, seriousLevel 等）直接放在顶层 body。
 
-**推荐做法**：更新时提供 `--type-id` 参数以获得正确的字段处理。
-
-### 示例
+**示例**
 
 ```bash
 # 更新标题
@@ -362,27 +369,25 @@ yunxiao projex workitems update --space-id proj-xxxxxxxx --workitem-id wi-xxxxxx
 
 # 更新状态和负责人
 yunxiao projex workitems update --space-id proj-xxxxxxxx --workitem-id wi-xxxxxxxx \
-  --status "status-xxx" --assignee "user-xxx" --org-id org-xxxxxxxx
+  --status status-xxx --assignee user-xxx --org-id org-xxxxxxxx
 
-# 更新优先级（推荐提供 type-id）
+# 更新优先级
 yunxiao projex workitems update --space-id proj-xxxxxxxx --workitem-id wi-xxxxxxxx \
-  --type-id type-xxxxxxxx \
-  --priority "new-priority-id" \
-  --org-id org-xxxxxxxx
+  --priority new-priority-id --org-id org-xxxxxxxx
 
 # 更新多个自定义字段
 yunxiao projex workitems update --space-id proj-xxxxxxxx --workitem-id wi-xxxxxxxx \
-  --type-id type-xxxxxxxx \
+  --priority new-priority-id \
   --field "seriousLevel=new-serious-id" \
   --field "customNote=更新后的备注" \
   --org-id org-xxxxxxxx
 
 # 更新工作项标签
 yunxiao projex workitems update --space-id proj-xxxxxxxx --workitem-id wi-xxxxxxxx \
-  --labels "label-id-1,label-id-2,label-id-3" \
+  --labels label-id-1,label-id-2,label-id-3 \
   --org-id org-xxxxxxxx
 
-# 通过 --field 参数更新标签（效果与 --labels 相同）
+# 通过 --field 更新标签（效果与 --labels 相同）
 yunxiao projex workitems update --space-id proj-xxxxxxxx --workitem-id wi-xxxxxxxx \
   --field "labels=label-id-1,label-id-2" \
   --org-id org-xxxxxxxx
