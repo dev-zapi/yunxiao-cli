@@ -16,6 +16,11 @@ use crate::error::Result;
 use crate::output;
 
 /// Standard fields that should be placed in the body top-level (not customFieldValues).
+/// Based on field type: NativeField, Application, Role, SystemCustomField -> top-level
+/// CustomField -> customFieldValues
+const STANDARD_FIELD_TYPES: &[&str] = &["NativeField", "Application", "Role", "SystemCustomField"];
+
+/// Standard fields that should be placed in the body top-level (not customFieldValues).
 const STANDARD_FIELDS: &[&str] = &[
     "subject",
     "description",
@@ -40,6 +45,7 @@ struct FieldConfig {
     field_name: String,
     field_format: String,
     required: bool,
+    field_type: String,
 }
 
 /// Cache key for field configurations.
@@ -75,13 +81,13 @@ async fn get_field_configs(
         )
         .await?;
 
-    // Parse response
+    log::debug!("Field configs API response: {}", serde_json::to_string_pretty(&data).unwrap());
     let mut configs = std::collections::HashMap::new();
 
     if let Some(fields) = data.as_array() {
         for field in fields {
             let field_id = field
-                .get("fieldIdentifier")
+                .get("id")
                 .and_then(|v| v.as_str())
                 .unwrap_or("");
 
@@ -93,7 +99,7 @@ async fn get_field_configs(
                     .unwrap_or("")
                     .to_string(),
                 field_format: field
-                    .get("className")
+                    .get("format")
                     .and_then(|v| v.as_str())
                     .unwrap_or("string")
                     .to_string(),
@@ -101,6 +107,11 @@ async fn get_field_configs(
                     .get("required")
                     .and_then(|v| v.as_bool())
                     .unwrap_or(false),
+                field_type: field
+                    .get("type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string(),
             };
 
             configs.insert(field_id.to_string(), config);
@@ -123,30 +134,30 @@ fn parse_array_field(value: &str) -> serde_json::Value {
 fn build_custom_field_value(field_id: &str, value: &str, field_format: &str) -> serde_json::Value {
     match field_format {
         "list" => json!({
-            "fieldId": field_id,
-            "fieldFormat": "list",
-            "values": [{"identifier": value}]
+            "fieldIdentifier": field_id,
+            "className": "list",
+            "values": [{"id": value}]
         }),
         "multiList" => {
             let identifiers: Vec<&str> = value.split(',').collect();
             let values: Vec<serde_json::Value> = identifiers
                 .iter()
-                .map(|id| json!({"identifier": id.trim()}))
+                .map(|id| json!({"id": id.trim()}))
                 .collect();
             json!({
-                "fieldId": field_id,
-                "fieldFormat": "multiList",
+                "fieldIdentifier": field_id,
+                "className": "multiList",
                 "values": values
             })
         }
         "string" | "text" | "input" => json!({
-            "fieldId": field_id,
-            "fieldFormat": field_format,
+            "fieldIdentifier": field_id,
+            "className": field_format,
             "value": value
         }),
         "date" => json!({
-            "fieldId": field_id,
-            "fieldFormat": "date",
+            "fieldIdentifier": field_id,
+            "className": "date",
             "value": value
         }),
         "number" | "integer" => {
@@ -158,14 +169,14 @@ fn build_custom_field_value(field_id: &str, value: &str, field_format: &str) -> 
                 json!(value)
             };
             json!({
-                "fieldId": field_id,
-                "fieldFormat": field_format,
+                "fieldIdentifier": field_id,
+                "className": field_format,
                 "value": num
             })
         }
         _ => json!({
-            "fieldId": field_id,
-            "fieldFormat": field_format,
+            "fieldIdentifier": field_id,
+            "className": field_format,
             "value": value
         }),
     }
@@ -569,18 +580,31 @@ pub(super) async fn exec_workitems(
                         body[key] = json!(value);
                     }
                 } else {
-                    // Custom field: add to customFieldValues
+                    // Check if field should be top-level based on type
                     if let Some(config) = field_configs.get(&key) {
-                        custom_field_values.push(build_custom_field_value(
-                            &key,
-                            &value,
-                            &config.field_format,
-                        ));
+                        if STANDARD_FIELD_TYPES.contains(&config.field_type.as_str()) {
+                            // Top-level field based on type
+                            if ["labels", "participants", "trackers", "versions"].contains(&key.as_str()) {
+                                body[key] = parse_array_field(&value);
+                            } else if config.field_format == "list" || config.field_format == "user" {
+                                // List/User fields at top level use simple value
+                                body[key] = json!(value);
+                            } else {
+                                body[key] = json!(value);
+                            }
+                        } else {
+                            // Custom field: add to customFieldValues
+                            custom_field_values.push(build_custom_field_value(
+                                &key,
+                                &value,
+                                &config.field_format,
+                            ));
+                        }
                     } else {
-                        // Unknown field: use default format
+                        // Unknown field: use default format in customFieldValues
                         custom_field_values.push(json!({
-                            "fieldId": key,
-                            "fieldFormat": "string",
+                            "fieldIdentifier": key,
+                            "className": "string",
                             "value": value
                         }));
                     }
@@ -591,6 +615,8 @@ pub(super) async fn exec_workitems(
             if !custom_field_values.is_empty() {
                 body["customFieldValues"] = json!(custom_field_values);
             }
+
+            log::debug!("Creating workitem with body: {}", serde_json::to_string_pretty(&body).unwrap());
 
             let data = client
                 .post(
