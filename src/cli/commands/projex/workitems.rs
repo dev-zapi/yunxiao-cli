@@ -75,15 +75,15 @@ async fn get_field_configs(
         )
         .await?;
 
-    log::debug!("Field configs API response: {}", serde_json::to_string_pretty(&data).unwrap());
+    log::debug!(
+        "Field configs API response: {}",
+        serde_json::to_string_pretty(&data).unwrap()
+    );
     let mut configs = std::collections::HashMap::new();
 
     if let Some(fields) = data.as_array() {
         for field in fields {
-            let field_id = field
-                .get("id")
-                .and_then(|v| v.as_str())
-                .unwrap_or("");
+            let field_id = field.get("id").and_then(|v| v.as_str()).unwrap_or("");
 
             let config = FieldConfig {
                 field_id: field_id.to_string(),
@@ -513,7 +513,10 @@ pub(super) async fn exec_workitems(
                 body["customFieldValues"] = json!(custom_field_values);
             }
 
-            log::debug!("Creating workitem with body: {}", serde_json::to_string_pretty(&body).unwrap());
+            log::debug!(
+                "Creating workitem with body: {}",
+                serde_json::to_string_pretty(&body).unwrap()
+            );
 
             let data = client
                 .post(
