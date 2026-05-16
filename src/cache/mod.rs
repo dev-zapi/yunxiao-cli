@@ -14,6 +14,7 @@ use crate::error::{CliError, Result};
 use chrono::{DateTime, Utc};
 use log::debug;
 use serde::{Deserialize, Serialize};
+use std::io::ErrorKind;
 use std::path::PathBuf;
 
 /// Returns the cache directory: `$XDG_CACHE_HOME/yunxiao-cli/`.
@@ -80,7 +81,7 @@ pub fn clear_cache() -> Result<()> {
         for entry in std::fs::read_dir(&dir)? {
             let entry = entry?;
             if entry.path().is_file() {
-                std::fs::remove_file(entry.path())?;
+                remove_file_if_exists(entry.path())?;
             }
         }
         debug!("Cleared cache directory {}", dir.display());
@@ -93,11 +94,18 @@ pub fn clear_cache() -> Result<()> {
 /// Silently succeeds if the entry does not exist.
 pub fn delete_cache(key: &str) -> Result<()> {
     let path = cache_dir().join(format!("{key}.json"));
-    if path.exists() {
-        std::fs::remove_file(&path)?;
+    if remove_file_if_exists(&path)? {
         debug!("Deleted cache entry '{}'", key);
     }
     Ok(())
+}
+
+fn remove_file_if_exists(path: impl AsRef<std::path::Path>) -> Result<bool> {
+    match std::fs::remove_file(path.as_ref()) {
+        Ok(()) => Ok(true),
+        Err(err) if err.kind() == ErrorKind::NotFound => Ok(false),
+        Err(err) => Err(err.into()),
+    }
 }
 
 /// Cached entry with expiration time.
