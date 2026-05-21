@@ -1,6 +1,6 @@
 # 代码管理命令手册
 
-`yunxiao codeup` 命令用于管理代码仓库、分支、合并请求和文件。
+`yunxiao codeup` 命令用于管理代码仓库、分支、提交、合并请求、文件和代码比较。
 
 ---
 
@@ -18,7 +18,22 @@
 | 命令 | 说明 |
 |------|------|
 | `yunxiao codeup branches list` | 列出分支 |
+| `yunxiao codeup branches get` | 查看分支详情 |
 | `yunxiao codeup branches create` | 创建分支 |
+| `yunxiao codeup branches delete` | 删除分支 |
+
+### 提交管理
+
+| 命令 | 说明 |
+|------|------|
+| `yunxiao codeup commits list` | 列出提交记录 |
+| `yunxiao codeup commits get` | 查看提交详情 |
+
+### 代码比较
+
+| 命令 | 说明 |
+|------|------|
+| `yunxiao codeup compare` | 比较两个分支/提交的差异 |
 
 ### 合并请求
 
@@ -48,6 +63,9 @@
 |------|------|
 | `yunxiao codeup files list` | 查看文件列表 |
 | `yunxiao codeup files get` | 查看文件内容 |
+| `yunxiao codeup files create` | 创建新文件 |
+| `yunxiao codeup files update` | 更新文件内容 |
+| `yunxiao codeup files delete` | 删除文件 |
 
 ---
 
@@ -70,7 +88,7 @@ yunxiao codeup repos list --org-id <ORG_ID>
 ### 示例
 
 ```bash
-yunxiao codeup repos list --org-id org-xxxxxxxx
+yunxiao codeup repos list --org-id org-xxxxxxxx --output json
 ```
 
 ---
@@ -93,7 +111,7 @@ yunxiao codeup repos get --repo-id <REPO_ID> --org-id <ORG_ID>
 ### 示例
 
 ```bash
-yunxiao codeup repos get --repo-id repo-xxxxxxxx --org-id org-xxxxxxxx
+yunxiao codeup repos get --repo-id repo-xxxxxxxx --org-id org-xxxxxxxx --output json
 ```
 
 ---
@@ -112,11 +130,37 @@ yunxiao codeup branches list --repo-id <REPO_ID> --org-id <ORG_ID>
 |------|------|------|
 | `--org-id` | 组织 ID | 是 |
 | `--repo-id` | 仓库 ID | 是 |
+| `--page` | 页码 | 否（默认 1） |
+| `--per-page` | 每页数量 | 否（默认 20） |
 
 ### 示例
 
 ```bash
-yunxiao codeup branches list --repo-id repo-xxxxxxxx --org-id org-xxxxxxxx
+yunxiao codeup branches list --repo-id repo-xxxxxxxx --org-id org-xxxxxxxx --output json
+```
+
+---
+
+## 查看分支详情
+
+### 基本用法
+
+```bash
+yunxiao codeup branches get --repo-id <REPO_ID> --branch <branch> --org-id <ORG_ID>
+```
+
+### 参数
+
+| 参数 | 说明 | 必需 |
+|------|------|------|
+| `--org-id` | 组织 ID | 是 |
+| `--repo-id` | 仓库 ID | 是 |
+| `--branch` | 分支名称 | 是 |
+
+### 示例
+
+```bash
+yunxiao codeup branches get --repo-id repo-xxxxxxxx --branch main --org-id org-xxxxxxxx --output json
 ```
 
 ---
@@ -146,6 +190,119 @@ yunxiao codeup branches create --repo-id repo-xxxxxxxx --branch feature/new --re
 
 # 从其他分支创建
 yunxiao codeup branches create --repo-id repo-xxxxxxxx --branch bugfix/login --ref develop --org-id org-xxxxxxxx
+
+# 从特定提交创建
+yunxiao codeup branches create --repo-id repo-xxxxxxxx --branch hotfix/issue-123 --ref abc123def --org-id org-xxxxxxxx
+```
+
+---
+
+## 删除分支
+
+### 基本用法
+
+```bash
+yunxiao codeup branches delete --repo-id <REPO_ID> --branch <branch> --org-id <ORG_ID>
+```
+
+### 参数
+
+| 参数 | 说明 | 必需 |
+|------|------|------|
+| `--org-id` | 组织 ID | 是 |
+| `--repo-id` | 仓库 ID | 是 |
+| `--branch` | 分支名称 | 是 |
+
+### 示例
+
+```bash
+yunxiao codeup branches delete --repo-id repo-xxxxxxxx --branch feature/old --org-id org-xxxxxxxx
+```
+
+---
+
+## 列出提交记录
+
+### 基本用法
+
+```bash
+yunxiao codeup commits list --repo-id <REPO_ID> --org-id <ORG_ID>
+```
+
+### 参数
+
+| 参数 | 说明 | 必需 |
+|------|------|------|
+| `--org-id` | 组织 ID | 是 |
+| `--repo-id` | 仓库 ID | 是 |
+| `--ref` | 分支或标签（默认主分支） | 否 |
+| `--page` | 页码 | 否（默认 1） |
+| `--per-page` | 每页数量 | 否（默认 20） |
+
+### 示例
+
+```bash
+# 查看主分支提交
+yunxiao codeup commits list --repo-id repo-xxxxxxxx --org-id org-xxxxxxxx --output json
+
+# 查看特定分支提交
+yunxiao codeup commits list --repo-id repo-xxxxxxxx --ref feature/new --org-id org-xxxxxxxx --output json
+```
+
+---
+
+## 查看提交详情
+
+### 基本用法
+
+```bash
+yunxiao codeup commits get --repo-id <REPO_ID> --sha <SHA> --org-id <ORG_ID>
+```
+
+### 参数
+
+| 参数 | 说明 | 必需 |
+|------|------|------|
+| `--org-id` | 组织 ID | 是 |
+| `--repo-id` | 仓库 ID | 是 |
+| `--sha` | 提交 SHA | 是 |
+
+### 示例
+
+```bash
+yunxiao codeup commits get --repo-id repo-xxxxxxxx --sha abc123def456 --org-id org-xxxxxxxx --output json
+```
+
+---
+
+## 比较代码差异
+
+### 基本用法
+
+```bash
+yunxiao codeup compare --repo-id <REPO_ID> --from <from> --to <to> --org-id <ORG_ID>
+```
+
+### 参数
+
+| 参数 | 说明 | 必需 |
+|------|------|------|
+| `--org-id` | 组织 ID | 是 |
+| `--repo-id` | 仓库 ID | 是 |
+| `--from` | 来源分支/标签/提交 | 是 |
+| `--to` | 目标分支/标签/提交 | 是 |
+
+### 示例
+
+```bash
+# 比较两个分支
+yunxiao codeup compare --repo-id repo-xxxxxxxx --from main --to develop --org-id org-xxxxxxxx --output json
+
+# 比较两个提交
+yunxiao codeup compare --repo-id repo-xxxxxxxx --from abc123 --to def456 --org-id org-xxxxxxxx --output json
+
+# 比较分支与标签
+yunxiao codeup compare --repo-id repo-xxxxxxxx --from v1.0.0 --to main --org-id org-xxxxxxxx --output json
 ```
 
 ---
@@ -155,7 +312,7 @@ yunxiao codeup branches create --repo-id repo-xxxxxxxx --branch bugfix/login --r
 ### 基本用法
 
 ```bash
-yunxiao codeup mr list --repo-id <REPO_ID> --org-id <ORG_ID>
+yunxiao codeup mr list --org-id <ORG_ID>
 ```
 
 ### 参数
@@ -163,12 +320,22 @@ yunxiao codeup mr list --repo-id <REPO_ID> --org-id <ORG_ID>
 | 参数 | 说明 | 必需 |
 |------|------|------|
 | `--org-id` | 组织 ID | 是 |
-| `--repo-id` | 仓库 ID | 是 |
+| `--repo-id` | 仓库 ID（可选过滤器） | 否 |
+| `--state` | 状态过滤：opened、closed、merged、all | 否 |
+| `--page` | 页码 | 否（默认 1） |
+| `--per-page` | 每页数量 | 否（默认 20） |
 
 ### 示例
 
 ```bash
-yunxiao codeup mr list --repo-id repo-xxxxxxxx --org-id org-xxxxxxxx
+# 列出所有 MR
+yunxiao codeup mr list --org-id org-xxxxxxxx --output json
+
+# 按仓库过滤
+yunxiao codeup mr list --repo-id repo-xxxxxxxx --org-id org-xxxxxxxx --output json
+
+# 按状态过滤
+yunxiao codeup mr list --repo-id repo-xxxxxxxx --state opened --org-id org-xxxxxxxx --output json
 ```
 
 ---
@@ -353,13 +520,13 @@ yunxiao codeup files list --repo-id <REPO_ID> --org-id <ORG_ID>
 
 ```bash
 # 查看根目录文件
-yunxiao codeup files list --repo-id repo-xxxxxxxx --org-id org-xxxxxxxx
+yunxiao codeup files list --repo-id repo-xxxxxxxx --org-id org-xxxxxxxx --output json
 
 # 查看特定目录
-yunxiao codeup files list --repo-id repo-xxxxxxxx --path src --org-id org-xxxxxxxx
+yunxiao codeup files list --repo-id repo-xxxxxxxx --path src --org-id org-xxxxxxxx --output json
 
 # 查看特定分支
-yunxiao codeup files list --repo-id repo-xxxxxxxx --ref develop --org-id org-xxxxxxxx
+yunxiao codeup files list --repo-id repo-xxxxxxxx --ref develop --org-id org-xxxxxxxx --output json
 ```
 
 ---
@@ -385,10 +552,98 @@ yunxiao codeup files get --repo-id <REPO_ID> --path <path> --org-id <ORG_ID>
 
 ```bash
 # 查看文件内容
-yunxiao codeup files get --repo-id repo-xxxxxxxx --path src/main.rs --org-id org-xxxxxxxx
+yunxiao codeup files get --repo-id repo-xxxxxxxx --path src/main.rs --org-id org-xxxxxxxx --output json
 
 # 查看特定分支的文件
-yunxiao codeup files get --repo-id repo-xxxxxxxx --path README.md --ref develop --org-id org-xxxxxxxx
+yunxiao codeup files get --repo-id repo-xxxxxxxx --path README.md --ref develop --org-id org-xxxxxxxx --output json
+```
+
+---
+
+## 创建新文件
+
+### 基本用法
+
+```bash
+yunxiao codeup files create --repo-id <REPO_ID> --path <path> --content <content> --branch <branch> --message <message> --org-id <ORG_ID>
+```
+
+### 参数
+
+| 参数 | 说明 | 必需 |
+|------|------|------|
+| `--org-id` | 组织 ID | 是 |
+| `--repo-id` | 仓库 ID | 是 |
+| `--path` | 文件路径 | 是 |
+| `--content` | 文件内容 | 是 |
+| `--branch` | 目标分支 | 是 |
+| `--message` | 提交信息 | 是 |
+
+### 示例
+
+```bash
+yunxiao codeup files create --repo-id repo-xxxxxxxx --path docs/README.md \
+    --content "# 说明文档\n\n这是项目说明。" \
+    --branch main --message "添加说明文档" \
+    --org-id org-xxxxxxxx
+```
+
+---
+
+## 更新文件内容
+
+### 基本用法
+
+```bash
+yunxiao codeup files update --repo-id <REPO_ID> --path <path> --content <content> --branch <branch> --message <message> --org-id <ORG_ID>
+```
+
+### 参数
+
+| 参数 | 说明 | 必需 |
+|------|------|------|
+| `--org-id` | 组织 ID | 是 |
+| `--repo-id` | 仓库 ID | 是 |
+| `--path` | 文件路径 | 是 |
+| `--content` | 新文件内容 | 是 |
+| `--branch` | 目标分支 | 是 |
+| `--message` | 提交信息 | 是 |
+
+### 示例
+
+```bash
+yunxiao codeup files update --repo-id repo-xxxxxxxx --path README.md \
+    --content "# 项目名\n\n更新后的说明。" \
+    --branch main --message "更新 README" \
+    --org-id org-xxxxxxxx
+```
+
+---
+
+## 删除文件
+
+### 基本用法
+
+```bash
+yunxiao codeup files delete --repo-id <REPO_ID> --path <path> --branch <branch> --message <message> --org-id <ORG_ID>
+```
+
+### 参数
+
+| 参数 | 说明 | 必需 |
+|------|------|------|
+| `--org-id` | 组织 ID | 是 |
+| `--repo-id` | 仓库 ID | 是 |
+| `--path` | 文件路径 | 是 |
+| `--branch` | 目标分支 | 是 |
+| `--message` | 提交信息 | 是 |
+
+### 示例
+
+```bash
+yunxiao codeup files delete --repo-id repo-xxxxxxxx --path docs/old.md \
+    --branch main --message "删除旧文档" \
+    --org-id org-xxxxxxxx
 ```
 
 ---
@@ -399,7 +654,7 @@ yunxiao codeup files get --repo-id repo-xxxxxxxx --path README.md --ref develop 
 
 ```bash
 # 1. 列出仓库
-yunxiao codeup repos list --org-id org-xxx
+yunxiao codeup repos list --org-id org-xxx --output json
 
 # 2. 创建分支
 yunxiao codeup branches create --repo-id repo-xxx --branch feature/new --ref main --org-id org-xxx
@@ -412,29 +667,35 @@ yunxiao codeup mr create --repo-id repo-xxx --source feature/new --target main -
 
 ```bash
 # 查看仓库列表
-yunxiao codeup repos list --org-id org-xxx
+yunxiao codeup repos list --org-id org-xxx --output json
 
 # 选择仓库
 REPO_ID=$(yunxiao codeup repos list --org-id org-xxx --output json | jq -r '.[0].id')
 
 # 查看分支
-yunxiao codeup branches list --repo-id $REPO_ID --org-id org-xxx
+yunxiao codeup branches list --repo-id $REPO_ID --org-id org-xxx --output json
+
+# 查看提交历史
+yunxiao codeup commits list --repo-id $REPO_ID --org-id org-xxx --output json
 
 # 查看文件结构
-yunxiao codeup files list --repo-id $REPO_ID --org-id org-xxx
+yunxiao codeup files list --repo-id $REPO_ID --org-id org-xxx --output json
 
 # 查看文件内容
-yunxiao codeup files get --repo-id $REPO_ID --path README.md --org-id org-xxx
+yunxiao codeup files get --repo-id $REPO_ID --path README.md --org-id org-xxx --output json
 ```
 
 ### 查看代码变更
 
 ```bash
 # 列出合并请求
-yunxiao codeup mr list --repo-id repo-xxx --org-id org-xxx
+yunxiao codeup mr list --repo-id repo-xxx --org-id org-xxx --output json
 
 # 查看特定分支的文件
-yunxiao codeup files get --repo-id repo-xxx --path src/main.rs --ref feature/new --org-id org-xxx
+yunxiao codeup files get --repo-id repo-xxx --path src/main.rs --ref feature/new --org-id org-xxx --output json
+
+# 比较两个分支
+yunxiao codeup compare --repo-id repo-xxx --from main --to feature/new --org-id org-xxx --output json
 ```
 
 ---
@@ -448,7 +709,7 @@ yunxiao codeup files get --repo-id repo-xxx --path src/main.rs --ref feature/new
 **解决方案**:
 ```bash
 # 搜索仓库
-yunxiao codeup repos list --org-id org-xxx
+yunxiao codeup repos list --org-id org-xxx --output json
 ```
 
 ### "Branch not found"
@@ -458,7 +719,7 @@ yunxiao codeup repos list --org-id org-xxx
 **解决方案**:
 ```bash
 # 列出所有分支
-yunxiao codeup branches list --repo-id repo-xxx --org-id org-xxx
+yunxiao codeup branches list --repo-id repo-xxx --org-id org-xxx --output json
 ```
 
 ### "File not found"
@@ -468,8 +729,18 @@ yunxiao codeup branches list --repo-id repo-xxx --org-id org-xxx
 **解决方案**:
 ```bash
 # 查看文件列表
-yunxiao codeup files list --repo-id repo-xxx --org-id org-xxx
+yunxiao codeup files list --repo-id repo-xxx --org-id org-xxx --output json
 
 # 确认分支引用
-yunxiao codeup files list --repo-id repo-xxx --ref main --org-id org-xxx
+yunxiao codeup files list --repo-id repo-xxx --ref main --org-id org-xxx --output json
+```
+
+### "Commit not found"
+
+**原因**: 提交 SHA 错误
+
+**解决方案**:
+```bash
+# 列出提交记录
+yunxiao codeup commits list --repo-id repo-xxx --org-id org-xxx --output json
 ```
