@@ -585,7 +585,7 @@ yunxiao projex workitems create --space-id proj-xxxxxxxx --type-id type-xxxxxxxx
 # 创建带优先级的缺陷
 yunxiao projex workitems create --space-id proj-xxxxxxxx --type-id bug-type-id \
   --subject "登录页面报错" \
-  --priority "1025f7ffdb587024db6a3e845b" \
+  --priority "000000000000000000000002" \
   --org-id org-xxxxxxxx
 
 # 创建带多个自定义字段的工作项

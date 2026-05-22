@@ -1,0 +1,29 @@
+{
+  "skill_name": "yunxiao-mr-create",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "创建 MR，从 feature/wi-12345-user-auth 合并到 main，标题是"添加用户认证功能"",
+      "expected_output": "创建 MR 成功，输出 MR 编号和链接，关联工作项 wi-12345",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "创建 MR",
+      "expected_output": "查询当前分支，从分支名推断工作项，查询 commit 信息生成描述，创建 MR 并输出编号和链接",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "创建 MR，这是一个新的 API 接口，支持批量查询用户数据，主要是为了提升查询性能",
+      "expected_output": "结合用户描述（批量查询、性能提升）+ 自动提取的技术细节生成描述，创建 MR 并输出编号和链接",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "使用本分支创建 MR，合并到 develop 分支",
+      "expected_output": "查询当前分支作为源分支，目标为 develop，从分支名推断工作项，创建 MR 并输出编号和链接",
+      "files": []
+    }
+  ]
+}
