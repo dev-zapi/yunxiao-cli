@@ -48,6 +48,23 @@ cargo build --release
 cp target/release/yunxiao-cli ~/.local/bin/
 ```
 
+### Agent 技能安装
+
+通过 [skills CLI](https://www.npmjs.com/package/skills) 安装 Agent 技能，让 AI 助手更好地使用云效 CLI：
+
+```bash
+# 安装所有技能
+npx skills add dev-zapi/yunxiao-cli --all
+
+# 安装特定技能
+npx skills add dev-zapi/yunxiao-cli --skill yunxiao-cli
+npx skills add dev-zapi/yunxiao-cli --skill yunxiao-create-requirement
+```
+
+**可用技能：**
+- **yunxiao-cli** — 云效 CLI 完整使用指南
+- **yunxiao-create-requirement** — 创建需求工作流
+
 ### 前提条件
 
 - Rust 1.75+（通过 [rustup](https://rustup.rs/) 安装）

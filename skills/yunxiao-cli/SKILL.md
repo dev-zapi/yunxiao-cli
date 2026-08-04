@@ -10,9 +10,52 @@ cli_version: ">=0.1.0"
 
 ---
 
+## 项目上下文配置（YUNXIAO.md）
+
+**执行任何云效命令前，先检查项目根目录是否存在 `YUNXIAO.md` 文件。**
+
+这个文件包含预定义的项目信息，可以避免重复查询 ID。如果文件存在，读取并使用其中的配置；如果不存在，按照常规流程查询。
+
+### YUNXIAO.md 文件格式
+
+```markdown
+# 云效项目配置
+
+## 基本信息
+- 组织 ID: org-xxxxxxxx
+- 项目 ID: proj-xxxxxxxx
+- 项目名称: 示例项目
+
+## 常用 ID
+- 需求类型 ID: type-xxx
+- 任务类型 ID: type-yyy
+- 缺陷类型 ID: type-zzz
+- 当前迭代 ID: sprint-xxx
+
+## 仓库信息
+- 主仓库 ID: repo-xxxxxxxx
+- 默认分支: main
+
+## 其他配置
+- 优先级 P0 ID: priority-xxx
+- 状态"进行中" ID: status-xxx
+```
+
+### 使用规则
+
+1. **优先使用 YUNXIAO.md 中的值**：如果文件中定义了某个 ID，直接使用，无需再查询
+2. **缺失时再查询**：如果文件中没有需要的 ID，再使用 CLI 命令查询
+3. **可以补充文件**：如果查询到了新的常用 ID，可以建议用户更新 YUNXIAO.md
+
+---
+
 ## Agent Quick Reference
 
 Agent 编写脚本或自动化任务时的关键规则：
+
+### 0. 优先检查 YUNXIAO.md
+
+**在执行任何查询前，先检查项目根目录的 `YUNXIAO.md` 文件。** 该文件包含预定义的项目 ID 和配置，可以直接使用，避免重复查询。详见上方"项目上下文配置"章节。
 
 ### 1. 输出格式
 
