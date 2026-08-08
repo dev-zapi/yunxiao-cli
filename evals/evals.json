@@ -1,0 +1,26 @@
+{
+  "skill_name": "yunxiao-setup",
+  "evals": [
+    {
+      "id": 1,
+      "name": "首次初始化配置",
+      "prompt": "我刚刚把云效 CLI 配置好了，现在想在这个项目里使用云效管理需求。你能帮我设置一下吗？",
+      "expected_output": "交互式创建 YUNXIAO.md 文件，包含组织和项目选择，生成最小版本配置",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "快速创建配置",
+      "prompt": "快速创建一个 YUNXIAO.md，我急着用，先有个基本配置就行",
+      "expected_output": "快速创建最小版本 YUNXIAO.md，只包含组织和项目 ID，提示用户后续可补充",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "更新迭代配置",
+      "prompt": "我们项目进入了新的迭代，需要更新 YUNXIAO.md 里的迭代 ID",
+      "expected_output": "读取现有 YUNXIAO.md，查询迭代列表，让用户选择新迭代，更新文件",
+      "files": []
+    }
+  ]
+}
