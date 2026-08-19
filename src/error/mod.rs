@@ -17,11 +17,46 @@ pub struct YunxiaoApiError {
     pub requestId: Option<String>,
 }
 
-/// User-friendly error messages for common YunXiao API error codes.
-fn get_user_friendly_message(error: &YunxiaoApiError, status: u16) -> String {
-    let code = error.errorCode.as_str();
-    let details = &error.errorMessage;
+/// Structured details returned by a non-successful YunXiao API response.
+#[derive(Debug, Clone)]
+pub struct ApiError {
+    /// HTTP response status.
+    pub status: u16,
+    /// YunXiao error code when the response provides one.
+    pub code: Option<String>,
+    /// YunXiao error message, or the unstructured response body.
+    pub message: String,
+    /// Request URL.
+    pub url: String,
+    /// YunXiao request ID when the response provides one.
+    pub request_id: Option<String>,
+}
 
+impl ApiError {
+    /// Build structured error details from an HTTP response body.
+    pub fn from_response(body: &str, status: u16, url: &str) -> Self {
+        if let Ok(api_error) = serde_json::from_str::<YunxiaoApiError>(body) {
+            Self {
+                status,
+                code: Some(api_error.errorCode),
+                message: api_error.errorMessage,
+                url: url.to_string(),
+                request_id: api_error.requestId,
+            }
+        } else {
+            Self {
+                status,
+                code: None,
+                message: body.to_string(),
+                url: url.to_string(),
+                request_id: None,
+            }
+        }
+    }
+}
+
+/// User-friendly error messages for common YunXiao API error codes.
+fn get_user_friendly_message(code: &str, details: &str, status: u16) -> String {
     match (status, code) {
         // 401 Unauthorized
         (401, "InvalidToken") | (401, "InvalidTokenError") => {
@@ -78,38 +113,48 @@ fn get_user_friendly_message(error: &YunxiaoApiError, status: u16) -> String {
     }
 }
 
-/// Parse API error response and return a user-friendly error message.
-pub fn parse_api_error(body: &str, status: u16, url: &str) -> String {
-    // Try to parse as YunxiaoApiError
-    if let Ok(api_error) = serde_json::from_str::<YunxiaoApiError>(body) {
-        let friendly = get_user_friendly_message(&api_error, status);
-        let request_info = api_error
-            .requestId
-            .as_ref()
-            .map(|id| format!("\n请求ID: {id}"))
-            .unwrap_or_default();
-        format!("{}\nURL: {}{}", friendly, url, request_info)
-    } else {
-        // Fallback for non-standard error responses
-        match status {
-            401 => format!(
-                "认证失败 (HTTP 401)\n可能原因：\n  1. Token 无效或已过期\n  2. Token 未正确配置\nURL: {url}\n响应: {body}"
-            ),
-            403 => format!(
-                "权限不足 (HTTP 403)\n可能原因：\n  1. Token 缺少相应权限\n  2. 未加入该组织\n  3. 没有该资源的访问权限\nURL: {url}\n响应: {body}"
-            ),
-            404 => format!(
-                "资源不存在 (HTTP 404)\nURL: {url}\n响应: {body}"
-            ),
-            429 => format!(
-                "请求过于频繁 (HTTP 429)，请稍后重试\nURL: {url}\n响应: {body}"
-            ),
-            500..=599 => format!(
-                "服务器错误 (HTTP {status})，请稍后重试\nURL: {url}\n响应: {body}"
-            ),
-            _ => format!("HTTP {status} from {url}: {body}"),
+impl std::fmt::Display for ApiError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(code) = &self.code {
+            let friendly = get_user_friendly_message(code, &self.message, self.status);
+            let request_info = self
+                .request_id
+                .as_ref()
+                .map(|id| format!("\n请求ID: {id}"))
+                .unwrap_or_default();
+            write!(f, "{friendly}\nURL: {}{request_info}", self.url)
+        } else {
+            let message = match self.status {
+                401 => format!(
+                    "认证失败 (HTTP 401)\n可能原因：\n  1. Token 无效或已过期\n  2. Token 未正确配置\nURL: {}\n响应: {}",
+                    self.url, self.message
+                ),
+                403 => format!(
+                    "权限不足 (HTTP 403)\n可能原因：\n  1. Token 缺少相应权限\n  2. 未加入该组织\n  3. 没有该资源的访问权限\nURL: {}\n响应: {}",
+                    self.url, self.message
+                ),
+                404 => format!(
+                    "资源不存在 (HTTP 404)\nURL: {}\n响应: {}",
+                    self.url, self.message
+                ),
+                429 => format!(
+                    "请求过于频繁 (HTTP 429)，请稍后重试\nURL: {}\n响应: {}",
+                    self.url, self.message
+                ),
+                500..=599 => format!(
+                    "服务器错误 (HTTP {})，请稍后重试\nURL: {}\n响应: {}",
+                    self.status, self.url, self.message
+                ),
+                _ => format!("HTTP {} from {}: {}", self.status, self.url, self.message),
+            };
+            write!(f, "{message}")
         }
     }
+}
+
+/// Parse API error response and return a user-friendly error message.
+pub fn parse_api_error(body: &str, status: u16, url: &str) -> String {
+    ApiError::from_response(body, status, url).to_string()
 }
 
 /// Unified error type for all CLI operations.
@@ -126,6 +171,10 @@ pub enum CliError {
     /// API request or response errors (bad status, unexpected body, etc.)
     #[error("API error: {0}")]
     Api(String),
+
+    /// Structured YunXiao API error response.
+    #[error("API error: {0}")]
+    ApiResponse(ApiError),
 
     /// Cache layer errors (read/write failures, corrupt data, etc.)
     #[error("Cache error: {0}")]
@@ -178,6 +227,25 @@ mod tests {
         let err = CliError::Api("404 Not Found".into());
         assert!(err.to_string().contains("API error"));
         assert!(err.to_string().contains("404 Not Found"));
+    }
+
+    #[test]
+    fn api_error_preserves_response_metadata() {
+        let error = ApiError::from_response(
+            r#"{"errorCode":"InvaildData.Failed","errorMessage":"标签未找到","requestId":"request-1"}"#,
+            400,
+            "https://api.example.test/workitems",
+        );
+
+        assert_eq!(error.status, 400);
+        assert_eq!(error.code.as_deref(), Some("InvaildData.Failed"));
+        assert_eq!(error.message, "标签未找到");
+        assert_eq!(error.request_id.as_deref(), Some("request-1"));
+
+        let display = CliError::ApiResponse(error).to_string();
+        assert!(display.contains("InvaildData.Failed"));
+        assert!(display.contains("https://api.example.test/workitems"));
+        assert!(display.contains("request-1"));
     }
 
     #[test]

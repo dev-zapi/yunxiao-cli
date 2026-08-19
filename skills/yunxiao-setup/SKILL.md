@@ -68,6 +68,8 @@ yunxiao codeup repos list --org-id <ORG_ID> --output json
 询问用户是否需要补充：
 - 工作项类型 ID（需求/任务/缺陷）
 - 当前迭代 ID
+- 常用成员显示名与 Account User `userId`
+- 常用标签名称与标签 ID
 - 其他常用配置
 
 如果用户选择跳过，生成最小版本配置。
@@ -98,6 +100,12 @@ yunxiao codeup repos list --org-id <ORG_ID> --output json
 - 任务类型 ID: <TYPE_ID>
 - 缺陷类型 ID: <TYPE_ID>
 
+### 常用成员（可选，显示名 → Account User userId）
+- <显示名>: <USER_ID>
+
+### 常用标签（可选，名称 → label ID）
+- <标签名>: <LABEL_ID>
+
 ### 迭代与版本
 - 当前迭代 ID: <SPRINT_ID>
 
@@ -120,6 +128,8 @@ yunxiao codeup repos list --org-id <ORG_ID> --output json
 其他 yunxiao 技能在使用过程中发现 YUNXIAO.md 缺失某些字段时：
 - 询问用户是否要补充
 - 补充后更新文件
+
+创建需求时，CLI 已经可以直接解析标签名称并校验负责人；技能不得未经用户同意自动写入这些映射。
 
 ### 错误处理
 

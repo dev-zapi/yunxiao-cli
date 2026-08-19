@@ -60,9 +60,11 @@ pub fn require_token() -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::TEST_ENV_LOCK;
 
     #[test]
     fn require_token_from_env() {
+        let _guard = TEST_ENV_LOCK.lock().unwrap();
         std::env::set_var("YUNXIAO_CLI_TOKEN", "env-test-token");
         let token = require_token();
         assert!(token.is_ok());
@@ -72,6 +74,7 @@ mod tests {
 
     #[test]
     fn require_token_empty_env_var_is_rejected() {
+        let _guard = TEST_ENV_LOCK.lock().unwrap();
         std::env::set_var("YUNXIAO_CLI_TOKEN", "");
         // It should fall through to config file, not return empty string
         let token = require_token();

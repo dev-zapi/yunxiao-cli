@@ -3,7 +3,7 @@
 //! Wraps [`reqwest::Client`] with pre-configured base URL, authentication
 //! header (`x-yunxiao-token`), and timeout settings.
 
-use crate::error::{parse_api_error, CliError, Result};
+use crate::error::{ApiError, CliError, Result};
 use http::Extensions;
 use log::debug;
 use reqwest::header::{HeaderMap, HeaderValue};
@@ -269,7 +269,11 @@ impl ApiClient {
             })
         } else {
             let body = resp.text().await.unwrap_or_default();
-            Err(CliError::Api(parse_api_error(&body, status.as_u16(), &url)))
+            Err(CliError::ApiResponse(ApiError::from_response(
+                &body,
+                status.as_u16(),
+                &url,
+            )))
         }
     }
 
@@ -291,7 +295,11 @@ impl ApiClient {
             Ok(value)
         } else {
             let body = resp.text().await.unwrap_or_default();
-            Err(CliError::Api(parse_api_error(&body, status.as_u16(), &url)))
+            Err(CliError::ApiResponse(ApiError::from_response(
+                &body,
+                status.as_u16(),
+                &url,
+            )))
         }
     }
 }

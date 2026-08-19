@@ -277,6 +277,7 @@ pub fn resolve_org_id(cli_org_id: Option<&str>) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::TEST_ENV_LOCK;
     use std::env;
 
     #[test]
@@ -345,6 +346,7 @@ mod tests {
 
     #[test]
     fn resolve_output_format_default_is_text() {
+        let _guard = TEST_ENV_LOCK.lock().unwrap();
         // Remove env var to test default fallback
         env::remove_var("YUNXIAO_CLI_OUTPUT");
         let fmt = resolve_output_format(None);
@@ -360,6 +362,7 @@ mod tests {
 
     #[test]
     fn resolve_timeout_default() {
+        let _guard = TEST_ENV_LOCK.lock().unwrap();
         env::remove_var("YUNXIAO_CLI_TIMEOUT");
         let t = resolve_timeout(None);
         // Default is 30 unless config file overrides it
@@ -386,6 +389,7 @@ mod tests {
 
     #[test]
     fn resolve_endpoint_default() {
+        let _guard = TEST_ENV_LOCK.lock().unwrap();
         env::remove_var("YUNXIAO_CLI_ENDPOINT");
         env::remove_var("YUNXIAO_CLI_DOMAIN");
         let endpoint = resolve_endpoint(None);
@@ -402,6 +406,7 @@ mod tests {
 
     #[test]
     fn resolve_org_id_none_when_empty() {
+        let _guard = TEST_ENV_LOCK.lock().unwrap();
         env::remove_var("YUNXIAO_CLI_ORG_ID");
         // When no CLI arg, env, or config, should return None
         let org = resolve_org_id(None);
@@ -417,6 +422,7 @@ mod tests {
 
     #[test]
     fn resolve_token_env_var() {
+        let _guard = TEST_ENV_LOCK.lock().unwrap();
         env::set_var("YUNXIAO_CLI_TOKEN", "env-token-yyy");
         let token = resolve_token(None);
         assert_eq!(token.unwrap(), "env-token-yyy");

@@ -88,6 +88,8 @@ yunxiao org members list --org-id <ORG_ID>
 | `--page` | 页码 | 否（默认 1） |
 | `--per-page` | 每页数量 | 否（默认 20） |
 
+成员记录同时包含成员关系 `id` 和账号 `userId`。为工作项指定负责人时必须使用 `userId`，不能使用 `id`。
+
 ### 示例
 
 ```bash
@@ -102,7 +104,7 @@ yunxiao org members list --org-id org-xxxxxxxx --page 2 --per-page 50
 ### 基本用法
 
 ```bash
-yunxiao org members search --query <query> --org-id <ORG_ID>
+yunxiao org members search <query> --org-id <ORG_ID> --output json
 ```
 
 ### 参数
@@ -110,17 +112,19 @@ yunxiao org members search --query <query> --org-id <ORG_ID>
 | 参数 | 说明 | 必需 |
 |------|------|------|
 | `--org-id` | 组织 ID | 是 |
-| `--query` | 搜索关键词 | 是 |
+| `<query>` | 搜索关键词（姓名或邮箱） | 是 |
 
 ### 示例
 
 ```bash
 # 按用户名搜索
-yunxiao org members search --query "alice" --org-id org-xxxxxxxx
+yunxiao org members search "alice" --org-id org-xxxxxxxx --output json
 
 # 按邮箱搜索
-yunxiao org members search --query "alice@example.com" --org-id org-xxxxxxxx
+yunxiao org members search "alice@example.com" --org-id org-xxxxxxxx --output json
 ```
+
+按名称解析负责人时，先要求精确匹配单一成员，再将结果的 `userId` 传给 `workitems create --assignee`。零个或多个匹配都不能猜选。
 
 ---
 
@@ -129,7 +133,7 @@ yunxiao org members search --query "alice@example.com" --org-id org-xxxxxxxx
 ### 基本用法
 
 ```bash
-yunxiao org members get --user-id <USER_ID> --org-id <ORG_ID>
+yunxiao org members get <USER_ID> --org-id <ORG_ID>
 ```
 
 ### 参数
@@ -137,12 +141,12 @@ yunxiao org members get --user-id <USER_ID> --org-id <ORG_ID>
 | 参数 | 说明 | 必需 |
 |------|------|------|
 | `--org-id` | 组织 ID | 是 |
-| `--user-id` | 用户 ID | 是 |
+| `<USER_ID>` | 用户 ID | 是 |
 
 ### 示例
 
 ```bash
-yunxiao org members get --user-id user-xxxxxxxx --org-id org-xxxxxxxx
+yunxiao org members get user-xxxxxxxx --org-id org-xxxxxxxx
 ```
 
 ---
@@ -210,10 +214,10 @@ yunxiao config get organization_id
 
 ```bash
 # 搜索成员
-yunxiao org members search --query "张三" --org-id org-xxxxxxxx
+yunxiao org members search "张三" --org-id org-xxxxxxxx
 
 # 查看成员详情
-yunxiao org members get --user-id user-xxx --org-id org-xxxxxxxx
+yunxiao org members get user-xxx --org-id org-xxxxxxxx
 ```
 
 ### 查看组织结构
@@ -253,7 +257,7 @@ yunxiao org members list --org-id <ORG_ID>
 **解决方案**:
 ```bash
 # 尝试不同的关键词
-yunxiao org members search --query "alice" --org-id org-xxx
+yunxiao org members search "alice" --org-id org-xxx
 
 # 或列出所有成员
 yunxiao org members list --org-id org-xxx

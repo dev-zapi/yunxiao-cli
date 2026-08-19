@@ -70,7 +70,7 @@ type_id            [workitems get]
 | `sprint_id` | `sprints list --space-id <SPACE_ID>` |
 | `version_id` | `versions list --space-id <SPACE_ID>` |
 | `label_id` | `labels list --space-id <SPACE_ID>` |
-| `priority_id` | `workitems fields --project-id <ID> --type-id <TYPE_ID>` |
+| `priority_id` | `workitems fields --space-id <ID> --type-id <TYPE_ID>` |
 | `status_id` | `workitems flow --space-id <SPACE_ID> --type-id <TYPE_ID>` |
 | `user_id` (assignee/owner) | `yunxiao org members list --org-id <ORG_ID>` |
 
@@ -520,13 +520,14 @@ yunxiao projex workitems create --space-id <PROJECT_ID> --type-id <TYPE_ID> --su
 | `--space-id` | 项目 ID | 是 |
 | `--type-id` | 工作项类型 ID。通过 `yunxiao projex workitems types --space-id <SPACE_ID>` 获取 | 是 |
 | `--subject` | 标题 | 是 |
-| `--assignee` | 负责人用户 ID | 否 |
+| `--assignee` | 负责人 Account User `userId`（不是组织成员 `id`） | 否 |
 | `--sprint-id` | 迭代 ID | 否 |
 | `--priority` | 优先级 ID | 否 |
-| `--labels` | 标签 ID 列表（逗号分隔）。通过 `yunxiao projex labels list --space-id <SPACE_ID>` 获取 | 否 |
+| `--labels` | 标签 ID 或精确名称列表（逗号分隔）。CLI 在项目空间内解析、验证后写入 | 否 |
 | `--description` | 描述内容（直接输入） | 否 |
 | `--description-file` | 描述文件路径（从文件读取） | 否 |
 | `--description-format` | 描述格式：text（富文本）或 markdown（默认 markdown） | 否 |
+| `--wait-timeout` | 等待稳定详情的秒数，默认 15；`0` 返回原始创建响应 | 否 |
 | `--field` | 动态字段，格式 `fieldId=value`，可多次使用 | 否 |
 
 ### 动态字段值格式规则
@@ -539,14 +540,13 @@ yunxiao projex workitems create --space-id <PROJECT_ID> --type-id <TYPE_ID> --su
 | list        | user        | 单个用户 ID     | `--field "assignedTo=user-123"` | 传用户 ID(通过 org members 获取) |
 | list        | status      | 单个状态 ID     | `--field "status=status-xxx"`  | 传状态 ID(通过 workitems flow 获取) |
 | multiList   | user        | 逗号分隔用户 ID | `--field "participants=user1,user2"` | 多个用户 ID 用逗号分隔       |
-| multiList   | 其他        | 逗号分隔多个 ID | `--field "labels=label1,label2"` | 多个选项 ID 用逗号分隔       |
 | date        | date        | YYYY-MM-DD      | `--field "dueDate=2025-03-15"` | 日期格式必须为 YYYY-MM-DD    |
 | number      | number      | 数值            | `--field "estimate=8"`         | 直接传数值                   |
 
 **获取字段 ID 和格式**：
 ```bash
 # 查看字段配置，获取 fieldIdentifier 和 format
-yunxiao projex workitems fields --project-id proj-xxx --type-id type-xxx --org-id org-xxx --output json
+yunxiao projex workitems fields --space-id proj-xxx --type-id type-xxx --org-id org-xxx --output json
 ```
 
 ### 描述参数说明
@@ -556,6 +556,8 @@ yunxiao projex workitems fields --project-id proj-xxx --type-id type-xxx --org-i
 - `--description-format`：
   - `markdown`（默认）：Markdown 格式
   - `text`：富文本格式
+- `--labels`：只可通过专用参数设置，支持 ID 或精确名称；`--field labels=...` 被拒绝。
+- 创建成功后 CLI 自动读取详情，校验标题、负责人和请求标签；标签暂未生效时只修复同一工作项一次，不会重试创建。
 
 ### 示例
 
@@ -596,19 +598,10 @@ yunxiao projex workitems create --space-id proj-xxxxxxxx --type-id type-xxxxxxxx
   --field "customNote=这是备注" \
   --org-id org-xxxxxxxx
 
-# 创建带标签的工作项（标签 ID 逗号分隔）
-# 先获取标签 ID
-yunxiao projex labels list --space-id proj-xxxxxxxx --org-id org-xxxxxxxx --output json
-# 创建时关联标签
+# 创建带标签的工作项（标签名称、ID 或两者混合）
 yunxiao projex workitems create --space-id proj-xxxxxxxx --type-id type-xxxxxxxx \
   --subject "高优先级任务" \
-  --labels "label-id-1,label-id-2" \
-  --org-id org-xxxxxxxx
-
-# 通过 --field 参数设置标签（效果与 --labels 相同）
-yunxiao projex workitems create --space-id proj-xxxxxxxx --type-id type-xxxxxxxx \
-  --subject "重要功能" \
-  --field "labels=label-id-1,label-id-2" \
+  --labels "ready-for-agent,e4995af971162ddb8faa7dc1a1" \
   --org-id org-xxxxxxxx
 ```
 
@@ -631,10 +624,10 @@ yunxiao projex workitems update --space-id <PROJECT_ID> --workitem-id <WORKITEM_
 | `--workitem-id` | 工作项 ID | 是 |
 | `--type-id` | 工作项类型 ID（可选，用于字段校验）。通过 `yunxiao projex workitems get` 获取 | 否 |
 | `--subject` | 新标题 | 否 |
-| `--assignee` | 新负责人用户 ID | 否 |
+| `--assignee` | 新负责人 Account User `userId`（不是组织成员 `id`） | 否 |
 | `--status` | 新状态 ID | 否 |
 | `--priority` | 新优先级 ID | 否 |
-| `--labels` | 新标签 ID 列表（逗号分隔）。通过 `yunxiao projex labels list --space-id <SPACE_ID>` 获取 | 否 |
+| `--labels` | 新标签 ID 或精确名称列表（逗号分隔）；替换工作项的标签集合 | 否 |
 | `--description` | 新描述内容（直接输入） | 否 |
 | `--description-file` | 新描述文件路径 | 否 |
 | `--description-format` | 新描述格式：text 或 markdown | 否 |
@@ -672,14 +665,9 @@ yunxiao projex workitems update --space-id proj-xxxxxxxx --workitem-id wi-xxxxxx
   --field "customNote=更新后的备注" \
   --org-id org-xxxxxxxx
 
-# 更新工作项标签
+# 更新工作项标签（替换集合，名称或 ID 均可）
 yunxiao projex workitems update --space-id proj-xxxxxxxx --workitem-id wi-xxxxxxxx \
-  --labels label-id-1,label-id-2,label-id-3 \
-  --org-id org-xxxxxxxx
-
-# 通过 --field 更新标签（效果与 --labels 相同）
-yunxiao projex workitems update --space-id proj-xxxxxxxx --workitem-id wi-xxxxxxxx \
-  --field "labels=label-id-1,label-id-2" \
+  --labels ready-for-agent,e4995af971162ddb8faa7dc1a1 \
   --org-id org-xxxxxxxx
 ```
 
@@ -722,7 +710,7 @@ yunxiao projex workitems types --space-id proj-xxxxxxxx --keyword "需求" --org
 ### 基本用法
 
 ```bash
-yunxiao projex workitems fields --project-id <PROJECT_ID> --type-id <TYPE_ID> --org-id <ORG_ID> --output json
+yunxiao projex workitems fields --space-id <PROJECT_ID> --type-id <TYPE_ID> --org-id <ORG_ID> --output json
 ```
 
 ### 参数
@@ -730,13 +718,14 @@ yunxiao projex workitems fields --project-id <PROJECT_ID> --type-id <TYPE_ID> --
 | 参数 | 说明 | 必需 |
 |------|------|------|
 | `--org-id` | 组织 ID | 是 |
-| `--project-id` | 项目 ID | 是 |
+| `--space-id` | 项目空间 ID | 是 |
+| `--project-id` | `--space-id` 的兼容别名（不在帮助中展示） | 否 |
 | `--type-id` | 工作项类型 ID | 是 |
 
 ### 示例
 
 ```bash
-yunxiao projex workitems fields --project-id proj-xxxxxxxx --type-id type-xxxxxxxx --org-id org-xxxxxxxx --output json
+yunxiao projex workitems fields --space-id proj-xxxxxxxx --type-id type-xxxxxxxx --org-id org-xxxxxxxx --output json
 ```
 
 ---
@@ -1561,7 +1550,7 @@ yunxiao projex workitems create --space-id proj-xxx --type-id <TYPE_ID> --subjec
 **解决方案**:
 ```bash
 # 检查当前 token
-yunxiao config show
+yunxiao config list
 
 # 重新设置 token
 yunxiao auth set --token pt_xxxxxxxx
@@ -1569,15 +1558,12 @@ yunxiao auth set --token pt_xxxxxxxx
 
 ### 字段配置缓存
 
-CLI 会缓存工作项类型的字段配置，避免重复请求。
+CLI 会缓存工作项类型字段配置（1 小时）和项目空间标签目录（5 分钟），避免重复请求。标签校验错误会立即使对应标签目录缓存失效并重新读取一次。
 
 **缓存清理**:
 ```bash
-# 清理所有缓存
-yunxiao config clear-cache
-
-# 或手动删除缓存文件
-rm ~/.cache/yunxiao-cli/field_config_*.json
+# 手动删除本 CLI 的缓存目录
+rm -rf ~/.cache/yunxiao-cli
 ```
 
 ### "Organization not found"
@@ -1587,8 +1573,8 @@ rm ~/.cache/yunxiao-cli/field_config_*.json
 **解决方案**:
 ```bash
 # 确认组织 ID
-yunxiao config show
+yunxiao config list
 
 # 设置正确的组织 ID
-yunxiao config set-org-id --org-id org-xxxxxxxx
+yunxiao config set organization_id org-xxxxxxxx
 ```

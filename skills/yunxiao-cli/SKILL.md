@@ -39,7 +39,17 @@ cli_version: ">=0.1.0"
 ## 其他配置
 - 优先级 P0 ID: priority-xxx
 - 状态"进行中" ID: status-xxx
+
+## 可选稳定映射
+
+### 常用成员（显示名 → Account User userId）
+- 高炬: 61ca7736d6190210d82d6fdd
+
+### 常用标签（名称 → label ID）
+- ready-for-agent: e4995af971162ddb8faa7dc1a1
 ```
+
+这些映射可能过期。CLI 在实际使用时仍会验证；技能不得未经用户同意自动修改 `YUNXIAO.md`。
 
 ### 使用规则（重要）
 
@@ -112,10 +122,10 @@ type_id            [workitems get]
 | `type_id` | `yunxiao projex workitems types --space-id <SPACE_ID>` |
 | `sprint_id` | `yunxiao projex sprints list --space-id <SPACE_ID>` |
 | `version_id` | `yunxiao projex versions list --space-id <SPACE_ID>` |
-| `label_id` | `yunxiao projex labels list --space-id <SPACE_ID>` |
-| `priority_id` | `yunxiao projex workitems fields --project-id <ID> --type-id <TYPE_ID>` |
+| `label_id` | `yunxiao projex workitems create/update --labels <ID_OR_NAME>`（CLI 内部解析） |
+| `priority_id` | `yunxiao projex workitems fields --space-id <ID> --type-id <TYPE_ID>` |
 | `status_id` | `yunxiao projex workitems flow --space-id <SPACE_ID> --type-id <TYPE_ID>` |
-| `user_id` | `yunxiao org members list --org-id <ORG_ID>` |
+| `user_id` | `yunxiao org members search <NAME_OR_EMAIL> --org-id <ORG_ID>`，使用返回的 `userId` |
 | `repo_id` | `yunxiao codeup repos list --org-id <ORG_ID>` |
 | `pipeline_id` | `yunxiao flow pipelines list --org-id <ORG_ID>` |
 
@@ -129,13 +139,17 @@ type_id            [workitems get]
 | `workitems get` | **flag 参数** | `yunxiao projex workitems get --workitem-id <ID>` |
 | `sprints get` | **flag 参数** | `yunxiao projex sprints get --sprint-id <ID>` |
 
+`workitems fields` 的规范参数是 `--space-id`；`--project-id` 保留为兼容别名。两个参数同时传入时必须相同。
+
 Agent 必须仔细区分，避免参数传递错误。
 
 ### 6. 创建/更新前先查询
 
 - 创建工作项前：先 `workitems types` 获取 type_id
 - 更新状态前：先 `workitems flow` 获取可用 status_id
-- 设置字段前：先 `workitems fields` 获取 fieldIdentifier 和格式类型
+- 设置字段前：先 `workitems fields --space-id` 获取 fieldIdentifier、格式类型和必填字段
+- 标签直接使用 `--labels` 传 ID 或精确名称；不要使用 `--field labels=...`
+- `workitems create` 默认返回 CLI 自动轮询后的稳定详情；仅在需要原始响应时使用 `--wait-timeout 0`
 
 ---
 
@@ -163,11 +177,14 @@ TYPE_ID=$(yunxiao projex workitems types --space-id proj-xxx --category Req --or
 # 2. 获取可用状态（可选）
 yunxiao projex workitems flow --space-id proj-xxx --type-id $TYPE_ID --org-id org-xxx --output json
 
-# 3. 创建工作项
+# 3. 创建工作项（标签名称或 ID 均可；CLI 内部解析、校验并等待稳定详情）
 yunxiao projex workitems create --space-id proj-xxx --type-id $TYPE_ID \
   --subject "新功能需求" --description "## 说明\n- 功能点1" \
+  --labels "ready-for-agent" \
   --org-id org-xxx
 ```
+
+创建后无需额外手工 `workitems get`。CLI 会验证返回的工作项 ID、标题、负责人和请求标签；标签暂未生效时只对该已知工作项做一次受限修复，绝不重试创建。
 
 ### 查看代码仓库并创建 MR
 

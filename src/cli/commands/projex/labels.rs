@@ -1,13 +1,165 @@
 //! Label sub-operations for `projex labels`.
 
 use clap::{Args, Subcommand};
+use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::collections::HashSet;
 
 use super::require_org;
+use crate::cache::{delete_cache, read_cache_with_ttl, write_cache_with_ttl};
 use crate::client::ApiClient;
 use crate::config::types::OutputFormat;
-use crate::error::Result;
+use crate::error::{CliError, Result};
 use crate::output;
+
+const LABEL_CACHE_TTL_SECONDS: u64 = 300;
+
+/// A label resolved from the project-space label directory.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(super) struct ResolvedLabel {
+    pub id: String,
+    pub name: String,
+}
+
+fn label_cache_key(org_id: &str, space_id: &str) -> String {
+    format!("labels_{org_id}_{space_id}")
+}
+
+fn labels_from_response(data: &serde_json::Value) -> Vec<ResolvedLabel> {
+    let labels = data
+        .as_array()
+        .or_else(|| data.get("data").and_then(serde_json::Value::as_array));
+
+    labels
+        .into_iter()
+        .flatten()
+        .filter_map(|label| {
+            Some(ResolvedLabel {
+                id: label.get("id")?.as_str()?.to_string(),
+                name: label.get("name")?.as_str()?.to_string(),
+            })
+        })
+        .collect()
+}
+
+async fn get_cached_labels(
+    client: &ApiClient,
+    org_id: &str,
+    space_id: &str,
+) -> Result<Vec<ResolvedLabel>> {
+    let cache_key = label_cache_key(org_id, space_id);
+    if let Some(labels) = read_cache_with_ttl::<Vec<ResolvedLabel>>(&cache_key)? {
+        return Ok(labels);
+    }
+
+    let data = client
+        .get(
+            &format!("/oapi/v1/projex/organizations/{org_id}/projects/{space_id}/labels"),
+            &[],
+        )
+        .await?;
+    let labels = labels_from_response(&data);
+    write_cache_with_ttl(&cache_key, &labels, Some(LABEL_CACHE_TTL_SECONDS))?;
+    Ok(labels)
+}
+
+/// Invalidate cached label data after a label validation error.
+pub(super) fn invalidate_label_cache(org_id: &str, space_id: &str) -> Result<()> {
+    delete_cache(&label_cache_key(org_id, space_id))
+}
+
+/// Return whether a value is a YunXiao label ID rather than a label name.
+pub(super) fn is_label_id(value: &str) -> bool {
+    value.len() == 26 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+/// Parse comma-separated label references without resolving them.
+pub(super) fn parse_label_references(value: &str) -> Result<Vec<String>> {
+    let references: Vec<String> = value
+        .split(',')
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned)
+        .collect();
+
+    if references.is_empty() {
+        return Err(CliError::Config(
+            "--labels requires at least one label ID or exact label name.".into(),
+        ));
+    }
+
+    Ok(references)
+}
+
+fn available_label_names(labels: &[ResolvedLabel]) -> String {
+    if labels.is_empty() {
+        "(none)".into()
+    } else {
+        labels
+            .iter()
+            .map(|label| label.name.as_str())
+            .collect::<Vec<_>>()
+            .join(", ")
+    }
+}
+
+/// Resolve label IDs and exact names to unique label IDs in input order.
+pub(super) async fn resolve_label_references(
+    client: &ApiClient,
+    org_id: &str,
+    space_id: &str,
+    references: &[String],
+) -> Result<Vec<ResolvedLabel>> {
+    let labels = get_cached_labels(client, org_id, space_id).await?;
+    let mut resolved = Vec::new();
+    let mut seen_ids = HashSet::new();
+
+    for reference in references {
+        let matches: Vec<&ResolvedLabel> = if is_label_id(reference) {
+            labels
+                .iter()
+                .filter(|label| label.id == *reference)
+                .collect()
+        } else {
+            labels
+                .iter()
+                .filter(|label| label.name == *reference)
+                .collect()
+        };
+
+        let label = match matches.as_slice() {
+            [label] => *label,
+            [] if is_label_id(reference) => {
+                return Err(CliError::Config(format!(
+                    "Label ID '{reference}' does not exist in project space '{space_id}'. Available labels: {}",
+                    available_label_names(&labels)
+                )));
+            }
+            [] => {
+                return Err(CliError::Config(format!(
+                    "Label name '{reference}' does not exist in project space '{space_id}'. Label names are exact and case-sensitive. Available labels: {}",
+                    available_label_names(&labels)
+                )));
+            }
+            _ => {
+                return Err(CliError::Config(format!(
+                    "Label name '{reference}' is ambiguous in project space '{space_id}'. Matching IDs: {}",
+                    matches
+                        .iter()
+                        .map(|label| label.id.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )));
+            }
+        };
+
+        if seen_ids.insert(label.id.clone()) {
+            resolved.push(label.clone());
+        }
+    }
+
+    Ok(resolved)
+}
 
 /// Arguments for `projex labels`.
 #[derive(Debug, Args)]
@@ -126,6 +278,7 @@ pub(super) async fn exec_labels(
                     &body,
                 )
                 .await?;
+            invalidate_label_cache(oid, &c.space_id)?;
             output::print_output(&data, format)?;
         }
         LabelsCmds::Update(u) => {
@@ -145,8 +298,34 @@ pub(super) async fn exec_labels(
                     &body,
                 )
                 .await?;
+            invalidate_label_cache(oid, &u.space_id)?;
             output::print_output(&data, format)?;
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn label_ids_use_the_fixed_hex_format() {
+        assert!(is_label_id("e4995af971162ddb8faa7dc1a1"));
+        assert!(is_label_id("E4995AF971162DDB8FAA7DC1A1"));
+        assert!(!is_label_id("ready-for-agent"));
+        assert!(!is_label_id("e4995af971162ddb8faa7dc1"));
+    }
+
+    #[test]
+    fn label_references_trim_empty_values() {
+        assert_eq!(
+            parse_label_references(" ready-for-agent, e4995af971162ddb8faa7dc1a1, ").unwrap(),
+            vec![
+                "ready-for-agent".to_string(),
+                "e4995af971162ddb8faa7dc1a1".to_string()
+            ]
+        );
+        assert!(parse_label_references(" , ").is_err());
+    }
 }

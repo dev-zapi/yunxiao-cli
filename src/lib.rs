@@ -23,3 +23,6 @@ pub mod error;
 
 /// Output formatting (JSON, text, table, Markdown).
 pub mod output;
+
+#[cfg(test)]
+pub(crate) static TEST_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());

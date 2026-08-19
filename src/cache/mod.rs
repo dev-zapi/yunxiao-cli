@@ -194,6 +194,9 @@ pub fn read_cache_with_ttl<T: for<'de> Deserialize<'de>>(key: &str) -> Result<Op
 mod tests {
     use super::*;
     use serde_json::json;
+    use std::sync::Mutex;
+
+    static CACHE_TEST_LOCK: Mutex<()> = Mutex::new(());
 
     #[test]
     fn cache_dir_is_under_cache() {
@@ -207,6 +210,7 @@ mod tests {
 
     #[test]
     fn write_and_read_cache_roundtrip() {
+        let _guard = CACHE_TEST_LOCK.lock().unwrap();
         // Ensure cache directory exists before test
         ensure_cache_dir().unwrap();
 
@@ -229,12 +233,14 @@ mod tests {
 
     #[test]
     fn read_cache_returns_none_for_missing_key() {
+        let _guard = CACHE_TEST_LOCK.lock().unwrap();
         let result = read_cache("nonexistent_key_xyz_12345").unwrap();
         assert!(result.is_none());
     }
 
     #[test]
     fn delete_cache_removes_entry() {
+        let _guard = CACHE_TEST_LOCK.lock().unwrap();
         let key = "test_delete";
         let value = json!({"temp": true});
 
@@ -247,6 +253,7 @@ mod tests {
 
     #[test]
     fn delete_cache_silent_on_missing() {
+        let _guard = CACHE_TEST_LOCK.lock().unwrap();
         // Should not error when deleting a non-existent key
         let result = delete_cache("no_such_key_abc_999");
         assert!(result.is_ok());
@@ -254,12 +261,14 @@ mod tests {
 
     #[test]
     fn ensure_cache_dir_creates_directory() {
+        let _guard = CACHE_TEST_LOCK.lock().unwrap();
         ensure_cache_dir().unwrap();
         assert!(cache_dir().exists());
     }
 
     #[test]
     fn clear_cache_removes_all_entries() {
+        let _guard = CACHE_TEST_LOCK.lock().unwrap();
         // Write two entries
         write_cache("clear_test_a", &json!({"a": 1})).unwrap();
         write_cache("clear_test_b", &json!({"b": 2})).unwrap();
@@ -274,6 +283,7 @@ mod tests {
 
     #[test]
     fn cached_entry_with_ttl_expires_correctly() {
+        let _guard = CACHE_TEST_LOCK.lock().unwrap();
         use serde_json::json;
 
         let key = "test_ttl_expiry";
@@ -299,6 +309,7 @@ mod tests {
 
     #[test]
     fn cached_entry_without_ttl_never_expires() {
+        let _guard = CACHE_TEST_LOCK.lock().unwrap();
         use serde_json::json;
 
         let key = "test_no_ttl";
