@@ -17,13 +17,13 @@ Treat it as project context, but ask for missing or conflicting organization det
    yunxiao flow connections list --type codeup --org-id <ORG_ID> --output json
    ```
 
-   Select a service connection only by an explicit returned ID. Do not guess from
-   its name or choose arbitrarily.
-3. Generate and inspect local YAML. With Codeup, use the chosen numeric ID:
+   Select a service connection only by its returned `uuid` field (a string). Do not use the numeric `id` field, and do not guess from its name or choose arbitrarily.
+
+3. Generate and inspect local YAML. With Codeup, use the chosen UUID string:
 
    ```bash
    yunxiao flow pipelines template --template-type <TYPE> --file pipeline.yaml \
-     --codeup-repo <CLONE_URL> --service-connection-id <INTEGER> \
+     --codeup-repo <CLONE_URL> --service-connection-uuid <UUID> \
      --branch <BRANCH> --trigger-events push
    ```
 

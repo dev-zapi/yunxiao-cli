@@ -159,12 +159,13 @@ pub struct PipelineTemplateArgs {
     /// Output file path (optional). If not provided, prints to stdout.
     #[arg(long)]
     pub file: Option<String>,
-    /// Codeup repository clone URL. Requires --service-connection-id.
-    #[arg(long, requires = "service_connection_id")]
+    /// Codeup repository clone URL. Requires --service-connection-uuid.
+    #[arg(long, requires = "service_connection_uuid")]
     pub codeup_repo: Option<String>,
-    /// Numeric Codeup service connection ID. Requires --codeup-repo.
+    /// Codeup service connection UUID (from `flow connections list` response's `uuid` field).
+    /// Requires --codeup-repo. Must NOT be a numeric ID; use the UUID string.
     #[arg(long, requires = "codeup_repo")]
-    pub service_connection_id: Option<u64>,
+    pub service_connection_uuid: Option<String>,
     /// YAML source ID (letters, digits, and underscores; defaults to repo).
     #[arg(long, requires = "codeup_repo")]
     pub source_id: Option<String>,
@@ -901,9 +902,21 @@ stages:
         }
     };
 
-    match (&args.codeup_repo, args.service_connection_id) {
+    match (&args.codeup_repo, &args.service_connection_uuid) {
         (None, None) => Ok(template.to_string()),
-        (Some(repo), Some(connection_id)) => {
+        (Some(repo), Some(connection_uuid)) => {
+            let trimmed_uuid = connection_uuid.trim();
+            if trimmed_uuid.is_empty() {
+                return Err(crate::error::CliError::Config(
+                    "--service-connection-uuid cannot be blank".into(),
+                ));
+            }
+            if trimmed_uuid.chars().all(|c| c.is_ascii_digit()) {
+                return Err(crate::error::CliError::Config(
+                    "--service-connection-uuid must be a UUID string, not a numeric ID. Get the UUID from `flow connections list` response's `uuid` field".into(),
+                ));
+            }
+
             let source_id = args.source_id.as_deref().unwrap_or("repo");
             let branch = args.branch.as_deref().unwrap_or("master");
             let trigger_events = args.trigger_events.as_deref().unwrap_or("push");
@@ -916,13 +929,13 @@ stages:
                     repo,
                     branch,
                     trigger_events,
-                    connection_id,
+                    trimmed_uuid,
                 ),
                 template
             ))
         }
         _ => Err(crate::error::CliError::Config(
-            "--codeup-repo and --service-connection-id must be provided together".into(),
+            "--codeup-repo and --service-connection-uuid must be provided together".into(),
         )),
     }
 }
@@ -970,7 +983,7 @@ fn generate_codeup_source(
     repo: &str,
     branch: &str,
     trigger_events: &str,
-    service_connection_id: u64,
+    service_connection_uuid: &str,
 ) -> String {
     let events = trigger_events
         .split(',')
@@ -995,9 +1008,10 @@ fn generate_codeup_source(
         .unwrap_or_default();
 
     format!(
-        "sources:\n  {source_id}:\n    type: codeup\n{source_name}    endpoint: {}\n    branch: {}\n{trigger_events}\n    certificate:\n      type: serviceConnection\n      serviceConnection: {service_connection_id}\n\n",
+        "sources:\n  {source_id}:\n    type: codeup\n{source_name}    endpoint: {}\n    branch: {}\n{trigger_events}\n    certificate:\n      type: serviceConnection\n      serviceConnection: {}\n\n",
         quote_yaml(repo),
         quote_yaml(branch),
+        quote_yaml(service_connection_uuid),
     )
 }
 
@@ -1053,7 +1067,7 @@ mod tests {
             template_type: "simple".into(),
             file: None,
             codeup_repo: None,
-            service_connection_id: None,
+            service_connection_uuid: None,
             source_id: None,
             source_name: None,
             branch: None,
@@ -1069,10 +1083,10 @@ mod tests {
     }
 
     #[test]
-    fn template_generates_codeup_source_with_quoted_values() {
+    fn template_generates_codeup_source_with_quoted_uuid() {
         let mut args = template_args();
         args.codeup_repo = Some("https://codeup.example/repo.git?x=\"quoted\"".into());
-        args.service_connection_id = Some(42);
+        args.service_connection_uuid = Some("  abc-123-uuid  ".into());
         args.source_name = Some("app: production".into());
         args.branch = Some("feature/new\nbranch".into());
         args.trigger_events = Some("push, tagPush".into());
@@ -1082,16 +1096,37 @@ mod tests {
         assert!(template.contains("endpoint: \"https://codeup.example/repo.git?x=\\\"quoted\\\"\""));
         assert!(template.contains("branch: \"feature/new\\nbranch\""));
         assert!(template.contains("      - \"push\""));
-        assert!(template.contains("serviceConnection: 42"));
+        assert!(template.contains("serviceConnection: \"abc-123-uuid\""));
     }
 
     #[test]
     fn template_rejects_invalid_source_id() {
         let mut args = template_args();
         args.codeup_repo = Some("https://codeup.example/repo.git".into());
-        args.service_connection_id = Some(1);
+        args.service_connection_uuid = Some("abc-uuid".into());
         args.source_id = Some("not-valid".into());
         assert!(generate_pipeline_template(&args).is_err());
+    }
+
+    #[test]
+    fn template_rejects_blank_service_connection_uuid() {
+        let mut args = template_args();
+        args.codeup_repo = Some("https://codeup.example/repo.git".into());
+        args.service_connection_uuid = Some("   ".into());
+        assert!(generate_pipeline_template(&args).is_err());
+    }
+
+    #[test]
+    fn template_rejects_trimmed_numeric_service_connection_id() {
+        let mut args = template_args();
+        args.codeup_repo = Some("https://codeup.example/repo.git".into());
+        args.service_connection_uuid = Some(" 12345 ".into());
+        let error = generate_pipeline_template(&args).unwrap_err();
+        let message = format!("{error}");
+        assert!(
+            message.contains("UUID"),
+            "error should mention UUID: {message}"
+        );
     }
 
     #[derive(Debug, Parser)]
@@ -1109,10 +1144,41 @@ mod tests {
             "https://codeup.example/repo.git",
         ])
         .is_err());
-        assert!(
-            TemplateCli::try_parse_from(["test", "template", "--service-connection-id", "1",])
-                .is_err()
-        );
+        assert!(TemplateCli::try_parse_from([
+            "test",
+            "template",
+            "--service-connection-uuid",
+            "abc-uuid",
+        ])
+        .is_err());
+    }
+
+    #[test]
+    fn template_accepts_codeup_repo_with_service_connection_uuid() {
+        let result = TemplateCli::try_parse_from([
+            "test",
+            "template",
+            "--codeup-repo",
+            "https://codeup.example/repo.git",
+            "--service-connection-uuid",
+            "abc-123-uuid",
+        ]);
+        assert!(result.is_ok());
+        if let Ok(TemplateCli {
+            command: PipelinesCmds::Template(args),
+        }) = result
+        {
+            assert_eq!(
+                args.codeup_repo,
+                Some("https://codeup.example/repo.git".to_string())
+            );
+            assert_eq!(
+                args.service_connection_uuid,
+                Some("abc-123-uuid".to_string())
+            );
+        } else {
+            panic!("Expected Template command");
+        }
     }
 
     #[test]

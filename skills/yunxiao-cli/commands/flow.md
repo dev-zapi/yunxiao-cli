@@ -24,13 +24,19 @@ yunxiao flow pipelines template --template-type maven --file pipeline.yaml
 ```
 
 要在模板中加入一个 Codeup 代码源，必须同时传入 `--codeup-repo <CLONE_URL>` 和
-`--service-connection-id <INTEGER>`。未显式设置时，代码源 ID、分支和触发事件分别默认为
+`--service-connection-uuid <UUID>`。未显式设置时，代码源 ID、分支和触发事件分别默认为
 `repo`、`master` 和 `push`；可用 `--source-id`、`--branch`、`--trigger-events` 覆盖，
 `--source-name` 可选。这些代码源专属参数都必须和 `--codeup-repo` 一起使用。代码源 ID 必须以字母开头，仅包含字母、数字和下划线，且最长 30 个字符。
 
+**重要**：`--service-connection-uuid` 必须使用 `flow connections list` 返回的 `uuid` 字段（字符串），不能使用数字 `id`。API 只接受 UUID 字符串，数字 ID 会被拒绝。
+
 ```bash
+# 先查询服务连接，获取 uuid
+yunxiao flow connections list --type codeup --org-id <ORG_ID> --output json
+
+# 使用返回的 uuid 生成模板
 yunxiao flow pipelines template --template-type maven --file pipeline.yaml \
-  --codeup-repo <CLONE_URL> --service-connection-id <INTEGER> \
+  --codeup-repo <CLONE_URL> --service-connection-uuid <UUID> \
   --source-id app_repo --branch main --trigger-events push,tagPush
 ```
 

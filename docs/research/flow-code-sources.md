@@ -134,8 +134,15 @@ The exact source syntax and its semantics are documented as follows:
 
 4. Code sources other than the documented exceptions require `certificate`.
    To use a service connection, set `certificate.type: serviceConnection` and
-   set `certificate.serviceConnection` to the service-connection ID.
+   set `certificate.serviceConnection` to the service connection ID.
    Source: [Pipeline sources](https://help.aliyun.com/zh/yunxiao/user-guide/pipeline-sources).
+
+   **Empirical finding (2026-09-01, central-edition live verification)**: The
+   `certificate.serviceConnection` field accepted the UUID string from the
+   service connection's `uuid` field, but rejected the numeric `id` field with
+   error "服务连接[<ID>]不存在". Use `flow connections list --type codeup` to
+   retrieve the UUID. This behavior is not stated in the official documentation
+   cited above.
 
 5. `branchesFilter` is an optional regular-expression execution filter.
    `branchFilter` is deprecated in favor of it. `pathFilter` is optional and
