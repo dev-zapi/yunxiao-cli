@@ -20,7 +20,7 @@ PROFILE_FLAG := --profile $(PROFILE)
 .DEFAULT_GOAL := help
 
 # Phony targets
-.PHONY: help build dev release test lint clean dist dist-all install uninstall install-skill uninstall-skill
+.PHONY: help build dev release test lint clean dist dist-all install uninstall install-skill uninstall-skill bump bump-patch bump-minor bump-major
 
 ##@ Build
 
@@ -135,6 +135,34 @@ uninstall-skill:
 clean:
 	$(CARGO) clean
 	rm -rf $(DIST_DIR)
+
+##@ Version
+
+## Bump version (usage: make bump VERSION=0.2.0)
+bump:
+	@if [ -z "$(VERSION)" ] || [ "$(VERSION)" = "$(shell grep '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/')" ]; then \
+		echo "Usage: make bump VERSION=X.Y.Z"; exit 1; \
+	fi
+	@if [ -n "$$(git status --porcelain)" ]; then \
+		echo "Error: working tree is not clean. Commit or stash changes first."; exit 1; \
+	fi
+	@sed -i 's/^version = ".*"/version = "$(VERSION)"/' Cargo.toml
+	@sed -i 's/badge\/version-[^-]*-\([0-9a-f]*\)/badge\/version-$(VERSION)-\1/' README.md
+	@git add Cargo.toml README.md
+	@git commit -m "chore: bump version to $(VERSION)"
+	@echo "Bumped version to $(VERSION)"
+
+## Bump patch version (0.1.0 -> 0.1.1)
+bump-patch:
+	@$(MAKE) bump VERSION=$(shell grep '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/' | awk -F. '{print $$1"."$$2"."$$3+1}')
+
+## Bump minor version (0.1.0 -> 0.2.0)
+bump-minor:
+	@$(MAKE) bump VERSION=$(shell grep '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/' | awk -F. '{print $$1"."$$2+1".0"}')
+
+## Bump major version (0.1.0 -> 1.0.0)
+bump-major:
+	@$(MAKE) bump VERSION=$(shell grep '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/' | awk -F. '{print $$1+1".0.0"}')
 
 ##@ Help
 
