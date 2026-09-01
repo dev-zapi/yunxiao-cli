@@ -14,6 +14,11 @@
 
 **触发词**: 创建需求、新建需求、提一个需求、录入需求等
 
+### create-yunxiao-flow
+安全创建云效 Flow 流水线：生成本地 YAML、明确选择 Codeup 服务连接，并在创建后只读验证。
+
+**触发词**: 创建流水线、新建流水线、创建 Flow 流水线
+
 ## 安装
 
 ```bash
@@ -23,6 +28,7 @@ npx skills add your-username/yunxiao-cli --all
 # 安装特定技能
 npx skills add your-username/yunxiao-cli --skill yunxiao-cli
 npx skills add your-username/yunxiao-cli --skill yunxiao-create-requirement
+npx skills add your-username/yunxiao-cli --skill create-yunxiao-flow
 
 # 全局安装
 npx skills add your-username/yunxiao-cli -g
