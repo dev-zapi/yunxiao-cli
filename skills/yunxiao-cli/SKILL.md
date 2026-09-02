@@ -209,7 +209,7 @@ yunxiao codeup mr create --repo-id $REPO_ID --source feature/new --target main -
 |------|------|------|
 | projex | 项目、工作项、迭代、版本、工时、标签 | [projex.md](./commands/projex.md) |
 | codeup | 仓库、分支、合并请求、文件 | [codeup.md](./commands/codeup.md) |
-| flow | 流水线、运行、日志 | [flow.md](./commands/flow.md) |
+| flow | 流水线、运行、日志及资源查询 | [flow.md](./commands/flow.md)；查询接口详见 [flow-query.md](./commands/flow-query.md) |
 | org | 组织、成员 | [org.md](./commands/org.md) |
 | appstack | 应用交付 | [appstack.md](./commands/appstack.md) |
 | packages | 制品库 | [packages.md](./commands/packages.md) |

@@ -23,6 +23,8 @@ yunxiao flow pipelines delete --pipeline-id <PIPELINE_ID> --org-id <ORG_ID> --ou
 yunxiao flow pipelines template --template-type maven --file pipeline.yaml
 ```
 
+其他流水线查询（制品 URL、扫描报告、关系）见[流水线查询命令手册](./flow-query.md)。
+
 要在模板中加入一个 Codeup 代码源，必须同时传入 `--codeup-repo <CLONE_URL>` 和
 `--service-connection-uuid <UUID>`。未显式设置时，代码源 ID、分支和触发事件分别默认为
 `repo`、`master` 和 `push`；可用 `--source-id`、`--branch`、`--trigger-events` 覆盖，
@@ -53,6 +55,8 @@ yunxiao flow jobs history --pipeline-id <PIPELINE_ID> --job-id <JOB_ID> --org-id
 yunxiao flow jobs run --pipeline-id <PIPELINE_ID> --run-id <RUN_ID> --job-id <JOB_ID> --org-id <ORG_ID> --output json
 yunxiao flow jobs log --pipeline-id <PIPELINE_ID> --run-id <RUN_ID> --job-id <JOB_ID> --org-id <ORG_ID> --output json
 ```
+
+Job 步骤、部署、主机组、流水线分组、资源成员、标签组和变量组查询见[流水线查询命令手册](./flow-query.md)。
 
 ## Job 执行环境 (`runsOn`)
 
@@ -118,6 +122,8 @@ Codeup 的查询值使用小写 `codeup`：
 ```bash
 yunxiao flow connections list --type codeup --org-id <ORG_ID> --output json
 ```
+
+服务认证、服务凭据及其他查询接口见[流水线查询命令手册](./flow-query.md)。
 
 ### 类型参考与兜底查询
 

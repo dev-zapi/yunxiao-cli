@@ -1,7 +1,7 @@
 //! `flow` subcommand – pipeline management.
 //!
-//! Covers pipelines, pipeline runs, jobs (including logs), and service
-//! connections via the Yunxiao Flow API.
+//! Covers pipeline definitions and runs, job logs, service connections, and
+//! organization-scoped Flow resource queries via the Yunxiao Flow API.
 
 use clap::{Args, Subcommand};
 use serde_json::json;
@@ -30,6 +30,18 @@ pub enum FlowCommands {
     Jobs(JobsArgs),
     /// Manage service connections.
     Connections(ConnectionsArgs),
+    /// Inspect deployment orders and machine logs.
+    Deploy(DeployArgs),
+    /// Manage private and public host groups.
+    HostGroups(HostGroupsArgs),
+    /// Manage pipeline groups.
+    PipelineGroups(PipelineGroupsArgs),
+    /// List resource members.
+    ResourceMembers(ResourceMembersArgs),
+    /// Manage Flow tag groups.
+    Tags(TagsArgs),
+    /// Manage Flow variable groups.
+    VariableGroups(VariableGroupsArgs),
 }
 
 // ─────────────────────────── Pipelines ──────────────────────────────────
@@ -56,6 +68,14 @@ pub enum PipelinesCmds {
     Delete(PipelineDeleteArgs),
     /// Generate pipeline YAML template.
     Template(PipelineTemplateArgs),
+    /// Get a pipeline artifact download URL.
+    ArtifactUrl(PipelineArtifactUrlArgs),
+    /// Get an EMAS artifact download URL.
+    EmasArtifactUrl(PipelineEmasArtifactUrlArgs),
+    /// Get a pipeline scan report URL.
+    ScanReportUrl(PipelineScanReportUrlArgs),
+    /// Inspect pipeline relations.
+    Relations(PipelineRelationsArgs),
 }
 
 /// Arguments for `flow pipelines list`.
@@ -93,6 +113,70 @@ pub struct PipelineGetArgs {
     /// Pipeline ID. Get via: yunxiao flow pipelines list
     #[arg(long)]
     pub pipeline_id: String,
+}
+
+/// Arguments for `flow pipelines artifact-url`.
+#[derive(Debug, Args)]
+pub struct PipelineArtifactUrlArgs {
+    /// Artifact file path.
+    #[arg(long)]
+    pub file_path: String,
+    /// Artifact file name.
+    #[arg(long)]
+    pub file_name: String,
+}
+
+/// Arguments for `flow pipelines emas-artifact-url`.
+#[derive(Debug, Args)]
+pub struct PipelineEmasArtifactUrlArgs {
+    /// EMAS job instance ID.
+    #[arg(long)]
+    pub emas_job_instance_id: String,
+    /// Artifact MD5 hash.
+    #[arg(long)]
+    pub md5: String,
+    /// Pipeline ID.
+    #[arg(long)]
+    pub pipeline_id: String,
+    /// Pipeline run ID.
+    #[arg(long)]
+    pub pipeline_run_id: String,
+    /// Service connection ID.
+    #[arg(long)]
+    pub service_connection_id: String,
+}
+
+/// Arguments for `flow pipelines scan-report-url`.
+#[derive(Debug, Args)]
+pub struct PipelineScanReportUrlArgs {
+    /// Scan report path.
+    #[arg(long)]
+    pub report_path: String,
+}
+
+/// Arguments for `flow pipelines relations`.
+#[derive(Debug, Args)]
+pub struct PipelineRelationsArgs {
+    #[command(subcommand)]
+    pub command: PipelineRelationsCmds,
+}
+
+/// Pipeline relation operations.
+#[derive(Debug, Subcommand)]
+pub enum PipelineRelationsCmds {
+    /// List relations of a pipeline.
+    List(PipelineRelationsListArgs),
+}
+
+/// Arguments for `flow pipelines relations list`.
+#[derive(Debug, Args)]
+pub struct PipelineRelationsListArgs {
+    /// Pipeline ID.
+    #[arg(long)]
+    pub pipeline_id: String,
+    /// Related object type, for example VARIABLE_GROUP.
+    #[arg(long)]
+    pub rel_object_type: String,
 }
 
 /// Arguments for `flow pipelines create`.
@@ -266,6 +350,12 @@ pub enum JobsCmds {
     Run(JobRunArgs),
     /// Get job execution logs.
     Log(JobLogArgs),
+    /// List steps for a pipeline job run.
+    Steps(JobStepsArgs),
+    /// Get a step log page.
+    StepLog(JobStepLogArgs),
+    /// Get a step log URL.
+    StepLogUrl(JobStepLogUrlArgs),
 }
 
 /// Arguments for `flow jobs list`.
@@ -318,6 +408,66 @@ pub struct JobLogArgs {
     pub job_id: String,
 }
 
+/// Arguments for `flow jobs steps`.
+#[derive(Debug, Args)]
+pub struct JobStepsArgs {
+    /// Pipeline ID.
+    #[arg(long)]
+    pub pipeline_id: String,
+    /// Pipeline run ID.
+    #[arg(long, visible_alias = "run-id")]
+    pub pipeline_run_id: String,
+    /// Job ID.
+    #[arg(long)]
+    pub job_id: String,
+}
+
+/// Arguments for `flow jobs step-log`.
+#[derive(Debug, Args)]
+pub struct JobStepLogArgs {
+    /// Pipeline ID.
+    #[arg(long)]
+    pub pipeline_id: String,
+    /// Pipeline run ID.
+    #[arg(long, visible_alias = "run-id")]
+    pub pipeline_run_id: String,
+    /// Job ID.
+    #[arg(long)]
+    pub job_id: String,
+    /// Zero-based step index.
+    #[arg(long)]
+    pub step_index: u32,
+    /// Log offset.
+    #[arg(long)]
+    pub offset: u64,
+    /// Maximum log bytes/lines to return, as defined by the API.
+    #[arg(long)]
+    pub limit: u64,
+    /// Build ID.
+    #[arg(long)]
+    pub build_id: String,
+}
+
+/// Arguments for `flow jobs step-log-url`.
+#[derive(Debug, Args)]
+pub struct JobStepLogUrlArgs {
+    /// Pipeline ID.
+    #[arg(long)]
+    pub pipeline_id: String,
+    /// Pipeline run ID.
+    #[arg(long, visible_alias = "run-id")]
+    pub pipeline_run_id: String,
+    /// Job ID.
+    #[arg(long)]
+    pub job_id: String,
+    /// Zero-based step index.
+    #[arg(long)]
+    pub step_index: u32,
+    /// Build ID.
+    #[arg(long)]
+    pub build_id: String,
+}
+
 // ─────────────────────────── Connections ────────────────────────────────
 
 /// Arguments for `flow connections`.
@@ -332,6 +482,10 @@ pub struct ConnectionsArgs {
 pub enum ConnectionsCmds {
     /// List service connections.
     List(ConnectionsListArgs),
+    /// Manage service authentication definitions.
+    Auths(ServiceAuthsArgs),
+    /// Manage service credential definitions.
+    Credentials(ServiceCredentialsArgs),
 }
 
 /// Arguments for `flow connections list`.
@@ -340,6 +494,320 @@ pub struct ConnectionsListArgs {
     /// Required service connection type, for example codeup.
     #[arg(long = "type", visible_alias = "conn-type")]
     pub conn_type: String,
+}
+
+/// Arguments for `flow connections auths`.
+#[derive(Debug, Args)]
+pub struct ServiceAuthsArgs {
+    #[command(subcommand)]
+    pub command: ServiceAuthsCmds,
+}
+
+/// Service authentication operations.
+#[derive(Debug, Subcommand)]
+pub enum ServiceAuthsCmds {
+    /// List service authentication definitions.
+    List(ServiceAuthsListArgs),
+}
+
+/// Arguments for `flow connections auths list`.
+#[derive(Debug, Args)]
+pub struct ServiceAuthsListArgs {
+    /// Service authentication type, for example RAM.
+    #[arg(long)]
+    pub service_auth_type: String,
+}
+
+/// Arguments for `flow connections credentials`.
+#[derive(Debug, Args)]
+pub struct ServiceCredentialsArgs {
+    #[command(subcommand)]
+    pub command: ServiceCredentialsCmds,
+}
+
+/// Service credential operations.
+#[derive(Debug, Subcommand)]
+pub enum ServiceCredentialsCmds {
+    /// List service credential definitions.
+    List(ServiceCredentialsListArgs),
+}
+
+/// Arguments for `flow connections credentials list`.
+#[derive(Debug, Args)]
+pub struct ServiceCredentialsListArgs {
+    /// Service credential type, for example username_password.
+    #[arg(long)]
+    pub service_credential_type: String,
+}
+
+/// Arguments for `flow deploy`.
+#[derive(Debug, Args)]
+pub struct DeployArgs {
+    #[command(subcommand)]
+    pub command: DeployCmds,
+}
+
+/// Deployment query operations.
+#[derive(Debug, Subcommand)]
+pub enum DeployCmds {
+    /// Query a deployment order.
+    Order(DeployOrderArgs),
+    /// Query a deployment machine log.
+    MachineLog(DeployMachineLogArgs),
+}
+
+/// Arguments for `flow deploy order`.
+#[derive(Debug, Args)]
+pub struct DeployOrderArgs {
+    #[command(subcommand)]
+    pub command: DeployOrderCmds,
+}
+
+/// Deployment order operations.
+#[derive(Debug, Subcommand)]
+pub enum DeployOrderCmds {
+    /// Get deployment order details.
+    Get(DeployOrderGetArgs),
+}
+
+/// Arguments for `flow deploy order get`.
+#[derive(Debug, Args)]
+pub struct DeployOrderGetArgs {
+    /// Pipeline ID.
+    #[arg(long)]
+    pub pipeline_id: String,
+    /// Deployment order ID.
+    #[arg(long)]
+    pub deploy_order_id: String,
+}
+
+/// Arguments for `flow deploy machine-log`.
+#[derive(Debug, Args)]
+pub struct DeployMachineLogArgs {
+    /// Pipeline ID.
+    #[arg(long)]
+    pub pipeline_id: String,
+    /// Deployment order ID.
+    #[arg(long)]
+    pub deploy_order_id: String,
+    /// Deployment machine serial number.
+    #[arg(long)]
+    pub machine_sn: String,
+}
+
+/// Arguments for `flow host-groups`.
+#[derive(Debug, Args)]
+pub struct HostGroupsArgs {
+    #[command(subcommand)]
+    pub command: HostGroupsCmds,
+}
+
+/// Host group query operations.
+#[derive(Debug, Subcommand)]
+pub enum HostGroupsCmds {
+    /// List host groups.
+    List(HostGroupsListArgs),
+    /// Get a host group.
+    Get(HostGroupGetArgs),
+}
+
+/// Arguments for `flow host-groups list`.
+#[derive(Debug, Args)]
+pub struct HostGroupsListArgs {
+    /// Host group IDs, comma-separated.
+    #[arg(long)]
+    pub ids: Option<String>,
+    /// Filter by host group name.
+    #[arg(long)]
+    pub name: Option<String>,
+    /// Creation start time (milliseconds timestamp).
+    #[arg(long)]
+    pub create_start_time: Option<i64>,
+    /// Creation end time (milliseconds timestamp).
+    #[arg(long)]
+    pub create_end_time: Option<i64>,
+    /// Creator account IDs, comma-separated.
+    #[arg(long)]
+    pub creator_account_ids: Option<String>,
+    /// Page number.
+    #[arg(long, default_value = "1")]
+    pub page: u32,
+    /// Results per page (max 30).
+    #[arg(long, default_value = "10")]
+    pub per_page: u32,
+    /// Sort field.
+    #[arg(long, default_value = "ID")]
+    pub page_sort: String,
+    /// Sort order.
+    #[arg(long, default_value = "DESC")]
+    pub page_order: String,
+}
+
+/// Arguments for `flow host-groups get`.
+#[derive(Debug, Args)]
+pub struct HostGroupGetArgs {
+    /// Host group ID.
+    #[arg(long)]
+    pub id: String,
+}
+
+/// Arguments for `flow pipeline-groups`.
+#[derive(Debug, Args)]
+pub struct PipelineGroupsArgs {
+    #[command(subcommand)]
+    pub command: PipelineGroupsCmds,
+}
+
+/// Pipeline group query operations.
+#[derive(Debug, Subcommand)]
+pub enum PipelineGroupsCmds {
+    /// List pipeline groups.
+    List(PipelineGroupsListArgs),
+    /// Get a pipeline group.
+    Get(PipelineGroupGetArgs),
+    /// List pipelines in a group.
+    Pipelines(PipelineGroupPipelinesArgs),
+}
+
+/// Arguments for `flow pipeline-groups list`.
+#[derive(Debug, Args)]
+pub struct PipelineGroupsListArgs {
+    /// Page number.
+    #[arg(long, default_value = "1")]
+    pub page: u32,
+    /// Results per page (max 30).
+    #[arg(long, default_value = "10")]
+    pub per_page: u32,
+}
+
+/// Arguments for `flow pipeline-groups get`.
+#[derive(Debug, Args)]
+pub struct PipelineGroupGetArgs {
+    /// Pipeline group ID.
+    #[arg(long)]
+    pub group_id: String,
+}
+
+/// Arguments for `flow pipeline-groups pipelines`.
+#[derive(Debug, Args)]
+pub struct PipelineGroupPipelinesArgs {
+    /// Pipeline group ID. Use 0 for ungrouped pipelines.
+    #[arg(long)]
+    pub group_id: String,
+    /// Filter by creation start time (milliseconds timestamp).
+    #[arg(long)]
+    pub create_start_time: Option<i64>,
+    /// Filter by creation end time (milliseconds timestamp).
+    #[arg(long)]
+    pub create_end_time: Option<i64>,
+    /// Filter by execution start time (milliseconds timestamp).
+    #[arg(long)]
+    pub execute_start_time: Option<i64>,
+    /// Filter by execution end time (milliseconds timestamp).
+    #[arg(long)]
+    pub execute_end_time: Option<i64>,
+    /// Filter by pipeline name.
+    #[arg(long)]
+    pub pipeline_name: Option<String>,
+    /// Filter by status list (comma-separated).
+    #[arg(long)]
+    pub status_list: Option<String>,
+    /// Page number.
+    #[arg(long, default_value = "1")]
+    pub page: u32,
+    /// Results per page (max 30).
+    #[arg(long, default_value = "10")]
+    pub per_page: u32,
+}
+
+/// Arguments for `flow resource-members`.
+#[derive(Debug, Args)]
+pub struct ResourceMembersArgs {
+    #[command(subcommand)]
+    pub command: ResourceMembersCmds,
+}
+
+/// Resource member query operations.
+#[derive(Debug, Subcommand)]
+pub enum ResourceMembersCmds {
+    /// List members of a resource.
+    List(ResourceMembersListArgs),
+}
+
+/// Arguments for `flow resource-members list`.
+#[derive(Debug, Args)]
+pub struct ResourceMembersListArgs {
+    /// Resource type, for example pipeline or hostGroup.
+    #[arg(long)]
+    pub resource_type: String,
+    /// Resource ID.
+    #[arg(long)]
+    pub resource_id: String,
+}
+
+/// Arguments for `flow tags`.
+#[derive(Debug, Args)]
+pub struct TagsArgs {
+    #[command(subcommand)]
+    pub command: TagsCmds,
+}
+
+/// Flow tag query operations.
+#[derive(Debug, Subcommand)]
+pub enum TagsCmds {
+    /// List tag groups.
+    List,
+    /// Get a tag group.
+    Get(TagGroupGetArgs),
+}
+
+/// Arguments for `flow tags get`.
+#[derive(Debug, Args)]
+pub struct TagGroupGetArgs {
+    /// Tag group ID.
+    #[arg(long)]
+    pub id: String,
+}
+
+/// Arguments for `flow variable-groups`.
+#[derive(Debug, Args)]
+pub struct VariableGroupsArgs {
+    #[command(subcommand)]
+    pub command: VariableGroupsCmds,
+}
+
+/// Variable group query operations.
+#[derive(Debug, Subcommand)]
+pub enum VariableGroupsCmds {
+    /// List variable groups.
+    List(VariableGroupsListArgs),
+    /// Get a variable group.
+    Get(VariableGroupGetArgs),
+}
+
+/// Arguments for `flow variable-groups list`.
+#[derive(Debug, Args)]
+pub struct VariableGroupsListArgs {
+    /// Page number.
+    #[arg(long, default_value = "1")]
+    pub page: u32,
+    /// Results per page (max 30).
+    #[arg(long, default_value = "10")]
+    pub per_page: u32,
+    /// Sort field.
+    #[arg(long, default_value = "ID")]
+    pub page_sort: String,
+    /// Sort order.
+    #[arg(long, default_value = "DESC")]
+    pub page_order: String,
+}
+
+/// Arguments for `flow variable-groups get`.
+#[derive(Debug, Args)]
+pub struct VariableGroupGetArgs {
+    /// Variable group ID.
+    #[arg(long)]
+    pub id: String,
 }
 
 // ─────────────────────────── Execute ────────────────────────────────────
@@ -373,6 +841,14 @@ pub async fn execute(
         FlowCommands::Runs(r) => exec_runs(r, &client, &org_id, format).await,
         FlowCommands::Jobs(j) => exec_jobs(j, &client, &org_id, format).await,
         FlowCommands::Connections(c) => exec_connections(c, &client, &org_id, format).await,
+        FlowCommands::Deploy(d) => exec_deploy(d, &client, &org_id, format).await,
+        FlowCommands::HostGroups(h) => exec_host_groups(h, &client, &org_id, format).await,
+        FlowCommands::PipelineGroups(g) => exec_pipeline_groups(g, &client, &org_id, format).await,
+        FlowCommands::ResourceMembers(r) => {
+            exec_resource_members(r, &client, &org_id, format).await
+        }
+        FlowCommands::Tags(t) => exec_tags(t, &client, &org_id, format).await,
+        FlowCommands::VariableGroups(v) => exec_variable_groups(v, &client, &org_id, format).await,
     }
 }
 
@@ -383,6 +859,21 @@ fn require_org(org_id: &Option<String>) -> Result<&str> {
             "Organization ID required. Set via --org-id, YUNXIAO_CLI_ORG_ID, or config.".into(),
         )
     })
+}
+
+/// Convert owned query values into the borrowed form expected by `ApiClient`.
+fn query_refs(params: &[(String, String)]) -> Vec<(&str, &str)> {
+    params
+        .iter()
+        .map(|(key, value)| (key.as_str(), value.as_str()))
+        .collect()
+}
+
+/// Add an optional query parameter when the caller supplied it.
+fn push_optional_param(params: &mut Vec<(String, String)>, key: &str, value: Option<String>) {
+    if let Some(value) = value {
+        params.push((key.to_string(), value));
+    }
 }
 
 // ─────────────────────────── Pipelines ──────────────────────────────────
@@ -438,6 +929,68 @@ async fn exec_pipelines(
                     &format!(
                         "/oapi/v1/flow/organizations/{oid}/pipelines/{}",
                         g.pipeline_id
+                    ),
+                    &[],
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+        PipelinesCmds::ArtifactUrl(a) => {
+            let params = vec![
+                ("filePath".to_string(), a.file_path.clone()),
+                ("fileName".to_string(), a.file_name.clone()),
+            ];
+            let data = client
+                .get(
+                    &format!("/oapi/v1/flow/organizations/{oid}/pipelines/getArtifactDownloadUrl"),
+                    &query_refs(&params),
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+        PipelinesCmds::EmasArtifactUrl(a) => {
+            let params = vec![
+                (
+                    "emasJobInstanceId".to_string(),
+                    a.emas_job_instance_id.clone(),
+                ),
+                ("md5".to_string(), a.md5.clone()),
+                ("pipelineId".to_string(), a.pipeline_id.clone()),
+                ("pipelineRunId".to_string(), a.pipeline_run_id.clone()),
+                (
+                    "serviceConnectionId".to_string(),
+                    a.service_connection_id.clone(),
+                ),
+            ];
+            let data = client
+                .get(
+                    &format!(
+                        "/oapi/v1/flow/organizations/{oid}/pipelines/getEmasArtifactDownloadUrl"
+                    ),
+                    &query_refs(&params),
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+        PipelinesCmds::ScanReportUrl(a) => {
+            let params = vec![("reportPath".to_string(), a.report_path.clone())];
+            let data = client
+                .get(
+                    &format!(
+                        "/oapi/v1/flow/organizations/{oid}/pipelines/getPipelineScanReportUrl"
+                    ),
+                    &query_refs(&params),
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+        PipelinesCmds::Relations(r) => {
+            let PipelineRelationsCmds::List(l) = &r.command;
+            let data = client
+                .get(
+                    &format!(
+                        "/oapi/v1/flow/organizations/{oid}/pipelines/{}/pipelineObjRel/{}/list",
+                        l.pipeline_id, l.rel_object_type
                     ),
                     &[],
                 )
@@ -633,6 +1186,52 @@ async fn exec_jobs(
                 output::print_output(&data, format)?;
             }
         }
+        JobsCmds::Steps(s) => {
+            let data = client
+                .get(
+                    &format!(
+                        "/oapi/v1/flow/organizations/{oid}/pipelines/{}/pipelineRuns/{}/jobs/{}/steps",
+                        s.pipeline_id, s.pipeline_run_id, s.job_id
+                    ),
+                    &[],
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+        JobsCmds::StepLog(s) => {
+            let params = vec![
+                ("stepIndex".to_string(), s.step_index.to_string()),
+                ("offset".to_string(), s.offset.to_string()),
+                ("limit".to_string(), s.limit.to_string()),
+                ("buildId".to_string(), s.build_id.clone()),
+            ];
+            let data = client
+                .get(
+                    &format!(
+                        "/oapi/v1/flow/organizations/{oid}/pipelines/{}/pipelineRuns/{}/jobs/{}/step/log",
+                        s.pipeline_id, s.pipeline_run_id, s.job_id
+                    ),
+                    &query_refs(&params),
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+        JobsCmds::StepLogUrl(s) => {
+            let params = vec![
+                ("stepIndex".to_string(), s.step_index.to_string()),
+                ("buildId".to_string(), s.build_id.clone()),
+            ];
+            let data = client
+                .get(
+                    &format!(
+                        "/oapi/v1/flow/organizations/{oid}/pipelines/{}/pipelineRuns/{}/jobs/{}/step/log/url",
+                        s.pipeline_id, s.pipeline_run_id, s.job_id
+                    ),
+                    &query_refs(&params),
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
     }
     Ok(())
 }
@@ -653,6 +1252,296 @@ async fn exec_connections(
                 .get(
                     &format!("/oapi/v1/flow/organizations/{oid}/serviceConnections"),
                     &[("serviceConnectionType", l.conn_type.as_str())],
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+        ConnectionsCmds::Auths(a) => {
+            let ServiceAuthsCmds::List(l) = &a.command;
+            let params = vec![("serviceAuthType".to_string(), l.service_auth_type.clone())];
+            let data = client
+                .get(
+                    &format!("/oapi/v1/flow/organizations/{oid}/serviceAuths"),
+                    &query_refs(&params),
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+        ConnectionsCmds::Credentials(c) => {
+            let ServiceCredentialsCmds::List(l) = &c.command;
+            let params = vec![(
+                "serviceCredentialType".to_string(),
+                l.service_credential_type.clone(),
+            )];
+            let data = client
+                .get(
+                    &format!("/oapi/v1/flow/organizations/{oid}/serviceCredentials"),
+                    &query_refs(&params),
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+    }
+    Ok(())
+}
+
+// ─────────────────────────── Deployment ─────────────────────────────────
+
+/// Execute deployment query operations.
+async fn exec_deploy(
+    args: &DeployArgs,
+    client: &ApiClient,
+    org_id: &Option<String>,
+    format: &OutputFormat,
+) -> Result<()> {
+    let oid = require_org(org_id)?;
+    match &args.command {
+        DeployCmds::Order(order) => {
+            let DeployOrderCmds::Get(g) = &order.command;
+            let data = client
+                .get(
+                    &format!(
+                        "/oapi/v1/flow/organizations/{oid}/pipelines/{}/deploy/{}",
+                        g.pipeline_id, g.deploy_order_id
+                    ),
+                    &[],
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+        DeployCmds::MachineLog(l) => {
+            let data = client
+                .get(
+                    &format!(
+                        "/oapi/v1/flow/organizations/{oid}/pipelines/{}/deploy/{}/machine/{}/log",
+                        l.pipeline_id, l.deploy_order_id, l.machine_sn
+                    ),
+                    &[],
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+    }
+    Ok(())
+}
+
+// ─────────────────────────── Host Groups ────────────────────────────────
+
+/// Execute host group query operations.
+async fn exec_host_groups(
+    args: &HostGroupsArgs,
+    client: &ApiClient,
+    org_id: &Option<String>,
+    format: &OutputFormat,
+) -> Result<()> {
+    let oid = require_org(org_id)?;
+    match &args.command {
+        HostGroupsCmds::List(l) => {
+            let mut params = vec![
+                ("page".to_string(), l.page.to_string()),
+                ("perPage".to_string(), l.per_page.to_string()),
+                ("pageSort".to_string(), l.page_sort.clone()),
+                ("pageOrder".to_string(), l.page_order.clone()),
+            ];
+            push_optional_param(&mut params, "ids", l.ids.clone());
+            push_optional_param(&mut params, "name", l.name.clone());
+            push_optional_param(
+                &mut params,
+                "createStartTime",
+                l.create_start_time.map(|value| value.to_string()),
+            );
+            push_optional_param(
+                &mut params,
+                "createEndTime",
+                l.create_end_time.map(|value| value.to_string()),
+            );
+            push_optional_param(
+                &mut params,
+                "creatorAccountIds",
+                l.creator_account_ids.clone(),
+            );
+            let data = client
+                .get(
+                    &format!("/oapi/v1/flow/organizations/{oid}/hostGroups"),
+                    &query_refs(&params),
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+        HostGroupsCmds::Get(g) => {
+            let data = client
+                .get(
+                    &format!("/oapi/v1/flow/organizations/{oid}/hostGroups/{}", g.id),
+                    &[],
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+    }
+    Ok(())
+}
+
+// ─────────────────────────── Pipeline Groups ────────────────────────────
+
+/// Execute pipeline group query operations.
+async fn exec_pipeline_groups(
+    args: &PipelineGroupsArgs,
+    client: &ApiClient,
+    org_id: &Option<String>,
+    format: &OutputFormat,
+) -> Result<()> {
+    let oid = require_org(org_id)?;
+    match &args.command {
+        PipelineGroupsCmds::List(l) => {
+            let params = vec![
+                ("page".to_string(), l.page.to_string()),
+                ("perPage".to_string(), l.per_page.to_string()),
+            ];
+            let data = client
+                .get(
+                    &format!("/oapi/v1/flow/organizations/{oid}/pipelineGroups"),
+                    &query_refs(&params),
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+        PipelineGroupsCmds::Get(g) => {
+            let data = client
+                .get(
+                    &format!(
+                        "/oapi/v1/flow/organizations/{oid}/pipelineGroups/{}",
+                        g.group_id
+                    ),
+                    &[],
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+        PipelineGroupsCmds::Pipelines(l) => {
+            let mut params = vec![
+                ("groupId".to_string(), l.group_id.clone()),
+                ("page".to_string(), l.page.to_string()),
+                ("perPage".to_string(), l.per_page.to_string()),
+            ];
+            push_optional_param(
+                &mut params,
+                "createStartTime",
+                l.create_start_time.map(|value| value.to_string()),
+            );
+            push_optional_param(
+                &mut params,
+                "createEndTime",
+                l.create_end_time.map(|value| value.to_string()),
+            );
+            push_optional_param(
+                &mut params,
+                "executeStartTime",
+                l.execute_start_time.map(|value| value.to_string()),
+            );
+            push_optional_param(
+                &mut params,
+                "executeEndTime",
+                l.execute_end_time.map(|value| value.to_string()),
+            );
+            push_optional_param(&mut params, "pipelineName", l.pipeline_name.clone());
+            push_optional_param(&mut params, "statusList", l.status_list.clone());
+            let data = client
+                .get(
+                    &format!("/oapi/v1/flow/organizations/{oid}/pipelineGroups/pipelines"),
+                    &query_refs(&params),
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+    }
+    Ok(())
+}
+
+// ─────────────────────────── Resource Members ──────────────────────────
+
+/// Execute resource member query operations.
+async fn exec_resource_members(
+    args: &ResourceMembersArgs,
+    client: &ApiClient,
+    org_id: &Option<String>,
+    format: &OutputFormat,
+) -> Result<()> {
+    let oid = require_org(org_id)?;
+    let ResourceMembersCmds::List(l) = &args.command;
+    let data = client
+        .get(
+            &format!(
+                "/oapi/v1/flow/organizations/{oid}/resourceMembers/resourceTypes/{}/resourceIds/{}",
+                l.resource_type, l.resource_id
+            ),
+            &[],
+        )
+        .await?;
+    output::print_output(&data, format)?;
+    Ok(())
+}
+
+// ─────────────────────────── Tags ──────────────────────────────────────
+
+/// Execute Flow tag group query operations.
+async fn exec_tags(
+    args: &TagsArgs,
+    client: &ApiClient,
+    org_id: &Option<String>,
+    format: &OutputFormat,
+) -> Result<()> {
+    let oid = require_org(org_id)?;
+    match &args.command {
+        TagsCmds::List => {
+            let data = client
+                .get(&format!("/oapi/v1/flow/organizations/{oid}/tagGroups"), &[])
+                .await?;
+            output::print_output(&data, format)?;
+        }
+        TagsCmds::Get(g) => {
+            let data = client
+                .get(
+                    &format!("/oapi/v1/flow/organizations/{oid}/tagGroups/{}", g.id),
+                    &[],
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+    }
+    Ok(())
+}
+
+// ─────────────────────────── Variable Groups ────────────────────────────
+
+/// Execute Flow variable group query operations.
+async fn exec_variable_groups(
+    args: &VariableGroupsArgs,
+    client: &ApiClient,
+    org_id: &Option<String>,
+    format: &OutputFormat,
+) -> Result<()> {
+    let oid = require_org(org_id)?;
+    match &args.command {
+        VariableGroupsCmds::List(l) => {
+            let params = vec![
+                ("page".to_string(), l.page.to_string()),
+                ("perPage".to_string(), l.per_page.to_string()),
+                ("pageSort".to_string(), l.page_sort.clone()),
+                ("pageOrder".to_string(), l.page_order.clone()),
+            ];
+            let data = client
+                .get(
+                    &format!("/oapi/v1/flow/organizations/{oid}/variableGroups"),
+                    &query_refs(&params),
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+        VariableGroupsCmds::Get(g) => {
+            let data = client
+                .get(
+                    &format!("/oapi/v1/flow/organizations/{oid}/variableGroups/{}", g.id),
+                    &[],
                 )
                 .await?;
             output::print_output(&data, format)?;
@@ -1032,7 +1921,9 @@ mod tests {
         for flag in ["--type", "--conn-type"] {
             let cli = TestCli::try_parse_from(["test", "list", flag, "codeup"])
                 .expect("connection type should parse");
-            let ConnectionsCmds::List(args) = cli.command;
+            let ConnectionsCmds::List(args) = cli.command else {
+                panic!("expected service connection list command");
+            };
             assert_eq!(args.conn_type, "codeup");
         }
         assert!(TestCli::try_parse_from(["test", "list"]).is_err());
@@ -1060,6 +1951,139 @@ mod tests {
             .await
             .unwrap();
         mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn pipeline_artifact_url_uses_documented_query_keys() {
+        let mut server = Server::new_async().await;
+        let mock = server
+            .mock(
+                "GET",
+                "/oapi/v1/flow/organizations/org-1/pipelines/getArtifactDownloadUrl?filePath=target%2Fapp.tgz&fileName=app.tgz",
+            )
+            .with_body(r#"{"url":"https://example.test/app.tgz"}"#)
+            .create_async()
+            .await;
+        let client = ApiClient::new("token", &server.url(), 5).unwrap();
+        let args = PipelinesArgs {
+            command: PipelinesCmds::ArtifactUrl(PipelineArtifactUrlArgs {
+                file_path: "target/app.tgz".into(),
+                file_name: "app.tgz".into(),
+            }),
+        };
+
+        exec_pipelines(&args, &client, &Some("org-1".into()), &OutputFormat::Json)
+            .await
+            .unwrap();
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn job_step_log_uses_path_and_pagination_parameters() {
+        let mut server = Server::new_async().await;
+        let mock = server
+            .mock(
+                "GET",
+                "/oapi/v1/flow/organizations/org-1/pipelines/p-1/pipelineRuns/r-1/jobs/j-1/step/log?stepIndex=2&offset=10&limit=100&buildId=b-1",
+            )
+            .with_body(r#"{"log":"ok"}"#)
+            .create_async()
+            .await;
+        let client = ApiClient::new("token", &server.url(), 5).unwrap();
+        let args = JobsArgs {
+            command: JobsCmds::StepLog(JobStepLogArgs {
+                pipeline_id: "p-1".into(),
+                pipeline_run_id: "r-1".into(),
+                job_id: "j-1".into(),
+                step_index: 2,
+                offset: 10,
+                limit: 100,
+                build_id: "b-1".into(),
+            }),
+        };
+
+        exec_jobs(&args, &client, &Some("org-1".into()), &OutputFormat::Json)
+            .await
+            .unwrap();
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn host_groups_list_sends_filters_and_sorting() {
+        let mut server = Server::new_async().await;
+        let mock = server
+            .mock(
+                "GET",
+                "/oapi/v1/flow/organizations/org-1/hostGroups?page=2&perPage=5&pageSort=NAME&pageOrder=ASC&ids=1%2C2&name=build&createStartTime=100&createEndTime=200&creatorAccountIds=u-1%2Cu-2",
+            )
+            .with_body("[]")
+            .create_async()
+            .await;
+        let client = ApiClient::new("token", &server.url(), 5).unwrap();
+        let args = HostGroupsArgs {
+            command: HostGroupsCmds::List(HostGroupsListArgs {
+                ids: Some("1,2".into()),
+                name: Some("build".into()),
+                create_start_time: Some(100),
+                create_end_time: Some(200),
+                creator_account_ids: Some("u-1,u-2".into()),
+                page: 2,
+                per_page: 5,
+                page_sort: "NAME".into(),
+                page_order: "ASC".into(),
+            }),
+        };
+
+        exec_host_groups(&args, &client, &Some("org-1".into()), &OutputFormat::Json)
+            .await
+            .unwrap();
+        mock.assert_async().await;
+    }
+
+    #[test]
+    fn new_flow_query_commands_parse() {
+        #[derive(Debug, Parser)]
+        struct Cli {
+            #[command(subcommand)]
+            command: FlowCommands,
+        }
+
+        for argv in [
+            vec![
+                "test",
+                "pipelines",
+                "artifact-url",
+                "--file-path",
+                "a",
+                "--file-name",
+                "b",
+            ],
+            vec![
+                "test",
+                "jobs",
+                "steps",
+                "--pipeline-id",
+                "p",
+                "--pipeline-run-id",
+                "r",
+                "--job-id",
+                "j",
+            ],
+            vec!["test", "host-groups", "get", "--id", "1"],
+            vec!["test", "pipeline-groups", "pipelines", "--group-id", "0"],
+            vec![
+                "test",
+                "connections",
+                "auths",
+                "list",
+                "--service-auth-type",
+                "RAM",
+            ],
+            vec!["test", "tags", "list"],
+            vec!["test", "variable-groups", "get", "--id", "1"],
+        ] {
+            assert!(Cli::try_parse_from(argv).is_ok());
+        }
     }
 
     fn template_args() -> PipelineTemplateArgs {

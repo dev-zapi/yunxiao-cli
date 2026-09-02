@@ -34,3 +34,39 @@ matches those requested values.
 The authoritative work-item detail retrieved after a write. It contains the
 requested fields as persisted by YunXiao and is distinct from a create
 operation's initial response.
+
+## Flow
+
+### Pipeline Run
+
+A single execution instance of a Flow pipeline. A run has its own status and
+contains the jobs executed for that invocation.
+
+### Pipeline Job
+
+A unit of work within a pipeline stage, composed of shared-workspace steps or a
+component invocation. Its `runsOn` configuration selects the execution
+environment; it is distinct from the job's runtime record.
+
+### Pipeline Job Run
+
+The runtime record for one Pipeline Job within one Pipeline Run. Step state and
+logs are queried from this runtime boundary rather than from the pipeline
+definition.
+
+### Service Connection
+
+An organization-scoped integration credential reference used by Flow sources or
+other pipeline resources. Pipeline YAML references its returned `uuid`, while
+the connection's numeric `id` is a different provider field.
+
+### Pipeline Group
+
+An organizational grouping for pipelines. Group membership is separate from a
+pipeline's definition, execution history, and runtime status.
+
+### Host Group
+
+An organization-managed collection of hosts used by deployment or private
+execution resources. A Host Group identifier is distinct from a Pipeline Job's
+execution environment selector.
