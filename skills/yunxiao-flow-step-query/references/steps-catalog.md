@@ -5,8 +5,8 @@ Snapshot date: 2026-09-02
 Entries: 62
 
 This is an offline fallback. The skill's query script fetches the official page
-by default; use the linked detail document to confirm each Step's current
-`with` parameters before writing a pipeline.
+by default; use `scripts/fetch_step_doc.py <IDENTIFIER>` to confirm each Step's
+current `with` parameters before writing a pipeline.
 
 ### 上传
 

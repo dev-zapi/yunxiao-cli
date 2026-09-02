@@ -1,0 +1,498 @@
+[
+  {
+    "identifier": "AndroidCodeScan",
+    "category": "静态扫描",
+    "display_name": "安卓代码扫描 AndroidCodeScan",
+    "description": "Android 代码扫描步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/%E5%AE%89%E5%8D%93%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%20AndroidCodeScan.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/%E5%AE%89%E5%8D%93%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%20AndroidCodeScan.md"
+  },
+  {
+    "identifier": "CppCodeScan",
+    "category": "静态扫描",
+    "display_name": "Cpp 代码扫描 CppCodeScan",
+    "description": "Cpp 代码扫描步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/Cpp%20%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%20CppCodeScan.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/Cpp%20%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%20CppCodeScan.md"
+  },
+  {
+    "identifier": "GolangCodeScan",
+    "category": "静态扫描",
+    "display_name": "Golang 代码扫描 GolangCodeScan",
+    "description": "Golang 代码扫描步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/Golang%20%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%20GolangCodeScan.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/Golang%20%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%20GolangCodeScan.md"
+  },
+  {
+    "identifier": "JavaP3CScan",
+    "category": "静态扫描",
+    "display_name": "Java 代码规约扫描 JavaP3CScan",
+    "description": "Java 代码规约扫描步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/Java%20%E4%BB%A3%E7%A0%81%E8%A7%84%E7%BA%A6%E6%89%AB%E6%8F%8F%20JavaP3CScan.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/Java%20%E4%BB%A3%E7%A0%81%E8%A7%84%E7%BA%A6%E6%89%AB%E6%8F%8F%20JavaP3CScan.md"
+  },
+  {
+    "identifier": "JavaFindBugs",
+    "category": "静态扫描",
+    "display_name": "Java 安全扫描 JavaFindBugs",
+    "description": "Java Findbugs 安全扫描步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/Java%20%E5%AE%89%E5%85%A8%E6%89%AB%E6%8F%8F%20JavaFindBugs.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/Java%20%E5%AE%89%E5%85%A8%E6%89%AB%E6%8F%8F%20JavaFindBugs.md"
+  },
+  {
+    "identifier": "JavaScriptCodeScan",
+    "category": "静态扫描",
+    "display_name": "JavaScript 代码扫描 JavaScriptCodeScan",
+    "description": "JavaScript 代码扫描步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/JavaScript%20%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%20JavaScriptCodeScan.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/JavaScript%20%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%20JavaScriptCodeScan.md"
+  },
+  {
+    "identifier": "PhpMetricsScan",
+    "category": "静态扫描",
+    "display_name": "PHP Metrics 静态扫描 PhpMetricsScan",
+    "description": "PHP Metrics 静态扫描步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/PHP%20Metrics%20%E9%9D%99%E6%80%81%E6%89%AB%E6%8F%8F%20PhpMetricsScan.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/PHP%20Metrics%20%E9%9D%99%E6%80%81%E6%89%AB%E6%8F%8F%20PhpMetricsScan.md"
+  },
+  {
+    "identifier": "PythonBandit",
+    "category": "静态扫描",
+    "display_name": "Python 代码安全扫描 PythonBandit",
+    "description": "Python 代码安全扫描步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/Python%20%E4%BB%A3%E7%A0%81%E5%AE%89%E5%85%A8%E6%89%AB%E6%8F%8F%20PythonBandit.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/Python%20%E4%BB%A3%E7%A0%81%E5%AE%89%E5%85%A8%E6%89%AB%E6%8F%8F%20PythonBandit.md"
+  },
+  {
+    "identifier": "PythonCodeScan",
+    "category": "静态扫描",
+    "display_name": "Python 代码扫描 PythonCodeScan",
+    "description": "Python 代码扫描步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/Python%20%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%20PythonCodeScan.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/Python%20%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%20PythonCodeScan.md"
+  },
+  {
+    "identifier": "PythonDependencySecurityScan",
+    "category": "静态扫描",
+    "display_name": "Python 依赖安全扫描 PythonDependencySecurityScan",
+    "description": "Python 依赖安全扫描步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/Python%20%E4%BE%9D%E8%B5%96%E5%AE%89%E5%85%A8%E6%89%AB%E6%8F%8F%20PythonDependencySecurityScan.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/Python%20%E4%BE%9D%E8%B5%96%E5%AE%89%E5%85%A8%E6%89%AB%E6%8F%8F%20PythonDependencySecurityScan.md"
+  },
+  {
+    "identifier": "SonarQube",
+    "category": "静态扫描",
+    "display_name": "SonarQube 扫描 SonarQube",
+    "description": "SonarQube 扫描步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/SonarQube%20%E6%89%AB%E6%8F%8F%20SonarQube.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/SonarQube%20%E6%89%AB%E6%8F%8F%20SonarQube.md"
+  },
+  {
+    "identifier": "TSLint",
+    "category": "静态扫描",
+    "display_name": "TypeScript 代码扫描 TSLint",
+    "description": "TypeScript 代码扫描步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/TypeScript%20%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%20TSLint.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/TypeScript%20%E4%BB%A3%E7%A0%81%E6%89%AB%E6%8F%8F%20TSLint.md"
+  },
+  {
+    "identifier": "Pinpoint",
+    "category": "静态扫描",
+    "display_name": "源码漏洞检测 Pinpoint",
+    "description": "源码漏洞检测步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/%E6%BA%90%E7%A0%81%E6%BC%8F%E6%B4%9E%E6%A3%80%E6%B5%8B%20Pinpoint.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/%E6%BA%90%E7%A0%81%E6%BC%8F%E6%B4%9E%E6%A3%80%E6%B5%8B%20Pinpoint.md"
+  },
+  {
+    "identifier": "Cobertura",
+    "category": "覆盖率",
+    "display_name": "Cobertura 覆盖率采集 Cobertura",
+    "description": "Cobertura 覆盖率采集步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/Cobertura%20%E8%A6%86%E7%9B%96%E7%8E%87%E9%87%87%E9%9B%86%20Cobertura.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/Cobertura%20%E8%A6%86%E7%9B%96%E7%8E%87%E9%87%87%E9%9B%86%20Cobertura.md"
+  },
+  {
+    "identifier": "JaCoCo",
+    "category": "覆盖率",
+    "display_name": "JaCoCo 覆盖率采集 JaCoCo",
+    "description": "JaCoCo 覆盖率采集步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/JaCoCo%20%E8%A6%86%E7%9B%96%E7%8E%87%E9%87%87%E9%9B%86%20JaCoCo.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/JaCoCo%20%E8%A6%86%E7%9B%96%E7%8E%87%E9%87%87%E9%9B%86%20JaCoCo.md"
+  },
+  {
+    "identifier": "PythonTestCoverage",
+    "category": "覆盖率",
+    "display_name": "Python 测试覆盖率采集 PythonTestCoverage",
+    "description": "Python 测试覆盖率采集步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/Python%20%E6%B5%8B%E8%AF%95%E8%A6%86%E7%9B%96%E7%8E%87%E9%87%87%E9%9B%86%20PythonTestCoverage.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/scan/Python%20%E6%B5%8B%E8%AF%95%E8%A6%86%E7%9B%96%E7%8E%87%E9%87%87%E9%9B%86%20PythonTestCoverage.md"
+  },
+  {
+    "identifier": "AndroidUnitTest",
+    "category": "测试",
+    "display_name": "安卓单元测试 AndroidUnitTest",
+    "description": "Android 单元测试步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/testing/%E5%AE%89%E5%8D%93%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95%20AndroidUnitTest.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/testing/%E5%AE%89%E5%8D%93%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95%20AndroidUnitTest.md"
+  },
+  {
+    "identifier": "GolangUnitTest",
+    "category": "测试",
+    "display_name": "Golang 单元测试 GolangUnitTest",
+    "description": "Golang 单元测试步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/testing/Golang%20%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95%20GolangUnitTest.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/testing/Golang%20%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95%20GolangUnitTest.md"
+  },
+  {
+    "identifier": "GradleUnitTest",
+    "category": "测试",
+    "display_name": "Gradle 单元测试 GradleUnitTest",
+    "description": "Gradle 单元测试步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/testing/Gradle%20%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95%20GradleUnitTest.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/testing/Gradle%20%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95%20GradleUnitTest.md"
+  },
+  {
+    "identifier": "JunitReport",
+    "category": "测试",
+    "display_name": "Junit 报告解析 JunitReport",
+    "description": "Junit 报告解析步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/testing/Junit%20%E6%8A%A5%E5%91%8A%E8%A7%A3%E6%9E%90%20JunitReport.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/testing/Junit%20%E6%8A%A5%E5%91%8A%E8%A7%A3%E6%9E%90%20JunitReport.md"
+  },
+  {
+    "identifier": "MavenUnitTest",
+    "category": "测试",
+    "display_name": "Maven 单元测试 MavenUnitTest",
+    "description": "Maven 单元测试步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/testing/Maven%20%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95%20MavenUnitTest.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/testing/Maven%20%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95%20MavenUnitTest.md"
+  },
+  {
+    "identifier": "NodeUnitTest",
+    "category": "测试",
+    "display_name": "Node.js 单元测试 NodeUnitTest",
+    "description": "Node.js 单元测试步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/testing/Node.js%20%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95%20NodeUnitTest.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/testing/Node.js%20%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95%20NodeUnitTest.md"
+  },
+  {
+    "identifier": "PhpCodeceptionUnitTest",
+    "category": "测试",
+    "display_name": "PHP Codeception 单元测试 PhpCodeceptionUnitTest",
+    "description": "PHP Codeception 单元测试步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/testing/PHP%20Codeception%20%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95%20PhpCodeceptionUnitTest.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/testing/PHP%20Codeception%20%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95%20PhpCodeceptionUnitTest.md"
+  },
+  {
+    "identifier": "PhpUnitTest",
+    "category": "测试",
+    "display_name": "PHP Unit 单元测试 PhpUnitTest",
+    "description": "PHP Unit 单元测试步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/testing/PHP%20Unit%20%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95%20PhpUnitTest.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/testing/PHP%20Unit%20%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95%20PhpUnitTest.md"
+  },
+  {
+    "identifier": "PythonUnitTest",
+    "category": "测试",
+    "display_name": "Python 单元测试 PythonUnitTest",
+    "description": "Python 单元测试步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/testing/Python%20%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95%20PythonUnitTest.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/testing/Python%20%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95%20PythonUnitTest.md"
+  },
+  {
+    "identifier": "AspNetBuild",
+    "category": "构建",
+    "display_name": "ASP NET 构建 AspNetBuild",
+    "description": "ASP.NET 构建步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/ASP%20NET%20%E6%9E%84%E5%BB%BA%20AspNetBuild.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/ASP%20NET%20%E6%9E%84%E5%BB%BA%20AspNetBuild.md"
+  },
+  {
+    "identifier": "HelmPush",
+    "category": "构建",
+    "display_name": "Chart上传自定义仓库 HelmPush",
+    "description": "Chart上传自定义仓库步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/Chart%E4%B8%8A%E4%BC%A0%E8%87%AA%E5%AE%9A%E4%B9%89%E4%BB%93%E5%BA%93%20HelmPush.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/Chart%E4%B8%8A%E4%BC%A0%E8%87%AA%E5%AE%9A%E4%B9%89%E4%BB%93%E5%BA%93%20HelmPush.md"
+  },
+  {
+    "identifier": "GccBuild",
+    "category": "构建",
+    "display_name": "GCC 构建 GccBuild",
+    "description": "GCC 构建步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/GCC%20%E6%9E%84%E5%BB%BA%20GccBuild.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/GCC%20%E6%9E%84%E5%BB%BA%20GccBuild.md"
+  },
+  {
+    "identifier": "GolangBuild",
+    "category": "构建",
+    "display_name": "Golang 构建 GolangBuild",
+    "description": "Golang 构建步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/Golang%20%E6%9E%84%E5%BB%BA%20GolangBuild.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/Golang%20%E6%9E%84%E5%BB%BA%20GolangBuild.md"
+  },
+  {
+    "identifier": "JavaBuild",
+    "category": "构建",
+    "display_name": "Java 构建 JavaBuild",
+    "description": "Java 构建步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/Java%20%E6%9E%84%E5%BB%BA%20JavaBuild.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/Java%20%E6%9E%84%E5%BB%BA%20JavaBuild.md"
+  },
+  {
+    "identifier": "DotNetCoreBuild",
+    "category": "构建",
+    "display_name": "NET Core 构建 DotNetCoreBuild",
+    "description": ".Net Core 构建步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/NET%20Core%20%E6%9E%84%E5%BB%BA%20DotNetCoreBuild.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/NET%20Core%20%E6%9E%84%E5%BB%BA%20DotNetCoreBuild.md"
+  },
+  {
+    "identifier": "NodeBuild",
+    "category": "构建",
+    "display_name": "Node.js 构建 NodeBuild",
+    "description": "Node.js 构建步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/Node.js%20%E6%9E%84%E5%BB%BA%20NodeBuild.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/Node.js%20%E6%9E%84%E5%BB%BA%20NodeBuild.md"
+  },
+  {
+    "identifier": "PhpBuild",
+    "category": "构建",
+    "display_name": "PHP 构建 PhpBuild",
+    "description": "PHP 构建步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/PHP%20%E6%9E%84%E5%BB%BA%20PhpBuild.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/PHP%20%E6%9E%84%E5%BB%BA%20PhpBuild.md"
+  },
+  {
+    "identifier": "PythonBuild",
+    "category": "构建",
+    "display_name": "Python 构建 PythonBuild",
+    "description": "Python 构建步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/Python%20%E6%9E%84%E5%BB%BA%20PythonBuild.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/Python%20%E6%9E%84%E5%BB%BA%20PythonBuild.md"
+  },
+  {
+    "identifier": "RubyBuild",
+    "category": "构建",
+    "display_name": "Ruby 构建 RubyBuild",
+    "description": "Ruby 构建步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/Ruby%20%E6%9E%84%E5%BB%BA%20RubyBuild.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/Ruby%20%E6%9E%84%E5%BB%BA%20RubyBuild.md"
+  },
+  {
+    "identifier": "RustBuild",
+    "category": "构建",
+    "display_name": "Rust 构建 RustBuild",
+    "description": "Rust 构建步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/Rust%20%E6%9E%84%E5%BB%BA%20RustBuild.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/Rust%20%E6%9E%84%E5%BB%BA%20RustBuild.md"
+  },
+  {
+    "identifier": "CustomEnvironmentBuild",
+    "category": "构建",
+    "display_name": "自定义环境构建 CustomEnvironmentBuild",
+    "description": "使用自定义镜像环境构建步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/%E8%87%AA%E5%AE%9A%E4%B9%89%E7%8E%AF%E5%A2%83%E6%9E%84%E5%BB%BA%20CustomEnvironmentBuild.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/%E8%87%AA%E5%AE%9A%E4%B9%89%E7%8E%AF%E5%A2%83%E6%9E%84%E5%BB%BA%20CustomEnvironmentBuild.md"
+  },
+  {
+    "identifier": "PrivateRegistryDockerBuild",
+    "category": "构建",
+    "display_name": "镜像构建并推送至自定义镜像仓库 PrivateRegistryDockerBuild",
+    "description": "构建镜像，并推送至自定义私有镜像仓库。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/%E9%95%9C%E5%83%8F%E6%9E%84%E5%BB%BA%E5%B9%B6%E6%8E%A8%E9%80%81%E8%87%B3%E8%87%AA%E5%AE%9A%E4%B9%89%E9%95%9C%E5%83%8F%E4%BB%93%E5%BA%93%20PrivateRegistryDockerBuild.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/%E9%95%9C%E5%83%8F%E6%9E%84%E5%BB%BA%E5%B9%B6%E6%8E%A8%E9%80%81%E8%87%B3%E8%87%AA%E5%AE%9A%E4%B9%89%E9%95%9C%E5%83%8F%E4%BB%93%E5%BA%93%20PrivateRegistryDockerBuild.md"
+  },
+  {
+    "identifier": "ACRDockerBuild",
+    "category": "构建",
+    "display_name": "镜像构建并推送至阿里云镜像仓库个人版 ACRDockerBuild",
+    "description": "构建镜像，并推送至阿里云镜像仓库个人版。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/%E9%95%9C%E5%83%8F%E6%9E%84%E5%BB%BA%E5%B9%B6%E6%8E%A8%E9%80%81%E8%87%B3%E9%98%BF%E9%87%8C%E4%BA%91%E9%95%9C%E5%83%8F%E4%BB%93%E5%BA%93%E4%B8%AA%E4%BA%BA%E7%89%88%20ACRDockerBuild.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/%E9%95%9C%E5%83%8F%E6%9E%84%E5%BB%BA%E5%B9%B6%E6%8E%A8%E9%80%81%E8%87%B3%E9%98%BF%E9%87%8C%E4%BA%91%E9%95%9C%E5%83%8F%E4%BB%93%E5%BA%93%E4%B8%AA%E4%BA%BA%E7%89%88%20ACRDockerBuild.md"
+  },
+  {
+    "identifier": "ACREEDockerBuild",
+    "category": "构建",
+    "display_name": "镜像构建并推送至阿里云镜像仓库企业版 ACREEDockerBuild",
+    "description": "构建镜像，并推送至阿里云镜像仓库企业版。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/%E9%95%9C%E5%83%8F%E6%9E%84%E5%BB%BA%E5%B9%B6%E6%8E%A8%E9%80%81%E8%87%B3%E9%98%BF%E9%87%8C%E4%BA%91%E9%95%9C%E5%83%8F%E4%BB%93%E5%BA%93%E4%BC%81%E4%B8%9A%E7%89%88%20ACREEDockerBuild.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/build/%E9%95%9C%E5%83%8F%E6%9E%84%E5%BB%BA%E5%B9%B6%E6%8E%A8%E9%80%81%E8%87%B3%E9%98%BF%E9%87%8C%E4%BA%91%E9%95%9C%E5%83%8F%E4%BB%93%E5%BA%93%E4%BC%81%E4%B8%9A%E7%89%88%20ACREEDockerBuild.md"
+  },
+  {
+    "identifier": "AddGitTag",
+    "category": "代码",
+    "display_name": "Git 标签 AddGitTag",
+    "description": "创建 Git 标签步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/code/Git%20%E6%A0%87%E7%AD%BE%20AddGitTag.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/code/Git%20%E6%A0%87%E7%AD%BE%20AddGitTag.md"
+  },
+  {
+    "identifier": "MergeBranch",
+    "category": "代码",
+    "display_name": "代码合并 MergeBranch",
+    "description": "分支合并步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/code/Git%E4%BB%A3%E7%A0%81%E5%90%88%E5%B9%B6%20MergeBranch.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/code/Git%E4%BB%A3%E7%A0%81%E5%90%88%E5%B9%B6%20MergeBranch.md"
+  },
+  {
+    "identifier": "DeleteBranch",
+    "category": "代码",
+    "display_name": "删除分支 DeleteBranch",
+    "description": "删除代码源运行分支，对于开启分支模式的流水线，删除的是发布分支。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/code/%E5%88%A0%E9%99%A4Git%E5%88%86%E6%94%AF%20DeleteBranch.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/code/%E5%88%A0%E9%99%A4Git%E5%88%86%E6%94%AF%20DeleteBranch.md"
+  },
+  {
+    "identifier": "CheckBranchBehind",
+    "category": "代码",
+    "display_name": "检测是否落后于指定分支 CheckBranchBehind",
+    "description": "检测分支是否落后于指定分支。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/code/%E6%A3%80%E6%B5%8B%E6%98%AF%E5%90%A6%E8%90%BD%E5%90%8E%E4%BA%8E%E6%8C%87%E5%AE%9AGit%E5%88%86%E6%94%AF%20CheckBranchBehind.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/code/%E6%A3%80%E6%B5%8B%E6%98%AF%E5%90%A6%E8%90%BD%E5%90%8E%E4%BA%8E%E6%8C%87%E5%AE%9AGit%E5%88%86%E6%94%AF%20CheckBranchBehind.md"
+  },
+  {
+    "identifier": "GetGitMessage",
+    "category": "代码",
+    "display_name": "获取 Git 版本 GetGitMessage",
+    "description": "获取 Git 版本信息步骤，将以下信息打包作为制品信息，提供给部署任务使用。 GIT_REPO：Git 地址 GIT_BRANCH：Git 分支 COMMIT_ID：提交版本号",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/code/%E8%8E%B7%E5%8F%96%20Git%20%E7%89%88%E6%9C%AC%20GetGitMessage.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/code/%E8%8E%B7%E5%8F%96%20Git%20%E7%89%88%E6%9C%AC%20GetGitMessage.md"
+  },
+  {
+    "identifier": "HelmRelease",
+    "category": "发布",
+    "display_name": "Helm Release 部署 HelmRelease",
+    "description": "Helm Release 部署步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/deploy/Helm%20Release%20%E9%83%A8%E7%BD%B2%20HelmRelease.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/deploy/Helm%20Release%20%E9%83%A8%E7%BD%B2%20HelmRelease.md"
+  },
+  {
+    "identifier": "KubectlApply",
+    "category": "发布",
+    "display_name": "Kubectl 发布 KubectlApply",
+    "description": "Kubectl 发布步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/deploy/Kubectl%20%E5%8F%91%E5%B8%83%20KubectlApply.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/deploy/Kubectl%20%E5%8F%91%E5%B8%83%20KubectlApply.md"
+  },
+  {
+    "identifier": "KubectlSetImage",
+    "category": "发布",
+    "display_name": "Kubectl镜像升级 KubectlSetImage",
+    "description": "Kubectl 镜像升级步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/deploy/Kubectl%E9%95%9C%E5%83%8F%E5%8D%87%E7%BA%A7%20KubectlSetImage.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/deploy/Kubectl%E9%95%9C%E5%83%8F%E5%8D%87%E7%BA%A7%20KubectlSetImage.md"
+  },
+  {
+    "identifier": "ROSDeploy",
+    "category": "发布",
+    "display_name": "ROS 发布 ROSDeploy",
+    "description": "ROS 发布步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/deploy/ROS%20%E5%8F%91%E5%B8%83%20ROSDeploy.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/deploy/ROS%20%E5%8F%91%E5%B8%83%20ROSDeploy.md"
+  },
+  {
+    "identifier": "AppStackFlowDeploy",
+    "category": "发布",
+    "display_name": "云效 Appstack Flow 部署 AppStackFlowDeploy",
+    "description": "AppStack 部署步骤，用以部署 AppStack 应用环境。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/deploy/%E4%BA%91%E6%95%88%20Appstack%20Flow%20%E9%83%A8%E7%BD%B2%20AppStackFlowDeploy.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/deploy/%E4%BA%91%E6%95%88%20Appstack%20Flow%20%E9%83%A8%E7%BD%B2%20AppStackFlowDeploy.md"
+  },
+  {
+    "identifier": "FCDeploy",
+    "category": "发布",
+    "display_name": "阿里函数计算部署 FCDeploy",
+    "description": "阿里函数计算 FC 部署步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/deploy/%E9%98%BF%E9%87%8C%E5%87%BD%E6%95%B0%E8%AE%A1%E7%AE%97%E9%83%A8%E7%BD%B2%20FCDeploy.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/deploy/%E9%98%BF%E9%87%8C%E5%87%BD%E6%95%B0%E8%AE%A1%E7%AE%97%E9%83%A8%E7%BD%B2%20FCDeploy.md"
+  },
+  {
+    "identifier": "OSSUpload",
+    "category": "上传",
+    "display_name": "OSS 上传 OSSUpload",
+    "description": "OSS 上传步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/upload/OSS%20%E4%B8%8A%E4%BC%A0%20OSSUpload.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/upload/OSS%20%E4%B8%8A%E4%BC%A0%20OSSUpload.md"
+  },
+  {
+    "identifier": "ReportUpload",
+    "category": "上传",
+    "display_name": "报告上传 ReportUpload",
+    "description": "报告上传步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/upload/%E6%8A%A5%E5%91%8A%E4%B8%8A%E4%BC%A0%20ReportUpload.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/upload/%E6%8A%A5%E5%91%8A%E4%B8%8A%E4%BC%A0%20ReportUpload.md"
+  },
+  {
+    "identifier": "ArtifactUpload",
+    "category": "上传",
+    "display_name": "构建物上传 ArtifactUpload",
+    "description": "构建物上传步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/upload/%E6%9E%84%E5%BB%BA%E7%89%A9%E4%B8%8A%E4%BC%A0%20ArtifactUpload.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/upload/%E6%9E%84%E5%BB%BA%E7%89%A9%E4%B8%8A%E4%BC%A0%20ArtifactUpload.md"
+  },
+  {
+    "identifier": "SingleArtifactUpload",
+    "category": "上传",
+    "display_name": "构建物上传（EDAS_SAE使用）SingleArtifactUpload",
+    "description": "构建物上传（EDAS/SAE使用）步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs%2F%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95%2Fupload%2F%E6%9E%84%E5%BB%BA%E7%89%A9%E4%B8%8A%E4%BC%A0%EF%BC%88EDAS_SAE%E4%BD%BF%E7%94%A8)%20SingleArtifactUpload.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/upload/%E6%9E%84%E5%BB%BA%E7%89%A9%E4%B8%8A%E4%BC%A0%EF%BC%88EDAS_SAE%E4%BD%BF%E7%94%A8%29%20SingleArtifactUpload.md"
+  },
+  {
+    "identifier": "OSSDownload",
+    "category": "下载",
+    "display_name": "OSS 下载 OSSDownload",
+    "description": "OSS 下载步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/download/OSS%20%E4%B8%8B%E8%BD%BD%20OSSDownload.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/download/OSS%20%E4%B8%8B%E8%BD%BD%20OSSDownload.md"
+  },
+  {
+    "identifier": "EcsTagSwitch",
+    "category": "工具",
+    "display_name": "ECS 标签值切换 EcsTagSwitch",
+    "description": "将 ECS Tag 的 value 值进行替换。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/tool/ECS%20%E6%A0%87%E7%AD%BE%E5%80%BC%E5%88%87%E6%8D%A2%20EcsTagSwitch.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/tool/ECS%20%E6%A0%87%E7%AD%BE%E5%80%BC%E5%88%87%E6%8D%A2%20EcsTagSwitch.md"
+  },
+  {
+    "identifier": "OSSDelete",
+    "category": "工具",
+    "display_name": "OSS 删除 OSSDelete",
+    "description": "OSS 删除步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/tool/OSS%20%E5%88%A0%E9%99%A4%20OSSDelete.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/tool/OSS%20%E5%88%A0%E9%99%A4%20OSSDelete.md"
+  },
+  {
+    "identifier": "ServerlessDevs",
+    "category": "工具",
+    "display_name": "Serverless Devs 工具 ServerlessDevs",
+    "description": "Serverless Devs 工具步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/tool/Serverless%20Devs%20%E5%B7%A5%E5%85%B7%20ServerlessDevs.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/tool/Serverless%20Devs%20%E5%B7%A5%E5%85%B7%20ServerlessDevs.md"
+  },
+  {
+    "identifier": "Command",
+    "category": "工具",
+    "display_name": "执行命令 Command",
+    "description": "执行命令步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/tool/%E6%89%A7%E8%A1%8C%E5%91%BD%E4%BB%A4%20Command.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/tool/%E6%89%A7%E8%A1%8C%E5%91%BD%E4%BB%A4%20Command.md"
+  },
+  {
+    "identifier": "ReplaceVariables",
+    "category": "工具",
+    "display_name": "替换文件中的环境变量 ReplaceVariables",
+    "description": "环境变量替代步骤，将代码库文件中的内容替代为流水线的环境变量值。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/tool/%E6%89%A7%E8%A1%8C%E5%91%BD%E4%BB%A4%20Command.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/tool/%E6%89%A7%E8%A1%8C%E5%91%BD%E4%BB%A4%20Command.md"
+  },
+  {
+    "identifier": "SetVariables",
+    "category": "工具",
+    "display_name": "设置变量 SetVariables",
+    "description": "设置全局环境变量步骤。",
+    "docs_url": "https://atomgit.com/flow-steps/system_steps/blob/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/tool/%E8%AE%BE%E7%BD%AE%E5%8F%98%E9%87%8F%20SetVariables.md",
+    "raw_docs_url": "https://raw.gitcode.com/flow-steps/system_steps/raw/master/docs/%E6%AD%A5%E9%AA%A4%20steps%20%E6%B8%85%E5%8D%95/tool/%E8%AE%BE%E7%BD%AE%E5%8F%98%E9%87%8F%20SetVariables.md"
+  }
+]

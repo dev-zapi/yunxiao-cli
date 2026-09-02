@@ -9,7 +9,9 @@ description: "查询云效 Flow YAML 内置 Step 类型、分类、说明和官�
 
 ## Workflow
 
-1. Run the bundled query helper against the official Steps list:
+1. Query Step types with the bundled helper. It reads the official Steps list
+   first and returns the original `docs_url` plus `raw_docs_url` when the
+   AtomGit URL is for the trusted Flow Steps repository:
 
    ```bash
    python3 /path/to/yunxiao-flow-step-query/scripts/query_steps.py \
@@ -18,20 +20,34 @@ description: "查询云效 Flow YAML 内置 Step 类型、分类、说明和官�
 
    Use `--category <CATEGORY>` to narrow results, `--exact` for an exact
    identifier match, `--list-categories` to inspect categories, and `--all` to
-   return the complete list. The helper fetches the current official Markdown
-   page by default. For a deterministic offline query, pass
-   `--input <saved-official-response>` (or pipe it through stdin); otherwise
-   consult [the normalized catalog](references/steps-catalog.md). The catalog
-   is a dated fallback, not a replacement for the official page.
+   return the complete list. Pass `--offline` to explicitly use the bundled
+   JSON snapshot. If the official list is unavailable, the helper switches to
+   that dated snapshot and says so on stderr. The snapshot only guarantees the
+   type directory; it is not a source for current `with` parameters. See the
+   human-readable [catalog](references/steps-catalog.md) only when a compact
+   offline reference is useful.
 
 2. Report each match with its exact YAML identifier, category, short description,
    and official detail URL. Keep the localized display name separate from the
    identifier: the YAML value is the trailing identifier such as `JavaBuild` or
    `Command`.
 
-3. When the user needs `with` parameters, read the matched detail URL before
-   proposing a configuration. The Steps list identifies the type but does not
-   define every input. Do not invent parameter names from the display name.
+3. Before proposing or writing any `with` parameters, retrieve the matched
+   detail Markdown by identifier. Do not open an AtomGit blob page:
+
+   ```bash
+   python3 /path/to/yunxiao-flow-step-query/scripts/fetch_step_doc.py JavaBuild
+   ```
+
+   The detail helper reads the trusted `raw.gitcode.com` URL, then an existing
+   XDG cache entry, then a cached shallow clone of
+   `gitcode.com/flow-steps/system_steps.git`. `--refresh` also refreshes the
+   Git fallback only when raw retrieval failed and skips the stale document
+   cache; ordinary calls never update the clone. Successful raw and Git reads are cached under
+   `${XDG_CACHE_HOME:-~/.cache}/yunxiao-flow-step-query`. A catalog snapshot
+   cannot guarantee a detail URL, so retry online if an offline match has no
+   detail link. The Steps list identifies the type but does not define every
+   input. Do not invent parameter names from the display name.
 
 4. Show the smallest relevant YAML fragment. A step job uses this shape:
 
