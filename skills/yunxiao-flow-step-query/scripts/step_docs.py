@@ -19,6 +19,7 @@ REPOSITORY_NAME = "system_steps"
 GIT_REPOSITORY_URL = "https://gitcode.com/flow-steps/system_steps.git"
 RAW_BASE_URL = "https://raw.gitcode.com/flow-steps/system_steps/raw"
 USER_AGENT = "yunxiao-flow-step-query/1.1"
+GIT_TIMEOUT_SECONDS = 30
 
 
 class StepDocumentError(RuntimeError):
@@ -101,6 +102,15 @@ def _write_cache(path: Path, content: str) -> None:
     os.replace(temporary_name, path)
 
 
+def _cache_best_effort(path: Path, content: str) -> None:
+    """Persist a fetched document when possible without affecting retrieval."""
+
+    try:
+        _write_cache(path, content)
+    except OSError:
+        pass
+
+
 def _read_raw(raw_url: str) -> str:
     request = Request(raw_url, headers={"User-Agent": USER_AGENT})
     with urlopen(request, timeout=20) as response:  # noqa: S310 - URL was strictly derived above
@@ -119,13 +129,20 @@ def _validate_markdown(content: str) -> str:
 
 
 def _run_git(args: list[str], *, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        args,
-        cwd=cwd,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
+    try:
+        return subprocess.run(
+            args,
+            cwd=cwd,
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=GIT_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired as error:
+        command = " ".join(str(part) for part in args)
+        raise StepDocumentError(
+            f"Git command timed out after {GIT_TIMEOUT_SECONDS}s: {command}"
+        ) from error
 
 
 def read_from_git(
@@ -183,7 +200,7 @@ def retrieve_document(
     raw_error: Exception | None = None
     try:
         content = _validate_markdown(read_raw(raw_url))
-        _write_cache(cached, content)
+        _cache_best_effort(cached, content)
         return content, "raw.gitcode.com", raw_url
     except (OSError, UnicodeError, ValueError, StepDocumentError) as error:
         raw_error = error
@@ -194,7 +211,7 @@ def retrieve_document(
             raw_error = error
     try:
         content = _validate_markdown(git_reader(docs_url, cache_home=cache_home, refresh=refresh))
-        _write_cache(cached, content)
+        _cache_best_effort(cached, content)
         return content, "git", raw_url
     except StepDocumentError as error:
         raise StepDocumentError(

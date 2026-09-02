@@ -73,6 +73,28 @@ class StepDocumentTests(unittest.TestCase):
             self.assertEqual((content, source), ("git markdown", "git"))
             self.assertEqual(step_docs.cache_path(raw_url, cache_home).read_text(encoding="utf-8"), "git markdown")
 
+    def test_raw_success_survives_cache_write_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(step_docs, "_write_cache", side_effect=OSError("read-only cache")):
+                content, source, _ = step_docs.retrieve_document(
+                    JAVA_DOCS_URL,
+                    cache_home=Path(directory),
+                    read_raw=lambda _: "# Raw Markdown",
+                    git_reader=lambda **_: self.fail("Git should not run after a raw success"),
+                )
+        self.assertEqual((content, source), ("# Raw Markdown", "raw.gitcode.com"))
+
+    def test_git_success_survives_cache_write_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(step_docs, "_write_cache", side_effect=OSError("read-only cache")):
+                content, source, _ = step_docs.retrieve_document(
+                    JAVA_DOCS_URL,
+                    cache_home=Path(directory),
+                    read_raw=lambda _: (_ for _ in ()).throw(OSError("offline")),
+                    git_reader=lambda *_, **__: "# Git Markdown",
+                )
+        self.assertEqual((content, source), ("# Git Markdown", "git"))
+
     def test_html_response_is_not_cached_or_returned(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             cache_home = Path(directory)
@@ -132,6 +154,16 @@ class StepDocumentTests(unittest.TestCase):
         self.assertEqual((content, source), ("# refreshed", "git"))
         self.assertEqual(calls[0][0][0:2], ["git", "fetch"])
         self.assertTrue(calls[1][0][2].startswith("FETCH_HEAD:"))
+
+    def test_git_command_timeout_has_context(self) -> None:
+        with patch.object(
+            step_docs.subprocess,
+            "run",
+            side_effect=subprocess.TimeoutExpired(["git", "show"], step_docs.GIT_TIMEOUT_SECONDS),
+        ) as run:
+            with self.assertRaisesRegex(step_docs.StepDocumentError, "timed out after 30s: git show"):
+                step_docs._run_git(["git", "show"])
+        self.assertEqual(run.call_args.kwargs["timeout"], step_docs.GIT_TIMEOUT_SECONDS)
 
 
 if __name__ == "__main__":
