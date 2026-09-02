@@ -148,7 +148,7 @@ bump:
 	fi
 	@sed -i 's/^version = ".*"/version = "$(VERSION)"/' Cargo.toml
 	@sed -i 's/badge\/version-[^-]*-\([0-9a-f]*\)/badge\/version-$(VERSION)-\1/' README.md
-	@git add Cargo.toml README.md
+	@git add Cargo.toml Cargo.lock README.md
 	@git commit -m "chore: bump version to $(VERSION)"
 	@echo "Bumped version to $(VERSION)"
 
