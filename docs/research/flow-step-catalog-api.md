@@ -76,3 +76,30 @@ stages:
 官方 YAML 语法明确说明：job 是一个或多个共享工作空间的 `steps` 的组合，或一个
 `component` 调用；`steps.<step_id>.step` 选择步骤，`with` 填步骤或组件的
 参数。来源：[YAML 流水线](https://help.aliyun.com/zh/yunxiao/user-guide/yaml-preliminary-experience/)、[流水线步骤 steps](https://help.aliyun.com/zh/yunxiao/user-guide/pipeline-steps)、[流水线组件 component](https://help.aliyun.com/zh/yunxiao/user-guide/pipeline-component)。
+
+## Job 执行环境 (`runsOn`)
+
+官方 [流水线任务 jobs](https://help.aliyun.com/zh/yunxiao/user-guide/pipelined-task-jobs)
+文档将 `stages.<stage_id>.jobs.<job_id>.runsOn` 定义为 Job 运行的集群环境。该字段
+非必填，省略时默认使用云效北京构建集群；文档同时说明默认环境已处于 Deprecated
+状态，2025.4.1 之后创建的组织可能不再支持，应优先显式配置。
+
+官方文档描述了三种运行模式：
+
+1. 默认环境：使用字符串形式选择集群，例如 `runsOn: public/cn-beijing`，私有集群
+   可写为 `runsOn: private/<PRIVATE_BUILD_CLUSTER_ID>`。
+2. 指定容器环境：使用 `group` 和 `container`，当前文档要求该模式使用公共构建集群：
+
+   ```yaml
+   runsOn:
+     group: public/cn-beijing
+     container: build-steps-public-registry.cn-beijing.cr.aliyuncs.com/build-steps/alinux3:latest
+   ```
+
+3. 默认 VM 环境：使用私有集群的 `group`，并设置 `vm: true`；可用 `labels` 选择
+   操作系统和架构，例如 `linux,amd64`。省略 `labels` 时由集群选择机器。
+
+`runsOn.instanceType` 可选，用于指定构建规格。官方文档列出的规格为
+`SMALL_1C2G`、`MEDIUM_2C4G`、`LARGE_4C8G`、`XLARGE_8C16G` 和 `XXLARGE_16C32G`。
+公共集群标识、私有集群 ID、镜像和规格均应按当前组织能力及最新官方文档验证，不能
+视为永久枚举。

@@ -54,6 +54,61 @@ yunxiao flow jobs run --pipeline-id <PIPELINE_ID> --run-id <RUN_ID> --job-id <JO
 yunxiao flow jobs log --pipeline-id <PIPELINE_ID> --run-id <RUN_ID> --job-id <JOB_ID> --org-id <ORG_ID> --output json
 ```
 
+## Job 执行环境 (`runsOn`)
+
+`runsOn` 是 Job 级别的执行环境配置，决定该 Job 的 steps 在哪个构建集群、容器或私有主机上运行。一个 Job 内的多个 steps 共享工作空间；`runsOn` 不属于某个 step，也不用于代码源认证。
+
+官方 YAML 文档将 `runsOn` 定义为非必填，未填写时默认使用云效北京构建集群。默认环境对较新组织可能已弃用，生成或修改流水线时应优先显式指定执行环境。集群名称、区域和能力可能随云效版本或组织配置变化，以下仅是官方文档中的常见示例，不是永久枚举。
+
+### 常用写法
+
+公共集群的默认环境：
+
+```yaml
+runsOn: public/cn-beijing
+```
+
+指定容器环境（当前官方文档要求使用公共构建集群）：
+
+```yaml
+runsOn:
+  group: public/cn-beijing
+  container: maven:3.8-openjdk-17
+  instanceType: LARGE_4C8G
+```
+
+公共集群标识还包括官方文档列出的 `public/cn-hangzhou` 和 `public/cn-hongkong`；
+指定容器模式当前文档示例使用北京或中国香港集群，实际可用区域以组织和当前官方文档为准。
+`container` 是 Job 使用的镜像，镜像地址必须满足云效构建环境的访问要求。
+
+私有构建集群的默认环境：
+
+```yaml
+runsOn: private/<PRIVATE_BUILD_CLUSTER_ID>
+```
+
+私有集群的 VM/宿主机环境：
+
+```yaml
+runsOn:
+  group: private/<PRIVATE_BUILD_CLUSTER_ID>
+  labels: linux,amd64
+  vm: true
+```
+
+`labels` 用于匹配私有集群中的操作系统和架构；省略时由集群随机选择机器。
+`vm: true` 仅用于私有构建集群，表示直接在宿主机或虚拟机上执行步骤，而不是启动容器。
+
+`instanceType` 是可选的构建规格，可用值以当前官方文档为准，常见值包括
+`SMALL_1C2G`、`MEDIUM_2C4G`、`LARGE_4C8G`、`XLARGE_8C16G` 和 `XXLARGE_16C32G`。
+
+Agent 编写 Job YAML 时：
+
+1. 普通 steps Job 优先显式配置 `runsOn`；未提供私有集群时，可使用公共集群加可访问的构建镜像。
+2. 用户要求私有集群、VM、操作系统或架构时，先取得实际的私有构建集群 ID，再配置 `group`、`labels` 和 `vm` 的组合。
+3. Job 直接调用 `component` 时，按该组件文档判断是否需要 `runsOn`；部署目标等参数通常位于 Job 的 `with` 中。
+4. 创建或更新流水线时，`runsOn` 必须写入完整 YAML，通过 `pipelines create/update --content` 或 `--content-file` 提交；CLI 没有单独的 `runsOn` 参数。
+
 ## 服务连接
 
 连接类型必需传入。使用 `--type`，也兼容可见别名 `--conn-type`。CLI 不对类型做本地枚举校验，会将值原样作为 `serviceConnectionType` 传给 API。

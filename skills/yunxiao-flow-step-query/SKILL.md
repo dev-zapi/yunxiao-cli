@@ -51,6 +51,13 @@ description: "查询云效 Flow YAML 内置 Step 类型、分类、说明和官�
 
 4. Show the smallest relevant YAML fragment. A step job uses this shape:
 
+   `runsOn` belongs to the job and selects its execution environment; it is
+   separate from the step identifier and the step's `with` parameters. For the
+   public/private cluster, container, VM, and instance-size forms, follow the
+   `Job 执行环境 (runsOn)` section in
+   `skills/yunxiao-cli/commands/flow.md`. Treat its cluster and region examples
+   as documented examples, not a permanent enum.
+
    ```yaml
    stages:
      build:
