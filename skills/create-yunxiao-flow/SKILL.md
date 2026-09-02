@@ -19,6 +19,14 @@ Treat it as project context, but ask for missing or conflicting organization det
 
    Select a service connection only by its returned `uuid` field (a string). Do not use the numeric `id` field, and do not guess from its name or choose arbitrarily.
 
+   `codeup` is the documented query value for this workflow, not a complete
+   service-connection type enum. If the requested source is not Codeup or its
+   type is unknown, read the service-connection type and fallback-query section
+   in `skills/yunxiao-cli/commands/flow.md`. Treat its candidate list as
+   advisory: it may be stale or incomplete, and an empty result does not prove
+   that a type is invalid. Confirm the type from the user's context or current
+   official documentation, then validate it with `flow connections list`.
+
 3. Generate and inspect local YAML. With Codeup, use the chosen UUID string:
 
    ```bash
