@@ -19,6 +19,11 @@
 
 **触发词**: 创建流水线、新建流水线、创建 Flow 流水线
 
+### yunxiao-flow-step-query
+查询云效 Flow YAML 内置 Step 类型、分类、官方说明和 `with` 参数文档。
+
+**触发词**: 查询步骤类型、Step 类型、流水线步骤、Flow steps、选择构建步骤
+
 ## 安装
 
 ```bash
@@ -29,6 +34,7 @@ npx skills add your-username/yunxiao-cli --all
 npx skills add your-username/yunxiao-cli --skill yunxiao-cli
 npx skills add your-username/yunxiao-cli --skill yunxiao-create-requirement
 npx skills add your-username/yunxiao-cli --skill create-yunxiao-flow
+npx skills add your-username/yunxiao-cli --skill yunxiao-flow-step-query
 
 # 全局安装
 npx skills add your-username/yunxiao-cli -g

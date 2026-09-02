@@ -1,0 +1,4 @@
+interface:
+  display_name: "Yunxiao Flow Step Query"
+  short_description: "查询云效 Flow YAML 内置 Step 类型及官方参数说明"
+  default_prompt: "查询云效 Flow 的 Step 类型、分类和官方详情文档"
