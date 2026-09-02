@@ -58,3 +58,6 @@ Thumbs.db
 *.temp
 *.log
 logs/
+/.firecrawl/
+/.playwright-cli/
+/.playwright-mcp/
