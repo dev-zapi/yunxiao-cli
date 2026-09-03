@@ -364,7 +364,7 @@ pub struct JobListArgs {
     /// Pipeline ID. Get via: yunxiao flow pipelines list
     #[arg(long)]
     pub pipeline_id: String,
-    /// Job category (e.g. BUILD, DEPLOY, TEST).
+    /// Job category. The API currently documents DEPLOY (future values are passed through).
     #[arg(long)]
     pub category: String,
 }
@@ -375,7 +375,7 @@ pub struct JobHistoryArgs {
     /// Pipeline ID. Get via: yunxiao flow pipelines list
     #[arg(long)]
     pub pipeline_id: String,
-    /// Job ID. Get via: yunxiao flow jobs list --pipeline-id <PIPELINE_ID> --run-id <RUN_ID>
+    /// Job ID. Get from `flow runs get`/`latest` at `.stages[].stageInfo.jobs[].id`.
     #[arg(long)]
     pub job_id: String,
 }
@@ -389,7 +389,7 @@ pub struct JobRunArgs {
     /// Run ID. Get via: yunxiao flow runs list --pipeline-id <PIPELINE_ID>
     #[arg(long)]
     pub run_id: String,
-    /// Job ID. Get via: yunxiao flow jobs list --pipeline-id <PIPELINE_ID> --run-id <RUN_ID>
+    /// Job ID. Get from `flow runs get`/`latest` at `.stages[].stageInfo.jobs[].id`.
     #[arg(long)]
     pub job_id: String,
 }
@@ -403,7 +403,7 @@ pub struct JobLogArgs {
     /// Run ID. Get via: yunxiao flow runs list --pipeline-id <PIPELINE_ID>
     #[arg(long)]
     pub run_id: String,
-    /// Job ID. Get via: yunxiao flow jobs list --pipeline-id <PIPELINE_ID> --run-id <RUN_ID>
+    /// Job ID. Get from `flow runs get`/`latest` at `.stages[].stageInfo.jobs[].id`.
     #[arg(long)]
     pub job_id: String,
 }
@@ -1136,10 +1136,10 @@ async fn exec_jobs(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/flow/organizations/{oid}/pipelines/{}/jobs",
-                        l.pipeline_id
+                        "/oapi/v1/flow/organizations/{oid}/pipelines/{}/listTasksByCategory/{}",
+                        l.pipeline_id, l.category
                     ),
-                    &[("category", l.category.as_str())],
+                    &[],
                 )
                 .await?;
             output::print_output(&data, format)?;
@@ -1173,14 +1173,13 @@ async fn exec_jobs(
             let data = client
                 .get(
                     &format!(
-                        "/oapi/v1/flow/organizations/{oid}/pipelines/{}/runs/{}/jobs/{}/log",
+                        "/oapi/v1/flow/organizations/{oid}/pipelines/{}/runs/{}/job/{}/log",
                         l.pipeline_id, l.run_id, l.job_id
                     ),
                     &[],
                 )
                 .await?;
-            // For logs, print as text regardless of format setting to preserve readability.
-            if let Some(log_content) = data.get("log").and_then(|l| l.as_str()) {
+            if let Some(log_content) = human_job_log_content(&data, format) {
                 println!("{log_content}");
             } else {
                 output::print_output(&data, format)?;
@@ -1234,6 +1233,18 @@ async fn exec_jobs(
         }
     }
     Ok(())
+}
+
+fn human_job_log_content<'a>(
+    data: &'a serde_json::Value,
+    format: &OutputFormat,
+) -> Option<&'a str> {
+    if matches!(format, OutputFormat::Json) {
+        return None;
+    }
+    data.get("content")
+        .and_then(|v| v.as_str())
+        .or_else(|| data.get("log").and_then(|v| v.as_str()))
 }
 
 // ─────────────────────────── Connections ────────────────────────────────
@@ -1909,6 +1920,85 @@ mod tests {
     use super::*;
     use clap::Parser;
     use mockito::Server;
+
+    #[test]
+    fn job_log_content_prefers_official_content_and_supports_legacy_log() {
+        assert_eq!(
+            human_job_log_content(
+                &json!({"content": "new", "log": "old"}),
+                &OutputFormat::Text
+            ),
+            Some("new")
+        );
+        assert_eq!(
+            human_job_log_content(&json!({"log": "old"}), &OutputFormat::Table),
+            Some("old")
+        );
+        assert_eq!(
+            human_job_log_content(&json!({"content": 1}), &OutputFormat::Text),
+            None
+        );
+    }
+
+    #[test]
+    fn json_job_logs_keep_the_complete_response() {
+        let data = json!({"content": "line", "last": 42, "more": true});
+        assert_eq!(human_job_log_content(&data, &OutputFormat::Json), None);
+        assert_eq!(data["content"], "line");
+        assert_eq!(data["last"], 42);
+        assert_eq!(data["more"], true);
+    }
+
+    #[tokio::test]
+    async fn job_log_uses_singular_job_path() {
+        let mut server = Server::new_async().await;
+        let mock = server
+            .mock(
+                "GET",
+                "/oapi/v1/flow/organizations/org-1/pipelines/p-1/runs/r-1/job/j-1/log",
+            )
+            .with_body(r#"{"content":"ok","last":2,"more":false}"#)
+            .create_async()
+            .await;
+        let client = ApiClient::new("token", &server.url(), 5).unwrap();
+        let args = JobsArgs {
+            command: JobsCmds::Log(JobLogArgs {
+                pipeline_id: "p-1".into(),
+                run_id: "r-1".into(),
+                job_id: "j-1".into(),
+            }),
+        };
+
+        exec_jobs(&args, &client, &Some("org-1".into()), &OutputFormat::Json)
+            .await
+            .unwrap();
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn jobs_list_uses_category_path_segment() {
+        let mut server = Server::new_async().await;
+        let mock = server
+            .mock(
+                "GET",
+                "/oapi/v1/flow/organizations/org-1/pipelines/p-1/listTasksByCategory/DEPLOY",
+            )
+            .with_body("[]")
+            .create_async()
+            .await;
+        let client = ApiClient::new("token", &server.url(), 5).unwrap();
+        let args = JobsArgs {
+            command: JobsCmds::List(JobListArgs {
+                pipeline_id: "p-1".into(),
+                category: "DEPLOY".into(),
+            }),
+        };
+
+        exec_jobs(&args, &client, &Some("org-1".into()), &OutputFormat::Json)
+            .await
+            .unwrap();
+        mock.assert_async().await;
+    }
 
     #[derive(Debug, Parser)]
     struct TestCli {

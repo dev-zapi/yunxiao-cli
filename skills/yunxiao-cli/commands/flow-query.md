@@ -21,7 +21,7 @@ yunxiao flow pipelines relations list --pipeline-id <PIPELINE_ID> --rel-object-t
 yunxiao flow runs list --pipeline-id <PIPELINE_ID> --page 1 --per-page 20 --org-id <ORG_ID> --output json
 yunxiao flow runs get --pipeline-id <PIPELINE_ID> --run-id <RUN_ID> --org-id <ORG_ID> --output json
 yunxiao flow runs latest --pipeline-id <PIPELINE_ID> --org-id <ORG_ID> --output json
-yunxiao flow jobs list --pipeline-id <PIPELINE_ID> --category BUILD --org-id <ORG_ID> --output json
+yunxiao flow jobs list --pipeline-id <PIPELINE_ID> --category DEPLOY --org-id <ORG_ID> --output json
 yunxiao flow jobs history --pipeline-id <PIPELINE_ID> --job-id <JOB_ID> --org-id <ORG_ID> --output json
 yunxiao flow jobs log --pipeline-id <PIPELINE_ID> --run-id <RUN_ID> --job-id <JOB_ID> --org-id <ORG_ID> --output json
 ```
@@ -35,6 +35,8 @@ yunxiao flow jobs step-log-url --pipeline-id <PIPELINE_ID> --pipeline-run-id <RU
 ```
 
 `step-log` 的 `offset` 和 `limit` 是 API 日志分页参数，CLI 不自动请求后续页。`pipeline-run-id` 也接受可见别名 `--run-id`。
+
+Job ID 应通过 `flow runs get` 或 `flow runs latest` 返回的 `.stages[].stageInfo.jobs[].id` 获取；`jobs list` 不接受 `--run-id`，当前官方仅记录 `DEPLOY` 分类（传入值由服务端校验）。日志查询链路是 pipeline → run → run detail → job → `jobs log`/`jobs steps`/`jobs step-log`。`jobs log` 默认输出 `content`（兼容旧响应的 `log`）；`--output json` 输出完整原始对象，不会仅提取正文。`step-log` 每次只请求一页，需根据响应的 `more` 自行调整 `offset`。
 
 ## 部署与主机组
 

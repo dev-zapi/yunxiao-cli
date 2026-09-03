@@ -50,11 +50,13 @@ yunxiao flow runs create --pipeline-id <PIPELINE_ID> --params '{"branch":"main"}
 yunxiao flow runs list --pipeline-id <PIPELINE_ID> --page 1 --per-page 20 --org-id <ORG_ID> --output json
 yunxiao flow runs get --pipeline-id <PIPELINE_ID> --run-id <RUN_ID> --org-id <ORG_ID> --output json
 yunxiao flow runs latest --pipeline-id <PIPELINE_ID> --org-id <ORG_ID> --output json
-yunxiao flow jobs list --pipeline-id <PIPELINE_ID> --category BUILD --org-id <ORG_ID> --output json
+yunxiao flow jobs list --pipeline-id <PIPELINE_ID> --category DEPLOY --org-id <ORG_ID> --output json
 yunxiao flow jobs history --pipeline-id <PIPELINE_ID> --job-id <JOB_ID> --org-id <ORG_ID> --output json
 yunxiao flow jobs run --pipeline-id <PIPELINE_ID> --run-id <RUN_ID> --job-id <JOB_ID> --org-id <ORG_ID> --output json
 yunxiao flow jobs log --pipeline-id <PIPELINE_ID> --run-id <RUN_ID> --job-id <JOB_ID> --org-id <ORG_ID> --output json
 ```
+
+获取执行日志的 ID 链路为 pipeline → run（`runs list`/`latest`）→ run detail（`runs get`，从 `.stages[].stageInfo.jobs[].id` 取得 Job ID）→ job。`jobs list` 不接受 `--run-id`，且当前官方分类为 `DEPLOY`（分类值会原样传给服务端）。`jobs log` 默认输出日志正文；显式 `--output json` 保留 API 原始响应（包括 `content`、`last`、`more`）。
 
 Job 步骤、部署、主机组、流水线分组、资源成员、标签组和变量组查询见[流水线查询命令手册](./flow-query.md)。
 
