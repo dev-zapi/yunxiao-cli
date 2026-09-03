@@ -162,7 +162,6 @@ type_id            [workitems get]
 - `workitems delete`: 删除工作项
 - `workitems attachments create`: 上传附件
 - `workitems comments delete`: 删除评论
-- `workitems comments update`: 更新评论
 
 ### 迭代管理未实现
 

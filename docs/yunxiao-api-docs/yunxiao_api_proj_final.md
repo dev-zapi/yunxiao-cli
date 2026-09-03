@@ -78,7 +78,6 @@
 - ListWorkitemComments - 获取工作项评论列表: /zh/yunxiao/developer-reference/listworkitemcomments
 - CreateWorkitemComment - 创建工作项评论: /zh/yunxiao/developer-reference/createworkitemcomment
 - DeleteWorkitemComment - 删除工作项评论: /zh/yunxiao/developer-reference/deleteworkitemcomment
-- UpdateWorkitemComment - 更新工作项评论: /zh/yunxiao/developer-reference/updateworkitemcomment
 - GetWorkitemComment - 获取工作项评论详情: /zh/yunxiao/developer-reference/getworkitemcomment
 
 ## 工作项附件（推断API）
@@ -111,5 +110,5 @@
 
 ## 校验统计
 - 总子分类数：17个
-- 总API数量：68个
+- 总API数量：67个
 - 新增/修正：工作项类型的5个API已完整验证，项目模板的2个API已完整验证，项目的6个API已完整验证。其他API基于阿里云云效API命名规律推断，可能存在差异。
