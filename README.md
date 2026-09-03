@@ -1,7 +1,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Rust-v1.75+-000000?logo=rust&logoColor=white" alt="Rust">
   <img src="https://img.shields.io/github/license/your-org/yunxiao-cli" alt="License">
-  <img src="https://img.shields.io/badge/version-0.1.1-007EC6" alt="Version">
+  <img src="https://img.shields.io/badge/version-0.1.2-007EC6" alt="Version">
   <img src="https://img.shields.io/badge/platform-windows%20%7C%20linux%20%7C%20macos-6C757D" alt="Platform">
 </p>
 

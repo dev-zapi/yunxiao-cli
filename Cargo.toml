@@ -1,6 +1,6 @@
 [package]
 name = "yunxiao-cli"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "CLI client for Alibaba Cloud DevOps (Yunxiao) platform"
 license = "MIT"
