@@ -649,3 +649,246 @@ fn update_body_omits_format_when_no_description() {
     assert!(body.get("description").is_none());
     assert!(body.get("formatType").is_none());
 }
+
+// Tests for workitems get with serial number support
+
+#[test]
+fn get_args_accept_workitem_id_only() {
+    #[derive(Parser)]
+    struct TestCli {
+        #[command(subcommand)]
+        command: WorkitemsCmds,
+    }
+
+    let cli = TestCli::parse_from(["test", "get", "--workitem-id", "abc123"]);
+    let WorkitemsCmds::Get(args) = cli.command else {
+        panic!("expected get command");
+    };
+    assert_eq!(args.workitem_id.as_deref(), Some("abc123"));
+    assert!(args.serial_number.is_none());
+    assert!(args.space_id.is_none());
+}
+
+#[test]
+fn get_args_accept_serial_number_only() {
+    #[derive(Parser)]
+    struct TestCli {
+        #[command(subcommand)]
+        command: WorkitemsCmds,
+    }
+
+    let cli = TestCli::parse_from(["test", "get", "-n", "MMCL-1162"]);
+    let WorkitemsCmds::Get(args) = cli.command else {
+        panic!("expected get command");
+    };
+    assert_eq!(args.serial_number.as_deref(), Some("MMCL-1162"));
+    assert!(args.workitem_id.is_none());
+    assert!(args.space_id.is_none());
+}
+
+#[test]
+fn get_args_accept_serial_number_with_space_id() {
+    #[derive(Parser)]
+    struct TestCli {
+        #[command(subcommand)]
+        command: WorkitemsCmds,
+    }
+
+    let cli = TestCli::parse_from(["test", "get", "-n", "MMCL-1162", "--space-id", "proj-1"]);
+    let WorkitemsCmds::Get(args) = cli.command else {
+        panic!("expected get command");
+    };
+    assert_eq!(args.serial_number.as_deref(), Some("MMCL-1162"));
+    assert_eq!(args.space_id.as_deref(), Some("proj-1"));
+    assert!(args.workitem_id.is_none());
+}
+
+#[test]
+fn get_args_reject_both_workitem_id_and_serial_number() {
+    #[derive(Parser)]
+    struct TestCli {
+        #[command(subcommand)]
+        command: WorkitemsCmds,
+    }
+
+    let result =
+        TestCli::try_parse_from(["test", "get", "--workitem-id", "abc123", "-n", "MMCL-1162"]);
+    assert!(result.is_err());
+}
+
+#[test]
+fn get_args_require_at_least_one_identifier() {
+    #[derive(Parser)]
+    struct TestCli {
+        #[command(subcommand)]
+        command: WorkitemsCmds,
+    }
+
+    let result = TestCli::try_parse_from(["test", "get"]);
+    assert!(result.is_err());
+}
+
+#[test]
+fn parse_serial_number_prefix_simple() {
+    let (prefix, full) = parse_serial_number_prefix("MMCL-1162").unwrap();
+    assert_eq!(prefix, "MMCL");
+    assert_eq!(full, "MMCL-1162");
+}
+
+#[test]
+fn parse_serial_number_prefix_with_hyphen_in_custom_code() {
+    let (prefix, full) = parse_serial_number_prefix("AB-CD-12").unwrap();
+    assert_eq!(prefix, "AB-CD");
+    assert_eq!(full, "AB-CD-12");
+}
+
+#[test]
+fn parse_serial_number_prefix_invalid_no_hyphen() {
+    assert!(parse_serial_number_prefix("MMCL1162").is_none());
+}
+
+#[test]
+fn parse_serial_number_prefix_invalid_leading_hyphen() {
+    assert!(parse_serial_number_prefix("-1162").is_none());
+}
+
+#[test]
+fn parse_serial_number_prefix_invalid_trailing_hyphen() {
+    assert!(parse_serial_number_prefix("MMCL-").is_none());
+}
+
+#[tokio::test]
+async fn find_project_by_custom_code_returns_id_on_single_match() {
+    let mut server = Server::new_async().await;
+    let org_id = "test-org";
+    let target_code = "MMCL";
+    let expected_id = "space-abc123";
+
+    let mock = server
+        .mock(
+            "POST",
+            format!("/oapi/v1/projex/organizations/{org_id}/projects:search").as_str(),
+        )
+        .with_body(
+            json!([
+                {"id": "space-other", "customCode": "OTHER"},
+                {"id": expected_id, "customCode": target_code},
+                {"id": "space-another", "customCode": "ANOTHER"}
+            ])
+            .to_string(),
+        )
+        .create_async()
+        .await;
+
+    let client = ApiClient::new("token", &server.url(), 5).unwrap();
+    let result = find_project_by_custom_code(&client, org_id, target_code)
+        .await
+        .unwrap();
+    assert_eq!(result, expected_id);
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn find_project_by_custom_code_returns_error_on_no_match() {
+    let mut server = Server::new_async().await;
+    let org_id = "test-org";
+
+    let mock = server
+        .mock(
+            "POST",
+            format!("/oapi/v1/projex/organizations/{org_id}/projects:search").as_str(),
+        )
+        .with_body(
+            json!([
+                {"id": "space-1", "customCode": "PROJ1"},
+                {"id": "space-2", "customCode": "PROJ2"}
+            ])
+            .to_string(),
+        )
+        .create_async()
+        .await;
+
+    let client = ApiClient::new("token", &server.url(), 5).unwrap();
+    let result = find_project_by_custom_code(&client, org_id, "MMCL").await;
+    assert!(result.is_err());
+    let error_msg = result.unwrap_err().to_string();
+    assert!(error_msg.contains("No project found with customCode 'MMCL'"));
+    assert!(error_msg.contains("Available customCodes:"));
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn find_project_by_custom_code_returns_error_on_multiple_matches() {
+    let mut server = Server::new_async().await;
+    let org_id = "test-org";
+
+    let mock = server
+        .mock(
+            "POST",
+            format!("/oapi/v1/projex/organizations/{org_id}/projects:search").as_str(),
+        )
+        .with_body(
+            json!([
+                {"id": "space-1", "customCode": "MMCL"},
+                {"id": "space-2", "customCode": "MMCL"},
+                {"id": "space-3", "customCode": "OTHER"}
+            ])
+            .to_string(),
+        )
+        .create_async()
+        .await;
+
+    let client = ApiClient::new("token", &server.url(), 5).unwrap();
+    let result = find_project_by_custom_code(&client, org_id, "MMCL").await;
+    assert!(result.is_err());
+    let error_msg = result.unwrap_err().to_string();
+    assert!(error_msg.contains("Multiple projects found with customCode 'MMCL'"));
+    assert!(error_msg.contains("Matching project IDs:"));
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn find_project_by_custom_code_handles_pagination() {
+    let mut server = Server::new_async().await;
+    let org_id = "test-org";
+    let target_code = "MMCL";
+    let expected_id = "space-abc123";
+
+    // First page with exactly 100 projects (triggers pagination)
+    let first_page_projects: Vec<_> = (0..100)
+        .map(|i| json!({"id": format!("space-{i}"), "customCode": format!("PROJ{i}")}))
+        .collect();
+
+    let mock1 = server
+        .mock(
+            "POST",
+            format!("/oapi/v1/projex/organizations/{org_id}/projects:search").as_str(),
+        )
+        .with_body(serde_json::to_string(&first_page_projects).unwrap())
+        .create_async()
+        .await;
+
+    // Second page with the match
+    let mock2 = server
+        .mock(
+            "POST",
+            format!("/oapi/v1/projex/organizations/{org_id}/projects:search").as_str(),
+        )
+        .with_body(
+            json!([
+                {"id": expected_id, "customCode": target_code},
+                {"id": "space-101", "customCode": "PROJ101"}
+            ])
+            .to_string(),
+        )
+        .create_async()
+        .await;
+
+    let client = ApiClient::new("token", &server.url(), 5).unwrap();
+    let result = find_project_by_custom_code(&client, org_id, target_code)
+        .await
+        .unwrap();
+    assert_eq!(result, expected_id);
+    mock1.assert_async().await;
+    mock2.assert_async().await;
+}

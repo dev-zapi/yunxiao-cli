@@ -21,8 +21,14 @@ impl ConditionBuilder {
     }
 
     /// Add a string field condition (format: "input", operator: "CONTAINS").
-    /// Used for: subject, serialNumber, name, etc.
+    /// Used for: subject, serialNumber, etc.
     /// Note: for serialNumber the backend matches the full value exactly, not as a substring.
+    ///
+    /// Known limitations (observed 2026-10-06, org 6098a93e58f98c96956644dc):
+    /// - projects:search name field: CONTAINS is silently ignored and returns empty results;
+    ///   use string_between() for name filtering instead.
+    /// - projects:search customCode field: neither CONTAINS nor BETWEEN works (both return 0 results);
+    ///   to find a project by customCode, you must list all projects and filter client-side.
     pub fn string_contains(mut self, field: &str, value: &str) -> Self {
         self.conditions.push(json!({
             "fieldIdentifier": field,

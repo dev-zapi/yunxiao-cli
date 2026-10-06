@@ -348,7 +348,7 @@ pub struct WiSearchArgs {
     /// Optional keyword filter.
     #[arg(short = 'k', long)]
     pub keyword: Option<String>,
-    /// Filter by full serial number; exact match (e.g. PROJ-123).
+    /// Filter by full serial number; exact match (e.g. PROJ-123 or MMCL-1162).
     #[arg(short = 'n', long)]
     pub serial_number: Option<String>,
     /// Filter by version ID. Get via: yunxiao projex versions list --space-id <SPACE_ID>
@@ -367,13 +367,23 @@ pub struct WiSearchArgs {
 
 /// Arguments for `projex workitems get`.
 #[derive(Debug, Args)]
+#[command(group(
+    clap::ArgGroup::new("workitem_identifier")
+        .required(true)
+        .multiple(false)
+        .args(["workitem_id", "serial_number"])
+))]
 pub struct WiGetArgs {
-    /// Project space ID. Get via: yunxiao projex projects search
+    /// Project space ID (optional when using --serial-number; required with --workitem-id for backward compatibility).
+    /// Get via: yunxiao projex projects search
     #[arg(long)]
-    pub space_id: String,
-    /// Work item ID. Get via: yunxiao projex workitems search --space-id <SPACE_ID>
+    pub space_id: Option<String>,
+    /// Work item internal ID (24-character hex). Get via: yunxiao projex workitems search --space-id <SPACE_ID>
     #[arg(long)]
-    pub workitem_id: String,
+    pub workitem_id: Option<String>,
+    /// Work-item serial number (full exact match, e.g. MMCL-1162). Can be used with or without --space-id.
+    #[arg(short = 'n', long)]
+    pub serial_number: Option<String>,
 }
 
 /// Arguments for `projex workitems create`.
@@ -1048,15 +1058,7 @@ pub(super) async fn exec_workitems(
     match &args.command {
         WorkitemsCmds::Search(s) => exec_workitems_search(s, oid, client, format).await?,
         WorkitemsCmds::Get(g) => {
-            let data = client
-                .get(
-                    &format!(
-                        "/oapi/v1/projex/organizations/{oid}/workitems/{}",
-                        g.workitem_id
-                    ),
-                    &[],
-                )
-                .await?;
+            let data = exec_workitems_get(g, oid, client).await?;
             output::print_output(&data, format)?;
         }
         WorkitemsCmds::Create(c) => {
@@ -1290,6 +1292,195 @@ async fn exec_workitems_search(
     print_pagination_info(&resp.headers);
     output::print_output(&resp.body, format)?;
     Ok(())
+}
+
+/// Parse serial number prefix and number from a serial number like "MMCL-1162".
+/// Returns (prefix, full_serial_number).
+/// The prefix is the part before the last '-', supporting customCode with hyphens like "AB-CD-12".
+fn parse_serial_number_prefix(serial_number: &str) -> Option<(&str, &str)> {
+    let last_dash_pos = serial_number.rfind('-')?;
+    if last_dash_pos == 0 || last_dash_pos == serial_number.len() - 1 {
+        return None;
+    }
+    let (prefix, _) = serial_number.split_at(last_dash_pos);
+    Some((prefix, serial_number))
+}
+
+/// Search for a project by customCode in the organization.
+/// Returns the project ID if exactly one match is found.
+async fn find_project_by_custom_code(
+    client: &ApiClient,
+    org_id: &str,
+    target_custom_code: &str,
+) -> Result<String> {
+    let mut all_projects = Vec::new();
+    let mut page = 1;
+    let per_page = 100;
+
+    loop {
+        let body = json!({
+            "page": page,
+            "perPage": per_page,
+        });
+
+        let resp = client
+            .post_with_headers(
+                &format!("/oapi/v1/projex/organizations/{org_id}/projects:search"),
+                &body,
+            )
+            .await?;
+
+        if let Some(projects) = resp.body.as_array() {
+            if projects.is_empty() {
+                break;
+            }
+            all_projects.extend(projects.clone());
+
+            if projects.len() < per_page as usize {
+                break;
+            }
+        } else {
+            break;
+        }
+
+        page += 1;
+        if page > 100 {
+            log::warn!("Reached maximum page limit (100), stopping pagination");
+            break;
+        }
+    }
+
+    let matches: Vec<_> = all_projects
+        .iter()
+        .filter(|p| {
+            p.get("customCode")
+                .and_then(|v| v.as_str())
+                .map(|code| code == target_custom_code)
+                .unwrap_or(false)
+        })
+        .collect();
+
+    match matches.as_slice() {
+        [project] => project
+            .get("id")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
+            .ok_or_else(|| CliError::Api("Project match found but no ID field present.".into())),
+        [] => {
+            let available_codes: Vec<String> = all_projects
+                .iter()
+                .filter_map(|p| p.get("customCode").and_then(|v| v.as_str()))
+                .map(|s| s.to_string())
+                .collect();
+            Err(CliError::Config(format!(
+                "No project found with customCode '{}'. Available customCodes: {}",
+                target_custom_code,
+                available_codes.join(", ")
+            )))
+        }
+        _ => {
+            let candidate_ids: Vec<String> = matches
+                .iter()
+                .filter_map(|p| p.get("id").and_then(|v| v.as_str()))
+                .map(|s| s.to_string())
+                .collect();
+            Err(CliError::Config(format!(
+                "Multiple projects found with customCode '{}'. Matching project IDs: {}",
+                target_custom_code,
+                candidate_ids.join(", ")
+            )))
+        }
+    }
+}
+
+/// Execute work-items get with support for both internal ID and serial number.
+async fn exec_workitems_get(
+    args: &WiGetArgs,
+    org_id: &str,
+    client: &ApiClient,
+) -> Result<serde_json::Value> {
+    // Path 1: --workitem-id provided (internal ID)
+    if let Some(ref workitem_id) = args.workitem_id {
+        let data = client
+            .get(
+                &format!(
+                    "/oapi/v1/projex/organizations/{org_id}/workitems/{}",
+                    workitem_id
+                ),
+                &[],
+            )
+            .await?;
+        return Ok(data);
+    }
+
+    // Path 2 & 3: --serial-number provided
+    let serial_number = args.serial_number.as_ref().ok_or_else(|| {
+        CliError::Config("Either --workitem-id or --serial-number must be provided.".into())
+    })?;
+
+    let space_id = if let Some(ref space_id) = args.space_id {
+        // Path 2: serial number + space-id provided
+        space_id.clone()
+    } else {
+        // Path 3: only serial number, need to resolve space-id from customCode prefix
+        let (prefix, _) = parse_serial_number_prefix(serial_number).ok_or_else(|| {
+            CliError::Config(format!(
+                "Invalid serial number format '{}'. Expected format like 'MMCL-1162'.",
+                serial_number
+            ))
+        })?;
+
+        find_project_by_custom_code(client, org_id, prefix).await?
+    };
+
+    // Search for the work item by serial number
+    let search_body = json!({
+        "category": "Req,Task,Bug",
+        "spaceId": space_id,
+        "page": 1,
+        "perPage": 1,
+        "conditions": ConditionBuilder::new()
+            .string_contains("serialNumber", serial_number)
+            .build()
+            .unwrap_or_default(),
+    });
+
+    let resp = client
+        .post_with_headers(
+            &format!("/oapi/v1/projex/organizations/{org_id}/workitems:search"),
+            &search_body,
+        )
+        .await?;
+
+    let workitems = resp
+        .body
+        .as_array()
+        .ok_or_else(|| CliError::Api("Search response did not return an array.".into()))?;
+
+    if workitems.is_empty() {
+        return Err(CliError::Config(format!(
+            "No work item found with serial number '{}'. Serial number matching is exact; please verify the complete number (e.g. MMCL-1162).",
+            serial_number
+        )));
+    }
+
+    let workitem_id = workitems[0]
+        .get("id")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| CliError::Api("Search result did not include a usable 'id'.".into()))?;
+
+    // Fetch the full work item details
+    let data = client
+        .get(
+            &format!(
+                "/oapi/v1/projex/organizations/{org_id}/workitems/{}",
+                workitem_id
+            ),
+            &[],
+        )
+        .await?;
+
+    Ok(data)
 }
 
 #[cfg(test)]
