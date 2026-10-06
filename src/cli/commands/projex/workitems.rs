@@ -348,7 +348,7 @@ pub struct WiSearchArgs {
     /// Optional keyword filter.
     #[arg(short = 'k', long)]
     pub keyword: Option<String>,
-    /// Filter by serial number (e.g. PROJ-123).
+    /// Filter by full serial number; exact match (e.g. PROJ-123).
     #[arg(short = 'n', long)]
     pub serial_number: Option<String>,
     /// Filter by version ID. Get via: yunxiao projex versions list --space-id <SPACE_ID>

@@ -249,10 +249,11 @@ id, name, defaultStatusId, statuses (数组: id, name, nameEn, displayName)
 id, workitemId, duration (hours), description, createdAt
 ```
 
-### programs search
+### programs search（需高级版组织，字段未实测验证）
 ```
 id, name, identifier, description, gmtCreate
 ```
+> 注: 当前测试组织非高级版（`Operate.NoPermission`），programs 字段沿用旧文档未实测；`identifier` 可能同样应为编码字段，待高级版组织实测确认。
 
 ### 分页响应 headers (search/list 命令)
 

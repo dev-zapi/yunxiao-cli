@@ -22,6 +22,7 @@ impl ConditionBuilder {
 
     /// Add a string field condition (format: "input", operator: "CONTAINS").
     /// Used for: subject, serialNumber, name, etc.
+    /// Note: for serialNumber the backend matches the full value exactly, not as a substring.
     pub fn string_contains(mut self, field: &str, value: &str) -> Self {
         self.conditions.push(json!({
             "fieldIdentifier": field,
