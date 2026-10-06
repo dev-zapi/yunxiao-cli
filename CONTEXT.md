@@ -17,6 +17,13 @@ membership ID and is distinct from the Account User represented by that member.
 The YunXiao account identified by `userId`. Work-item responsibility is assigned
 to an Account User, not to an Organization Member's membership ID.
 
+### Work-item Serial Number
+
+A work item's human-readable number, such as `MMCL-1162`, formed from the
+Project Space's `customCode` prefix and a sequence number. It is distinct from
+the work item's internal `id` (a hash); a search filters by the full serial
+number as an exact match.
+
 ### Work-item Label
 
 A named tag configured within a Project Space. A label is associated with a
