@@ -106,12 +106,16 @@ org_id (组织ID)
     ↓                      ↓
 [workitems types]     [workitems search] → workitem_id
     ↓                      ↓
-type_id            [workitems get]
+type_id            [workitems get] (支持 --workitem-id 或 -n 业务编号)
     ↓
 [workitems flow] → status_id
     ↓
 [workitems fields] → fieldIdentifier
 ```
+
+**注意**：`workitems get` 现在支持两种方式：
+- `--workitem-id <ID>`：使用内部 ID（原有方式）
+- `-n <SERIAL_NUMBER>`：使用业务编号（如 MMCL-1162），可带 `--space-id` 加速，也可省略让 CLI 自动解析
 
 ### 4. 核心 ID 获取速查
 
@@ -136,7 +140,7 @@ type_id            [workitems get]
 | 命令 | 参数风格 | 示例 |
 |------|---------|------|
 | `projects get` | **位置参数** | `yunxiao projex projects get <PROJECT_ID>` |
-| `workitems get` | **flag 参数** | `yunxiao projex workitems get --workitem-id <ID>` |
+| `workitems get` | **flag 参数** | `yunxiao projex workitems get --workitem-id <ID>` 或 `yunxiao projex workitems get -n <SERIAL_NUMBER>` |
 | `sprints get` | **flag 参数** | `yunxiao projex sprints get --sprint-id <ID>` |
 
 `workitems fields` 的规范参数是 `--space-id`；`--project-id` 保留为兼容别名。两个参数同时传入时必须相同。

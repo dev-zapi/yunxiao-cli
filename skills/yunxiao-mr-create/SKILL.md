@@ -200,7 +200,13 @@ yunxiao-cli codeup commits list --repo-id <REPO_ID> --ref-name <SOURCE_BRANCH> -
 
 3. **查询工作项详情**
    ```bash
-   # 通过序列号查询工作项，获取真实的 workitem-id
+   # 方式一：使用 workitems get -n 直接获取（推荐）
+   yunxiao-cli projex workitems get \
+     -n <WORKITEM_NUMBER> \
+     --org-id <ORG_ID> \
+     --output json
+   
+   # 方式二：通过 search 查询（需要手动提取 workitem-id）
    yunxiao-cli projex workitems search \
      --space-id <SPACE_ID> \
      --serial-number <WORKITEM_NUMBER> \
@@ -210,6 +216,8 @@ yunxiao-cli codeup commits list --repo-id <REPO_ID> --ref-name <SOURCE_BRANCH> -
    # 从返回结果中提取 workitem-id
    # PROJ-9999 → workitem-id: "000000000000000000000001"
    ```
+
+   **提示**：`workitems get -n` 已支持直接使用业务编号查询，可省略 `--space-id` 让 CLI 自动解析项目，比两步解析更简洁。
 
 4. **创建 MR 时关联工作项**
    ```bash

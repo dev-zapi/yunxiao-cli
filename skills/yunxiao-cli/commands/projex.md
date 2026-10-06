@@ -201,8 +201,8 @@ sprint (list), spaceId, categoryId, gmtCreate
 ```
 完整工作项对象。customFieldValues 数组包含优先级等自定义字段。
 推送字段可能为 null，仅在有值时返回。
-注: get 需传 --workitem-id（内部 id, hash），不能直接用编号 serialNumber；
-    按编号（如 MMCL-1162）查找请先用 workitems search -n 取得 id。
+注: get 支持 --workitem-id（内部 id）或 -n/--serial-number（业务编号）两种方式。
+    使用 -n 时可带 --space-id 加速，也可省略让 CLI 自动解析编号前缀定位项目。
 ```
 
 ### sprints list
@@ -489,7 +489,14 @@ yunxiao projex workitems search --space-id proj-xxxxxxxx -c Req -S sprint-xxx --
 ### 基本用法
 
 ```bash
+# 方式一：使用内部 ID
 yunxiao projex workitems get --space-id <PROJECT_ID> --workitem-id <WORKITEM_ID> --org-id <ORG_ID> --output json
+
+# 方式二：使用业务编号 + space-id
+yunxiao projex workitems get -n <SERIAL_NUMBER> --space-id <PROJECT_ID> --org-id <ORG_ID> --output json
+
+# 方式三：仅使用业务编号（自动解析项目）
+yunxiao projex workitems get -n <SERIAL_NUMBER> --org-id <ORG_ID> --output json
 ```
 
 ### 参数
@@ -497,13 +504,21 @@ yunxiao projex workitems get --space-id <PROJECT_ID> --workitem-id <WORKITEM_ID>
 | 参数 | 说明 | 必需 |
 |------|------|------|
 | `--org-id` | 组织 ID | 是 |
-| `--space-id` | 项目 ID | 是 |
-| `--workitem-id` | 工作项 ID | 是 |
+| `--space-id` | 项目 ID | 与 `--workitem-id` 配合时必需；使用 `-n` 时可省略 |
+| `--workitem-id` | 工作项内部 ID（24 位 hex） | 与 `--space-id` 配合使用 |
+| `-n, --serial-number` | 工作项业务编号（如 MMCL-1162，精确匹配） | 与 `--workitem-id` 互斥，二选一 |
 
 ### 示例
 
 ```bash
+# 使用内部 ID
 yunxiao projex workitems get --space-id proj-xxxxxxxx --workitem-id wi-xxxxxxxx --org-id org-xxxxxxxx --output json
+
+# 使用业务编号 + space-id（2 次 API 调用）
+yunxiao projex workitems get -n MMCL-1162 --space-id fbbd423844e0a9812b93a87641 --org-id org-xxxxxxxx
+
+# 仅使用业务编号（自动解析项目，3-4 次 API 调用）
+yunxiao projex workitems get -n MMCL-1162 --org-id org-xxxxxxxx
 ```
 
 ---

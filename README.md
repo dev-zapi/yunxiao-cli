@@ -108,6 +108,9 @@ yunxiao-cli flow pipelines list
 # 搜索工作项
 yunxiao-cli projex workitems search --space-id <PROJECT_ID> --category Req
 
+# 查看工作项详情（使用业务编号，自动解析项目）
+yunxiao-cli projex workitems get -n MMCL-1162
+
 # 查看工作项类型字段配置
 yunxiao-cli projex workitems fields --space-id <PROJECT_ID> --type-id <TYPE_ID>
 
