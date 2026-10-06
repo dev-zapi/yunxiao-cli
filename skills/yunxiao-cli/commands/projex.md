@@ -184,14 +184,16 @@ type_id            [workitems get]
 
 Agent 解析 JSON 输出时常用的顶层字段：
 
+> **ID ≠ 编码/编号**：`id` 是系统内部主键（hash，如 `e16af0648cbfcdc1fb02d75033`）；项目的人类可读编码是 `customCode`（如 `MMCL`），工作项的人类可读编号是 `serialNumber`（如 `MMCL-1162`）。工作项的 `identifier` 字段实测通常为 `null`，请勿用它取编号。
+
 ### projects search / list
 ```
-id, name, identifier, description, logicalStatus, gmtCreate, creator (object), scope
+id, name, customCode (项目编码, 如 MMCL), description, logicalStatus, status (object), scope, icon, creator (object), gmtCreate, gmtModified
 ```
 
 ### workitems search
 ```
-id, identifier (编号如 PROJ-123), subject, status (object), assignedTo (object), 
+id (内部 hash 主键), serialNumber (工作项编号, 如 MMCL-1162), subject, status (object), assignedTo (object), 
 sprint (list), spaceId, categoryId, gmtCreate
 ```
 
@@ -199,16 +201,18 @@ sprint (list), spaceId, categoryId, gmtCreate
 ```
 完整工作项对象。customFieldValues 数组包含优先级等自定义字段。
 推送字段可能为 null，仅在有值时返回。
+注: get 需传 --workitem-id（内部 id, hash），不能直接用编号 serialNumber；
+    按编号（如 MMCL-1162）查找请先用 workitems search -n 取得 id。
 ```
 
 ### sprints list
 ```
-id, name, startDate, endDate, status, capacity (hours), owner (list)
+id, name, status, startDate, endDate, capacityHours, description, locked (bool), owners (list), creator (object), gmtCreate, gmtModified
 ```
 
 ### versions list
 ```
-id, name, status, description, gmtCreate, gmtModified
+id, name, status, startDate, publishDate, locked (bool), owners (list), creator (object), gmtCreate, gmtModified
 ```
 
 ### labels list
@@ -218,7 +222,7 @@ id, name, color (hex), spaceId, gmtCreate
 
 ### workitems types
 ```
-id, name, identifier, categoryId, gmtCreate
+id, name, nameEn, categoryId, description, enable (bool), defaultType (bool), systemDefault (bool), creator (object), gmtCreate
 ```
 
 ### workitems fields
