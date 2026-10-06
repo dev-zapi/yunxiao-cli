@@ -730,16 +730,14 @@ fn get_args_require_at_least_one_identifier() {
 
 #[test]
 fn parse_serial_number_prefix_simple() {
-    let (prefix, full) = parse_serial_number_prefix("MMCL-1162").unwrap();
+    let prefix = parse_serial_number_prefix("MMCL-1162").unwrap();
     assert_eq!(prefix, "MMCL");
-    assert_eq!(full, "MMCL-1162");
 }
 
 #[test]
 fn parse_serial_number_prefix_with_hyphen_in_custom_code() {
-    let (prefix, full) = parse_serial_number_prefix("AB-CD-12").unwrap();
+    let prefix = parse_serial_number_prefix("AB-CD-12").unwrap();
     assert_eq!(prefix, "AB-CD");
-    assert_eq!(full, "AB-CD-12");
 }
 
 #[test]
@@ -891,4 +889,19 @@ async fn find_project_by_custom_code_handles_pagination() {
     assert_eq!(result, expected_id);
     mock1.assert_async().await;
     mock2.assert_async().await;
+}
+
+#[test]
+fn build_get_by_serial_number_body_includes_serial_number_condition_and_space_id() {
+    let body = build_get_by_serial_number_body("MMCL-1162", "space-abc123");
+
+    assert_eq!(body["category"], "Req,Task,Bug");
+    assert_eq!(body["spaceId"], "space-abc123");
+    assert_eq!(body["page"], 1);
+    assert_eq!(body["perPage"], 5);
+
+    let conditions = body["conditions"].as_str().unwrap();
+    assert!(conditions.contains("\"fieldIdentifier\":\"serialNumber\""));
+    assert!(conditions.contains("\"operator\":\"CONTAINS\""));
+    assert!(conditions.contains("MMCL-1162"));
 }

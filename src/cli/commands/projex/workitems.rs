@@ -348,7 +348,7 @@ pub struct WiSearchArgs {
     /// Optional keyword filter.
     #[arg(short = 'k', long)]
     pub keyword: Option<String>,
-    /// Filter by full serial number; exact match (e.g. PROJ-123 or MMCL-1162).
+    /// Filter by full exact match on work-item serial number (format: <project code>-<number>).
     #[arg(short = 'n', long)]
     pub serial_number: Option<String>,
     /// Filter by version ID. Get via: yunxiao projex versions list --space-id <SPACE_ID>
@@ -374,14 +374,14 @@ pub struct WiSearchArgs {
         .args(["workitem_id", "serial_number"])
 ))]
 pub struct WiGetArgs {
-    /// Project space ID (optional when using --serial-number; required with --workitem-id for backward compatibility).
+    /// Project space ID. Optional; only used with --serial-number to skip project auto-resolution. Ignored with --workitem-id.
     /// Get via: yunxiao projex projects search
     #[arg(long)]
     pub space_id: Option<String>,
     /// Work item internal ID (24-character hex). Get via: yunxiao projex workitems search --space-id <SPACE_ID>
     #[arg(long)]
     pub workitem_id: Option<String>,
-    /// Work-item serial number (full exact match, e.g. MMCL-1162). Can be used with or without --space-id.
+    /// Work-item serial number (full exact match on work-item serial number, format: <project code>-<number>). Can be used with or without --space-id.
     #[arg(short = 'n', long)]
     pub serial_number: Option<String>,
 }
@@ -1294,16 +1294,15 @@ async fn exec_workitems_search(
     Ok(())
 }
 
-/// Parse serial number prefix and number from a serial number like "MMCL-1162".
-/// Returns (prefix, full_serial_number).
-/// The prefix is the part before the last '-', supporting customCode with hyphens like "AB-CD-12".
-fn parse_serial_number_prefix(serial_number: &str) -> Option<(&str, &str)> {
+/// Parse serial number prefix from a serial number like "MMCL-1162".
+/// Returns the prefix (part before the last '-'), supporting customCode with hyphens like "AB-CD-12" → "AB-CD".
+fn parse_serial_number_prefix(serial_number: &str) -> Option<&str> {
     let last_dash_pos = serial_number.rfind('-')?;
     if last_dash_pos == 0 || last_dash_pos == serial_number.len() - 1 {
         return None;
     }
     let (prefix, _) = serial_number.split_at(last_dash_pos);
-    Some((prefix, serial_number))
+    Some(prefix)
 }
 
 /// Search for a project by customCode in the organization.
@@ -1393,6 +1392,23 @@ async fn find_project_by_custom_code(
     }
 }
 
+/// Build search body for finding work item by serial number.
+fn build_get_by_serial_number_body(serial_number: &str, space_id: &str) -> serde_json::Value {
+    let categories = resolve_search_categories(&[]);
+    let conditions_str = ConditionBuilder::new()
+        .string_contains("serialNumber", serial_number)
+        .build()
+        .unwrap_or_default();
+
+    json!({
+        "category": categories,
+        "spaceId": space_id,
+        "page": 1,
+        "perPage": 5,
+        "conditions": conditions_str,
+    })
+}
+
 /// Execute work-items get with support for both internal ID and serial number.
 async fn exec_workitems_get(
     args: &WiGetArgs,
@@ -1413,19 +1429,20 @@ async fn exec_workitems_get(
         return Ok(data);
     }
 
-    // Path 2 & 3: --serial-number provided
-    let serial_number = args.serial_number.as_ref().ok_or_else(|| {
-        CliError::Config("Either --workitem-id or --serial-number must be provided.".into())
-    })?;
+    // Path 2 & 3: --serial-number provided (ArgGroup ensures mutual exclusion with --workitem-id)
+    let serial_number = args
+        .serial_number
+        .as_ref()
+        .expect("ArgGroup guarantees that either workitem_id or serial_number is present");
 
     let space_id = if let Some(ref space_id) = args.space_id {
         // Path 2: serial number + space-id provided
         space_id.clone()
     } else {
         // Path 3: only serial number, need to resolve space-id from customCode prefix
-        let (prefix, _) = parse_serial_number_prefix(serial_number).ok_or_else(|| {
+        let prefix = parse_serial_number_prefix(serial_number).ok_or_else(|| {
             CliError::Config(format!(
-                "Invalid serial number format '{}'. Expected format like 'MMCL-1162'.",
+                "Invalid serial number format '{}'. Expected format: <project code>-<number>.",
                 serial_number
             ))
         })?;
@@ -1434,16 +1451,7 @@ async fn exec_workitems_get(
     };
 
     // Search for the work item by serial number
-    let search_body = json!({
-        "category": "Req,Task,Bug",
-        "spaceId": space_id,
-        "page": 1,
-        "perPage": 1,
-        "conditions": ConditionBuilder::new()
-            .string_contains("serialNumber", serial_number)
-            .build()
-            .unwrap_or_default(),
-    });
+    let search_body = build_get_by_serial_number_body(serial_number, &space_id);
 
     let resp = client
         .post_with_headers(
@@ -1459,8 +1467,20 @@ async fn exec_workitems_get(
 
     if workitems.is_empty() {
         return Err(CliError::Config(format!(
-            "No work item found with serial number '{}'. Serial number matching is exact; please verify the complete number (e.g. MMCL-1162).",
+            "No work item found with serial number '{}'. Serial number matching is exact; please verify the complete number.",
             serial_number
+        )));
+    }
+
+    if workitems.len() > 1 {
+        let matched_ids: Vec<String> = workitems
+            .iter()
+            .filter_map(|w| w.get("id").and_then(|v| v.as_str()).map(String::from))
+            .collect();
+        return Err(CliError::Config(format!(
+            "Multiple work items found with serial number '{}': {}. Serial number should be unique within a project.",
+            serial_number,
+            matched_ids.join(", ")
         )));
     }
 

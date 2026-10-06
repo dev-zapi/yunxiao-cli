@@ -433,7 +433,7 @@ yunxiao projex workitems search --space-id <PROJECT_ID> --org-id <ORG_ID> --outp
 | `--space-id` | 项目 ID（spaceId） | 是 |
 | `-c`, `--category` | 工作项类别，可多次传入；省略时默认搜索 `Req`、`Task`、`Bug` | 否 |
 | `-k`, `--keyword` | 标题关键词过滤 | 否 |
-| `-n`, `--serial-number` | 按编号过滤（如 PROJ-123） | 否 |
+| `-n`, `--serial-number` | 按业务编号精确过滤（格式：`<项目编码>-<编号>`） | 否 |
 | `-v`, `--version-id` | 按版本 ID 过滤 | 否 |
 | `-S`, `--sprint-id` | 按迭代 ID 过滤 | 否 |
 | `-p`, `--page` | 页码 | 否（默认 1） |
@@ -506,7 +506,7 @@ yunxiao projex workitems get -n <SERIAL_NUMBER> --org-id <ORG_ID> --output json
 | `--org-id` | 组织 ID | 是 |
 | `--space-id` | 项目 ID | 与 `--workitem-id` 配合时必需；使用 `-n` 时可省略 |
 | `--workitem-id` | 工作项内部 ID（24 位 hex） | 与 `--space-id` 配合使用 |
-| `-n, --serial-number` | 工作项业务编号（如 MMCL-1162，精确匹配） | 与 `--workitem-id` 互斥，二选一 |
+| `-n, --serial-number` | 工作项业务编号（格式：`<项目编码>-<编号>`，精确匹配） | 与 `--workitem-id` 互斥，二选一 |
 
 ### 示例
 
@@ -515,10 +515,10 @@ yunxiao projex workitems get -n <SERIAL_NUMBER> --org-id <ORG_ID> --output json
 yunxiao projex workitems get --space-id proj-xxxxxxxx --workitem-id wi-xxxxxxxx --org-id org-xxxxxxxx --output json
 
 # 使用业务编号 + space-id（2 次 API 调用）
-yunxiao projex workitems get -n MMCL-1162 --space-id fbbd423844e0a9812b93a87641 --org-id org-xxxxxxxx
+yunxiao projex workitems get -n PROJ-123 --space-id proj-xxxxxxxx --org-id org-xxxxxxxx
 
 # 仅使用业务编号（自动解析项目，3-4 次 API 调用）
-yunxiao projex workitems get -n MMCL-1162 --org-id org-xxxxxxxx
+yunxiao projex workitems get -n PROJ-123 --org-id org-xxxxxxxx
 ```
 
 ---
