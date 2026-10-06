@@ -593,7 +593,7 @@ async fn update_reloads_labels_once_after_a_label_validation_error() {
         labels: Some("ready-for-agent".into()),
         description: None,
         description_file: None,
-        description_format: None,
+        description_format: DescriptionFormat::Markdown,
         fields: Vec::new(),
     };
     let client = ApiClient::new("token", &server.url(), 5).unwrap();
@@ -604,4 +604,48 @@ async fn update_reloads_labels_once_after_a_label_validation_error() {
     initial_update.assert_async().await;
     refreshed_labels.assert_async().await;
     retried_update.assert_async().await;
+}
+
+fn minimal_update_args(description_format: DescriptionFormat) -> WiUpdateArgs {
+    WiUpdateArgs {
+        space_id: "space-1".into(),
+        workitem_id: "work-1".into(),
+        type_id: None,
+        subject: None,
+        assignee: None,
+        status: None,
+        priority: None,
+        labels: None,
+        description: None,
+        description_file: None,
+        description_format,
+        fields: Vec::new(),
+    }
+}
+
+#[test]
+fn update_body_defaults_format_to_markdown_when_description_set() {
+    // Regression: an update that carries a description must always send formatType,
+    // otherwise YunXiao resets the stored description to RICHTEXT.
+    let args = minimal_update_args(DescriptionFormat::Markdown);
+    let description = Some("# hi".to_string());
+    let body = build_update_body(&args, &description, &[], &[]);
+    assert_eq!(body["description"], "# hi");
+    assert_eq!(body["formatType"], "MARKDOWN");
+}
+
+#[test]
+fn update_body_uses_richtext_when_text_format_requested() {
+    let args = minimal_update_args(DescriptionFormat::Text);
+    let description = Some("plain".to_string());
+    let body = build_update_body(&args, &description, &[], &[]);
+    assert_eq!(body["formatType"], "RICHTEXT");
+}
+
+#[test]
+fn update_body_omits_format_when_no_description() {
+    let args = minimal_update_args(DescriptionFormat::Markdown);
+    let body = build_update_body(&args, &None, &[], &[]);
+    assert!(body.get("description").is_none());
+    assert!(body.get("formatType").is_none());
 }

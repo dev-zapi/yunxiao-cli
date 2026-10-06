@@ -294,10 +294,7 @@ fn update_reserved_fields(
         reserved.insert("status");
     }
     if description.is_some() {
-        reserved.insert("description");
-        if args.description_format.is_some() {
-            reserved.insert("formatType");
-        }
+        reserved.extend(["description", "formatType"]);
     }
     if args.priority.is_some() {
         reserved.insert("priority");
@@ -454,9 +451,10 @@ pub struct WiUpdateArgs {
     /// New description file path (optional, read from file).
     #[arg(long)]
     pub description_file: Option<String>,
-    /// New description format: text (richtext) or markdown.
-    #[arg(long, value_enum)]
-    pub description_format: Option<DescriptionFormat>,
+    /// New description format: text (richtext) or markdown (default: markdown).
+    /// Applied whenever a new description is provided; pass `text` to keep richtext.
+    #[arg(long, value_enum, default_value = "markdown")]
+    pub description_format: DescriptionFormat,
     /// Dynamic field in format "fieldId=value", can be used multiple times.
     /// Use "yunxiao projex workitems fields --space-id <SPACE_ID> --type-id <TYPE_ID>" to get available field IDs. Labels must use --labels.
     #[arg(long = "field")]
@@ -698,9 +696,7 @@ fn build_update_body(
     }
     if let Some(description) = description {
         body["description"] = json!(description);
-        if let Some(format) = args.description_format {
-            body["formatType"] = json!(format_type_to_api(format));
-        }
+        body["formatType"] = json!(format_type_to_api(args.description_format));
     }
     if let Some(priority) = &args.priority {
         body["priority"] = json!(priority);
