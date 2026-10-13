@@ -61,3 +61,6 @@ logs/
 /.firecrawl/
 /.playwright-cli/
 /.playwright-mcp/
+
+# Skill eval workspaces
+skills/*-workspace/

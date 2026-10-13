@@ -77,3 +77,14 @@ pipeline's definition, execution history, and runtime status.
 An organization-managed collection of hosts used by deployment or private
 execution resources. A Host Group identifier is distinct from a Pipeline Job's
 execution environment selector.
+
+## Feedback
+
+### Usage Feedback Report
+
+A single-issue document capturing a problem or inefficiency observed while
+using the CLI or its skills: what happened, the commands involved, and a
+suspected responsible party. Each report covers exactly one issue with one
+primary category. Collecting a report happens in the session where the issue
+occurred, defaults to the system temporary directory, and never modifies code,
+docs, or issues. Consuming reports is a human task, not a skill action.

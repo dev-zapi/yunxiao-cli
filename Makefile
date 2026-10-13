@@ -118,16 +118,23 @@ uninstall:
 	@rm -f $(HOME)/.local/bin/yunxiao
 	@echo "Uninstalled yunxiao from $(HOME)/.local/bin/"
 
-## Install skill files to $HOME/.agents/skills/yunxiao-cli/
+## Install all yunxiao skills (skills/yunxiao-*) to $HOME/.agents/skills/
 install-skill:
-	@mkdir -p $(HOME)/.agents/skills/yunxiao-cli
-	@cp -r skills/yunxiao-cli/* $(HOME)/.agents/skills/yunxiao-cli/
-	@echo "Installed skill to $(HOME)/.agents/skills/yunxiao-cli/"
+	@for d in skills/yunxiao-*/; do \
+		[ -f "$$d/SKILL.md" ] || continue; \
+		name=$$(basename "$$d"); \
+		mkdir -p $(HOME)/.agents/skills/$$name; \
+		cp -r $$d/* $(HOME)/.agents/skills/$$name/; \
+		echo "Installed $$name to $(HOME)/.agents/skills/$$name/"; \
+	done
 
-## Remove skill from $HOME/.agents/skills/yunxiao-cli/
+## Remove all yunxiao skills from $HOME/.agents/skills/
 uninstall-skill:
-	@rm -rf $(HOME)/.agents/skills/yunxiao-cli
-	@echo "Uninstalled skill from $(HOME)/.agents/skills/"
+	@for d in skills/yunxiao-*/; do \
+		[ -f "$$d/SKILL.md" ] || continue; \
+		rm -rf $(HOME)/.agents/skills/$$(basename "$$d"); \
+	done
+	@echo "Uninstalled yunxiao skills from $(HOME)/.agents/skills/"
 
 ##@ Clean
 
