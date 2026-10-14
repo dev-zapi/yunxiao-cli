@@ -5,8 +5,11 @@ description: 创建或新建云效流水线，使用本地 YAML 模板并安全�
 
 # Create Yunxiao Flow Pipeline
 
-Read `YUNXIAO.md` in the target repository before collecting IDs or running commands.
-Treat it as project context, but ask for missing or conflicting organization details.
+Read `YUNXIAO.md` (shared) and `.yunxiao/local.md` (local, if present) in the target
+repository before collecting IDs or running commands. Treat them as project context, but ask
+for missing or conflicting organization details. Field ownership and read order follow the
+"项目上下文配置" section of the yunxiao-cli skill; when the same field differs between the
+two files, the shared file wins.
 
 1. Collect a precise pipeline name, build template type, Codeup clone URL, branch,
    and desired trigger events. The supported template types are `simple`, `maven`,

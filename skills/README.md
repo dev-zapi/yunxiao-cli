@@ -9,6 +9,11 @@
 
 **触发词**: 云效、阿里云DevOps、项目管理、代码仓库、流水线、工作项、迭代、版本等
 
+### yunxiao-setup
+交互式创建项目级云效配置：随仓库提交的 YUNXIAO.md（共享）与被版本库忽略的 .yunxiao/local.md（本地），并提供旧单文件迁移。
+
+**触发词**: 创建 YUNXIAO.md、初始化云效项目配置、yunxiao init、设置云效项目、配置云效
+
 ### yunxiao-create-requirement
 在云效 Projex 上创建需求的完整工作流指导。
 
@@ -56,18 +61,22 @@ npx skills add your-username/yunxiao-cli -g
 
 ## 项目配置
 
-建议在项目根目录创建 `YUNXIAO.md` 文件，预定义常用的项目 ID 和配置：
+项目上下文配置分两层：随仓库提交的 `YUNXIAO.md`（共享配置，团队共识的稳定信息）和被版本库忽略的 `.yunxiao/local.md`（本地配置，个人易变缓存）。忽略规则由随仓库提交的 `.yunxiao/.gitignore`（内容为 `*` 和 `!.gitignore`）分发。
 
 ```markdown
-# 云效项目配置
-
+# YUNXIAO.md（共享，随仓库提交）
 ## 基本信息
 - 组织 ID: org-xxxxxxxx
 - 项目 ID: proj-xxxxxxxx
 
-## 常用 ID
+## 工作项类型
 - 需求类型 ID: type-xxx
+```
+
+```markdown
+# .yunxiao/local.md（本地，不入库）
+## 迭代与版本
 - 当前迭代 ID: sprint-xxx
 ```
 
-这样技能会优先使用这些预定义的值，减少重复查询。
+这样技能会优先使用这些预定义的值，减少重复查询。字段归属与冲突规则详见 yunxiao-cli 技能；初始化与旧文件迁移使用 yunxiao-setup 技能。

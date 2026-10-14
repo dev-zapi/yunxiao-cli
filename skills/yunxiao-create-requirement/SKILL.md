@@ -7,22 +7,22 @@ description: 在云效 Projex 上创建需求。当用户提到"创建需求"、
 
 指导 AI 在云效 Projex 创建需求（Requirement）。
 
-**前置知识**：通用命令、YUNXIAO.md 配置、ID 查询流程参考 [yunxiao-cli](../yunxiao-cli/SKILL.md) 技能。
+**前置知识**：通用命令、项目上下文配置（YUNXIAO.md / .yunxiao/local.md）、ID 查询流程参考 [yunxiao-cli](../yunxiao-cli/SKILL.md) 技能。
 
 ---
 
 ## 创建前准备
 
-### 1. 检查 YUNXIAO.md
+### 1. 检查项目上下文配置
 
-读取项目根目录的 `YUNXIAO.md`，获取预定义的项目 ID 和配置。如不存在，按 yunxiao-cli 技能指引查询。
+读取项目根目录的 `YUNXIAO.md`（共享配置）与 `.yunxiao/local.md`（本地配置，如存在），获取预定义的项目 ID 和配置。如均不存在，按 yunxiao-cli 技能指引查询。
 
 ### 2. 解析缺失的项目引用
 
-优先读取 `YUNXIAO.md` 中的组织 ID、项目空间 ID 和需求类型 ID。只查询缺失的值：
+优先读取配置中的组织 ID、项目空间 ID 和需求类型 ID（三者均属共享配置 `YUNXIAO.md`）。只查询缺失的值：
 
 ```bash
-# 仅当 YUNXIAO.md 没有需求类型 ID 时执行
+# 仅当配置没有需求类型 ID 时执行
 yunxiao projex workitems types --space-id <SPACE_ID> --category Req --org-id <ORG_ID> --output json
 
 # 按姓名或邮箱精确查找负责人；使用结果中的 userId，不是成员 id
@@ -97,7 +97,7 @@ CLI 已经根据创建返回的 ID 自动轮询详情并校验标题、负责人
 **用户**："帮我创建一个需求，优化登录流程，指派给张三"
 
 **AI 流程**：
-1. 读取 YUNXIAO.md，只有缺失时查询项目/类型 ID
+1. 读取项目上下文配置，只有缺失时查询项目/类型 ID
 2. 用 `org members search` 精确解析张三的 `userId`
 3. 询问详细描述（必填，不能为空）
 4. 调用一次 `workitems create`；CLI 内部完成标签解析、字段预检和稳定详情读取

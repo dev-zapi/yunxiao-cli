@@ -5,21 +5,28 @@
       "id": 1,
       "name": "首次初始化配置",
       "prompt": "我刚刚把云效 CLI 配置好了，现在想在这个项目里使用云效管理需求。你能帮我设置一下吗？",
-      "expected_output": "交互式创建 YUNXIAO.md 文件，包含组织和项目选择，生成最小版本配置",
+      "expected_output": "交互式创建三件套：YUNXIAO.md（共享，含组织和项目）、.yunxiao/.gitignore（* + !.gitignore）、.yunxiao/local.md（本地模板），并提示用户提交前两个文件",
       "files": []
     },
     {
       "id": 2,
       "name": "快速创建配置",
       "prompt": "快速创建一个 YUNXIAO.md，我急着用，先有个基本配置就行",
-      "expected_output": "快速创建最小版本 YUNXIAO.md，只包含组织和项目 ID，提示用户后续可补充",
+      "expected_output": "快速创建最小版本：YUNXIAO.md 只含组织和项目 ID，.yunxiao/local.md 为空模板，.yunxiao/.gitignore 就位；提示用户后续可补充其他字段",
       "files": []
     },
     {
       "id": 3,
       "name": "更新迭代配置",
-      "prompt": "我们项目进入了新的迭代，需要更新 YUNXIAO.md 里的迭代 ID",
-      "expected_output": "读取现有 YUNXIAO.md，查询迭代列表，让用户选择新迭代，更新文件",
+      "prompt": "我们项目进入了新的迭代，需要更新云效配置里的迭代 ID",
+      "expected_output": "读取 .yunxiao/local.md（迭代 ID 属于本地配置），查询迭代列表，让用户选择新迭代，更新 local.md 文件",
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "迁移旧单文件配置",
+      "prompt": "我之前按老办法建过 YUNXIAO.md，里面连迭代和成员映射都有，现在怎么迁移成两个文件？",
+      "expected_output": "按字段归属表拆分：当前迭代、成员/标签映射、优先级/状态 ID 移入 .yunxiao/local.md，其余留在 YUNXIAO.md；创建 .yunxiao/.gitignore；从根 .gitignore 移除旧的 YUNXIAO.md 条目；已跟踪文件保持跟踪",
       "files": []
     }
   ]

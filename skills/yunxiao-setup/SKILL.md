@@ -1,13 +1,15 @@
 ---
 name: yunxiao-setup
-description: 交互式创建项目级云效配置文件 YUNXIAO.md。当用户提到"创建 YUNXIAO.md"、"初始化云效项目配置"、"yunxiao init"、"设置云效项目"、"配置云效"时触发。用于首次设置项目与云效的关联关系。
+description: 交互式创建项目级云效配置：随仓库提交的 YUNXIAO.md（共享）+ 只在本地的 .yunxiao/local.md。当用户提到"创建 YUNXIAO.md"、"初始化云效项目配置"、"yunxiao init"、"设置云效项目"、"配置云效"时触发。用于首次设置项目与云效的关联关系，以及旧单文件配置的迁移。
 ---
 
 # 云效项目配置初始化
 
-指导 AI 交互式创建 `YUNXIAO.md` 文件，建立本地项目与云效项目的关联关系。
+指导 AI 交互式创建项目级云效配置：随仓库提交的 `YUNXIAO.md`（共享配置）和只在本地、被版本库忽略的 `.yunxiao/local.md`（本地配置）。
 
 **定位**：这是业务层配置，存储项目实体信息（项目ID、工作项类型等）。技术层配置（token、认证）由 `yunxiao config` 管理，两者独立。
+
+**字段归属与读取顺序的规范正主是 [yunxiao-cli](../yunxiao-cli/SKILL.md) 技能的"项目上下文配置"章节**，本技能负责生成与迁移，不另行定义归属。
 
 ---
 
@@ -15,8 +17,21 @@ description: 交互式创建项目级云效配置文件 YUNXIAO.md。当用户�
 
 当用户需要：
 - 首次将本地项目关联到云效项目
-- 创建或更新 YUNXIAO.md 配置文件
-- 设置项目级云效业务数据缓存
+- 创建或更新共享配置 YUNXIAO.md / 本地配置 .yunxiao/local.md
+- 将旧式单文件 YUNXIAO.md 迁移到双文件结构
+
+---
+
+## 目标文件结构
+
+```
+./YUNXIAO.md            # 共享配置，随仓库提交
+./.yunxiao/
+├── .gitignore          # 内容为 * 和 !.gitignore 两行，随仓库提交
+└── local.md            # 本地配置，被忽略、不入库
+```
+
+`.yunxiao/.gitignore` 中的 `*` 忽略目录内全部内容，`!.gitignore` 让规则文件本身可提交——克隆即得忽略规则，不依赖每个协作者跑过本技能。
 
 ---
 
@@ -30,8 +45,10 @@ description: 交互式创建项目级云效配置文件 YUNXIAO.md。当用户�
 - 检测当前目录是否为 Git 仓库（用于提示，非必需）
 
 **检查现有配置**：
-- 查看项目根目录是否已存在 `YUNXIAO.md`
-- 如果存在，询问用户是否要更新现有配置
+- 查看项目根目录是否已存在 `YUNXIAO.md` 和 `.yunxiao/local.md`
+- 两者都存在：询问用户要更新哪个（或都更新）
+- 只存在 YUNXIAO.md 且含本地类字段（当前迭代、成员/标签映射、优先级/状态 ID）：主动提供自动迁移（见"旧单文件迁移"）
+- 都不存在：走全新创建流程
 
 ### 2. 交互式创建
 
@@ -65,23 +82,23 @@ yunxiao codeup repos list --org-id <ORG_ID> --output json
 
 **步骤 4：补充配置（可选）**
 
-询问用户是否需要补充：
-- 工作项类型 ID（需求/任务/缺陷）
-- 当前迭代 ID
-- 常用成员显示名与 Account User `userId`
-- 常用标签名称与标签 ID
-- 其他常用配置
+询问用户是否需要补充，并告知各字段去向：
+- 工作项类型 ID（需求/任务/缺陷）→ 共享配置
+- 当前迭代 ID → 本地配置
+- 常用成员显示名与 Account User `userId` → 本地配置
+- 常用标签名称与标签 ID → 本地配置
+- 优先级/状态等快捷 ID → 本地配置
 
 如果用户选择跳过，生成最小版本配置。
 
 ### 3. 生成配置文件
 
-**文件位置**：项目根目录 `./YUNXIAO.md`
+三个文件一起创建，缺一不可（local.md 允许只含节标题的空模板）。
 
-**文件格式**：
+**共享配置 `./YUNXIAO.md`**（提交进仓库）：
 
 ```markdown
-# 云效项目配置
+# 云效项目配置（共享）
 
 ## 基本信息
 - 组织 ID: <ORG_ID>
@@ -92,32 +109,54 @@ yunxiao codeup repos list --org-id <ORG_ID> --output json
 - 主仓库 ID: <REPO_ID>（可选）
 - 默认分支: main
 
-## 常用 ID（可选，可能过期）
-<!-- 这些 ID 可能因云效系统配置变更而失效，使用前建议验证 -->
+## 工作项类型
+- 需求类型 ID: <TYPE_ID>（可选）
+- 任务类型 ID: <TYPE_ID>（可选）
+- 缺陷类型 ID: <TYPE_ID>（可选）
+```
 
-### 工作项类型
-- 需求类型 ID: <TYPE_ID>
-- 任务类型 ID: <TYPE_ID>
-- 缺陷类型 ID: <TYPE_ID>
+**忽略规则 `./.yunxiao/.gitignore`**（提交进仓库）：
 
-### 常用成员（可选，显示名 → Account User userId）
+```
+*
+!.gitignore
+```
+
+**本地配置 `./.yunxiao/local.md`**（被忽略，不入库；即使暂无内容也总是创建，空模板自带自解释性）：
+
+```markdown
+# 云效项目配置（本地，不入库）
+
+## 迭代与版本
+- 当前迭代 ID: <SPRINT_ID>（可选，可能过期）
+
+## 常用成员（可选，显示名 → Account User userId）
 - <显示名>: <USER_ID>
 
-### 常用标签（可选，名称 → label ID）
+## 常用标签（可选，名称 → label ID）
 - <标签名>: <LABEL_ID>
 
-### 迭代与版本
-- 当前迭代 ID: <SPRINT_ID>
-
-### 其他配置
+## 其他配置
 - 优先级 P0 ID: <PRIORITY_ID>
 - 状态"进行中" ID: <STATUS_ID>
 ```
 
 **注意事项**：
 - 标注可选字段的状态（如"可选，可能过期"）
-- 提供清晰的字段说明
 - 使用 Markdown 格式便于人工编辑
+- 提示用户将 `YUNXIAO.md` 与 `.yunxiao/.gitignore` 一起提交
+
+---
+
+## 旧单文件迁移
+
+检测到已存在的 YUNXIAO.md 包含本地类字段（当前迭代、成员/标签映射、优先级/状态 ID）时，提供自动迁移：
+
+1. **拆分**：按 yunxiao-cli 技能的字段归属表，把本地类字段搬到 `.yunxiao/local.md`，其余留在 `YUNXIAO.md`
+2. **建忽略规则**：创建 `.yunxiao/.gitignore`（`*` + `!.gitignore`）
+3. **清理旧忽略条目**：根 `.gitignore` 中如有 `YUNXIAO.md` 条目则移除——旧版技能建议写入过它，现在共享文件需要提交，留着会挡路
+4. **保持跟踪**：YUNXIAO.md 若已被 git 跟踪则保持跟踪不动
+5. 迁移完成后向用户展示两个文件的内容确认
 
 ---
 
@@ -125,25 +164,17 @@ yunxiao codeup repos list --org-id <ORG_ID> --output json
 
 ### 自动更新
 
-其他 yunxiao 技能在使用过程中发现 YUNXIAO.md 缺失某些字段时：
+其他 yunxiao 技能在使用过程中发现配置缺失某些字段时：
 - 询问用户是否要补充
-- 补充后更新文件
+- 按字段归属表补到归属文件（共享字段进 YUNXIAO.md，本地字段进 local.md）
 
 创建需求时，CLI 已经可以直接解析标签名称并校验负责人；技能不得未经用户同意自动写入这些映射。
 
 ### 错误处理
 
-当使用 YUNXIAO.md 中的 ID 报错时：
+当使用配置中的 ID 报错时：
 - 提示用户配置可能过期
-- 建议重新运行 `yunxiao-setup` 或手动更新
-
-### 版本控制建议
-
-建议将 `YUNXIAO.md` 加入 `.gitignore`，避免泄露业务信息：
-
-```bash
-echo "YUNXIAO.md" >> .gitignore
-```
+- 建议重新运行 `yunxiao-setup` 或手动更新对应文件
 
 ---
 
@@ -155,32 +186,37 @@ echo "YUNXIAO.md" >> .gitignore
 
 **AI 流程**：
 1. 检查认证配置
-2. 查询可访问的组织列表
-3. 展示组织让用户选择
-4. 查询组织下的项目列表
-5. 展示项目让用户选择
-6. 询问是否关联仓库
-7. 询问是否补充其他配置
-8. 生成 YUNXIAO.md 文件
-9. 提示用户加入 .gitignore
+2. 查询并选择组织、项目
+3. 询问是否关联仓库、补充其他配置
+4. 同时创建 YUNXIAO.md、.yunxiao/.gitignore、.yunxiao/local.md
+5. 提示用户提交 YUNXIAO.md 与 .yunxiao/.gitignore
 
 ### 场景 2：快速初始化
 
 **用户**："快速创建 YUNXIAO.md"
 
 **AI 流程**：
-1. 快速创建最小版本（只包含组织和项目）
+1. 快速创建最小版本（共享文件只含组织和项目；本地文件为空模板）
 2. 提示用户后续可补充其他字段
 
-### 场景 3：更新配置
+### 场景 3：更新迭代
 
-**用户**："更新 YUNXIAO.md 中的迭代 ID"
+**用户**："更新云效配置里的迭代 ID"
 
 **AI 流程**：
-1. 读取现有 YUNXIAO.md
+1. 读取 .yunxiao/local.md（迭代 ID 属于本地配置）
 2. 查询当前迭代列表
 3. 让用户选择新的迭代
-4. 更新文件中的迭代 ID 字段
+4. 更新 local.md 中的迭代 ID 字段
+
+### 场景 4：迁移旧配置
+
+**用户**："我之前建过 YUNXIAO.md，听说现在拆成两个文件了"
+
+**AI 流程**：
+1. 读取现有 YUNXIAO.md，识别其中的本地类字段
+2. 按"旧单文件迁移"章节拆分并清理根 .gitignore
+3. 展示两个文件的内容，提示提交共享文件与忽略规则
 
 ---
 
@@ -191,14 +227,13 @@ echo "YUNXIAO.md" >> .gitignore
 | "未配置认证信息" | token 未设置 | 提示用户运行 `yunxiao config set token <TOKEN>` 或设置环境变量 |
 | "组织列表为空" | 无访问权限或 token 无效 | 检查 token 权限或联系管理员 |
 | "项目列表为空" | 该组织下无项目或无权限 | 确认组织 ID 正确，或检查权限 |
-| "文件已存在" | YUNXIAO.md 已存在 | 询问用户是否覆盖或更新 |
+| "文件已存在" | 目标文件已存在 | 询问用户是覆盖、更新还是迁移 |
 
 ---
 
 ## 与其他技能的关系
 
-- **yunxiao-cli**：基础技能，定义通用命令和 ID 查询流程
-- **yunxiao-create-requirement**：创建需求时优先读取 YUNXIAO.md
-- **yunxiao-mr-create**：创建 MR 时优先读取 YUNXIAO.md
+- **yunxiao-cli**：基础技能，字段归属表与读取顺序的正主；定义通用命令和 ID 查询流程
+- **yunxiao-create-requirement**：创建需求时优先读取项目上下文配置
 
-所有 yunxiao 技能都会优先检查项目根目录的 YUNXIAO.md，使用预定义配置减少查询。
+所有 yunxiao 技能都会优先检查项目根目录的 YUNXIAO.md 与 .yunxiao/local.md，使用预定义配置减少查询。
