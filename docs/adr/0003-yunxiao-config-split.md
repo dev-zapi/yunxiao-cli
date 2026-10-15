@@ -1,6 +1,8 @@
 # 将 YUNXIAO.md 拆分为共享配置与本地配置
 
-项目上下文配置原为单个 `YUNXIAO.md` 且建议整体 gitignore，团队无法共享稳定的项目关联信息，每个协作者都要从零查询一遍。决定拆为两层：`YUNXIAO.md` 随仓库提交（组织/项目/仓库/工作项类型 ID 等团队稳定字段），`.yunxiao/local.md` 不入库（当前迭代、成员/标签映射、优先级/状态 ID 等个人易变缓存），忽略规则由随仓库提交的 `.yunxiao/.gitignore`（`*` + `!.gitignore`）分发，克隆即生效。
+项目上下文配置原为单个 `YUNXIAO.md` 且建议整体 gitignore，团队无法共享稳定的项目关联信息，每个协作者都要从零查询一遍。决定拆为两层：`YUNXIAO.md` 随仓库提交（组织/项目/仓库/工作项类型 ID、状态/优先级字典等团队稳定字段），`.yunxiao/local.md` 不入库（当前迭代、成员/标签映射等个人易变缓存），忽略规则由随仓库提交的 `.yunxiao/.gitignore`（`*` + `!.gitignore`）分发，克隆即生效。
+
+> **修订（2026-10-15）**：状态/优先级 ID 经查为 space+type 维度的配置型 ID（全员相同、非个人化），归属由本地更正为共享——共享文件以"状态与优先级字典"（每类型 name→ID 表）收录；本地仅保留当前迭代、成员/标签映射。字典失效时由技能征得用户同意后经 `workitems flow` / `workitems fields` 刷新。存量 local 条目不迁移，自然淘汰。
 
 ## Considered Options
 

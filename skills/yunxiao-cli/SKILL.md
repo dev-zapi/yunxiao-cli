@@ -25,15 +25,17 @@ cli_version: ">=0.1.0"
 
 ### 字段归属表
 
+判据：**配置型 ID**（由 workflow / fields 派生，space+type 维度，全员相同）归共享；**使用习惯或时效性**字段归本地。
+
 | 字段 | 归属 |
 |------|------|
 | 组织 ID、项目 ID、项目名称 | 共享 `YUNXIAO.md` |
 | 主仓库 ID、默认分支 | 共享 `YUNXIAO.md` |
 | 需求/任务/缺陷类型 ID | 共享 `YUNXIAO.md` |
+| 状态/优先级字典（每类型 name→ID 表） | 共享 `YUNXIAO.md` |
 | 当前迭代 ID | 本地 `.yunxiao/local.md` |
 | 常用成员映射（显示名 → Account User userId） | 本地 `.yunxiao/local.md` |
 | 常用标签映射（名称 → label ID） | 本地 `.yunxiao/local.md` |
-| 优先级 P0 ID、状态"进行中" ID | 本地 `.yunxiao/local.md` |
 
 ### YUNXIAO.md 文件格式（共享）
 
@@ -53,6 +55,22 @@ cli_version: ">=0.1.0"
 - 需求类型 ID: type-xxx
 - 任务类型 ID: type-yyy
 - 缺陷类型 ID: type-zzz
+
+## 状态与优先级字典（name → ID）
+
+由 `workitems flow`（状态）与 `workitems fields`（优先级）按类型生成；管理员调整工作流后需刷新。
+
+### 需求（type-xxx）
+- 状态: 待处理=100005、设计中=156603、开发中=142838、测试中=100012、测试完成=100013、已完成=100014、已取消=141230
+- 优先级: P0=p0-id、P1=p1-id、P2=p2-id
+
+### 任务（type-yyy）
+- 状态: （同上格式）
+- 优先级: （同上格式）
+
+### 缺陷（type-zzz）
+- 状态: （同上格式）
+- 优先级: （同上格式）
 ```
 
 ### .yunxiao/local.md 文件格式（本地）
@@ -68,10 +86,6 @@ cli_version: ">=0.1.0"
 
 ## 常用标签（名称 → label ID）
 - ready-for-agent: e4995af971162ddb8faa7dc1a1
-
-## 其他配置
-- 优先级 P0 ID: priority-xxx
-- 状态"进行中" ID: status-xxx
 ```
 
 这些映射可能过期。CLI 在实际使用时仍会验证；技能不得未经用户同意自动修改任一配置文件。
@@ -87,6 +101,7 @@ cli_version: ">=0.1.0"
 3. **可按场景反转**：用户在对话中明确要求时（如"这次用我本地的迭代"），本次以本地值为准；不存在持久开关
 4. **可以补充文件**：查询到新的常用 ID 时，建议用户按字段归属表更新归属文件
 5. **可选字段可能过期**：标注为"可选"或存于本地文件的字段可能因云效配置变更而失效，使用时注意验证
+6. **字典失效即刷新**：共享字典中的状态/优先级 ID 报错失效时，征得用户同意后用 `workitems flow` / `workitems fields` 重新生成对应类型的字典，并提示这是一次需要提交的仓库变更
 
 **首次使用**：如项目没有这两个文件，可使用 `yunxiao-setup` 技能交互式创建；存量单文件 YUNXIAO.md 也由该技能迁移。
 
@@ -178,7 +193,7 @@ Agent 必须仔细区分，避免参数传递错误。
 ### 6. 创建/更新前先查询
 
 - 创建工作项前：先 `workitems types` 获取 type_id
-- 更新状态前：先 `workitems flow` 获取可用 status_id
+- 更新状态前：优先读共享配置的状态字典；无字典或 ID 失效时，先 `workitems flow` 获取可用 status_id（注意传 ID，不传中文显示名）
 - 设置字段前：先 `workitems fields --space-id` 获取 fieldIdentifier、格式类型和必填字段
 - 标签直接使用 `--labels` 传 ID 或精确名称；不要使用 `--field labels=...`
 - `workitems create` 默认返回 CLI 自动轮询后的稳定详情；仅在需要原始响应时使用 `--wait-timeout 0`

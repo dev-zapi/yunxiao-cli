@@ -47,7 +47,7 @@ description: 交互式创建项目级云效配置：随仓库提交的 YUNXIAO.m
 **检查现有配置**：
 - 查看项目根目录是否已存在 `YUNXIAO.md` 和 `.yunxiao/local.md`
 - 两者都存在：询问用户要更新哪个（或都更新）
-- 只存在 YUNXIAO.md 且含本地类字段（当前迭代、成员/标签映射、优先级/状态 ID）：主动提供自动迁移（见"旧单文件迁移"）
+- 只存在 YUNXIAO.md 且含本地类字段（当前迭代、成员/标签映射）：主动提供自动迁移（见"旧单文件迁移"）
 - 都不存在：走全新创建流程
 
 ### 2. 交互式创建
@@ -83,11 +83,10 @@ yunxiao codeup repos list --org-id <ORG_ID> --output json
 **步骤 4：补充配置（可选）**
 
 询问用户是否需要补充，并告知各字段去向：
-- 工作项类型 ID（需求/任务/缺陷）→ 共享配置
+- 工作项类型 ID（需求/任务/缺陷）→ 共享配置；选定类型后对该类型运行 `workitems flow`（状态）与 `workitems fields`（优先级），在共享配置生成 name→ID 字典
 - 当前迭代 ID → 本地配置
 - 常用成员显示名与 Account User `userId` → 本地配置
 - 常用标签名称与标签 ID → 本地配置
-- 优先级/状态等快捷 ID → 本地配置
 
 如果用户选择跳过，生成最小版本配置。
 
@@ -113,6 +112,14 @@ yunxiao codeup repos list --org-id <ORG_ID> --output json
 - 需求类型 ID: <TYPE_ID>（可选）
 - 任务类型 ID: <TYPE_ID>（可选）
 - 缺陷类型 ID: <TYPE_ID>（可选）
+
+## 状态与优先级字典（name → ID）
+
+按已声明的工作项类型生成；由 `workitems flow`（状态）与 `workitems fields`（优先级）查询。
+
+### <类型名>（<TYPE_ID>）
+- 状态: <显示名>=<ID>、…
+- 优先级: <P0>=<ID>、…
 ```
 
 **忽略规则 `./.yunxiao/.gitignore`**（提交进仓库）：
@@ -135,10 +142,6 @@ yunxiao codeup repos list --org-id <ORG_ID> --output json
 
 ## 常用标签（可选，名称 → label ID）
 - <标签名>: <LABEL_ID>
-
-## 其他配置
-- 优先级 P0 ID: <PRIORITY_ID>
-- 状态"进行中" ID: <STATUS_ID>
 ```
 
 **注意事项**：
@@ -150,9 +153,9 @@ yunxiao codeup repos list --org-id <ORG_ID> --output json
 
 ## 旧单文件迁移
 
-检测到已存在的 YUNXIAO.md 包含本地类字段（当前迭代、成员/标签映射、优先级/状态 ID）时，提供自动迁移：
+检测到已存在的 YUNXIAO.md 包含本地类字段（当前迭代、成员/标签映射）时，提供自动迁移：
 
-1. **拆分**：按 yunxiao-cli 技能的字段归属表，把本地类字段搬到 `.yunxiao/local.md`，其余留在 `YUNXIAO.md`
+1. **拆分**：按 yunxiao-cli 技能的字段归属表，把本地类字段搬到 `.yunxiao/local.md`，其余（含旧式状态/优先级条目）留在 `YUNXIAO.md`
 2. **建忽略规则**：创建 `.yunxiao/.gitignore`（`*` + `!.gitignore`）
 3. **清理旧忽略条目**：根 `.gitignore` 中如有 `YUNXIAO.md` 条目则移除——旧版技能建议写入过它，现在共享文件需要提交，留着会挡路
 4. **保持跟踪**：YUNXIAO.md 若已被 git 跟踪则保持跟踪不动
@@ -174,7 +177,8 @@ yunxiao codeup repos list --org-id <ORG_ID> --output json
 
 当使用配置中的 ID 报错时：
 - 提示用户配置可能过期
-- 建议重新运行 `yunxiao-setup` 或手动更新对应文件
+- 状态/优先级字典失效：征得用户同意后用 `workitems flow` / `workitems fields` 重新生成对应类型的字典，并提示这是一次需要提交的仓库变更
+- 其他字段：建议重新运行 `yunxiao-setup` 或手动更新对应文件
 
 ---
 
