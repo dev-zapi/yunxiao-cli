@@ -26,7 +26,7 @@
       "id": 4,
       "name": "迁移旧单文件配置",
       "prompt": "我之前按老办法建过 YUNXIAO.md，里面连迭代和成员映射都有，现在怎么迁移成两个文件？",
-      "expected_output": "按字段归属表拆分：当前迭代、成员/标签映射、优先级/状态 ID 移入 .yunxiao/local.md，其余留在 YUNXIAO.md；创建 .yunxiao/.gitignore；从根 .gitignore 移除旧的 YUNXIAO.md 条目；已跟踪文件保持跟踪",
+      "expected_output": "按字段归属表拆分：当前迭代、标签映射移入 .yunxiao/local.md，成员映射经询问存入 ~/.config/yunxiao-cli/global.md（用户拒绝则跳过），其余（含状态/优先级字典）留在 YUNXIAO.md；创建 .yunxiao/.gitignore；从根 .gitignore 移除旧的 YUNXIAO.md 条目；已跟踪文件保持跟踪",
       "files": []
     }
   ]

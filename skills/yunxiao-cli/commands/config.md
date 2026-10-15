@@ -27,7 +27,7 @@ yunxiao config list
 ### 输出示例
 
 ```
-配置文件: ~/.config/yunxiao/config.toml
+配置文件: ~/.config/yunxiao-cli/config.toml
 
 配置项:
   token = pt_xxxxxxxxxxxxxxxx
@@ -144,13 +144,13 @@ yunxiao config path
 ### 输出示例
 
 ```
-配置文件路径: ~/.config/yunxiao/config.toml
+配置文件路径: ~/.config/yunxiao-cli/config.toml
 ```
 
 ### 说明
 
-- Linux/macOS: `~/.config/yunxiao/config.toml`
-- Windows: `%APPDATA%\yunxiao\config.toml`
+- Linux/macOS: `~/.config/yunxiao-cli/config.toml`
+- Windows: `%APPDATA%\yunxiao-cli\config.toml`
 
 ---
 
@@ -209,7 +209,7 @@ yunxiao config list
 **解决方案**:
 ```bash
 # 创建配置目录
-mkdir -p ~/.config/yunxiao
+mkdir -p ~/.config/yunxiao-cli
 
 # 设置任意配置项会自动创建文件
 yunxiao config set default_output table
