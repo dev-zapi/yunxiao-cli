@@ -446,7 +446,7 @@ pub struct WiUpdateArgs {
     /// New assignee account user ID. Use the `userId` from `yunxiao org members search`, not the membership `id`.
     #[arg(long)]
     pub assignee: Option<String>,
-    /// New status. Get via: yunxiao projex workitems fields --space-id <SPACE_ID> --type-id <TYPE_ID>
+    /// New status ID (not display name). Get via: yunxiao projex workitems flow --space-id <SPACE_ID> --type-id <TYPE_ID>
     #[arg(long)]
     pub status: Option<String>,
     /// New priority. Get via: yunxiao projex workitems fields --space-id <SPACE_ID> --type-id <TYPE_ID>
