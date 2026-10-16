@@ -30,20 +30,26 @@
 
 ## 已收集的 API 列表
 
-### ✅ 代码仓库（5个API）
+### ✅ 代码仓库（8个API，2026-10-16 更新，完整文档见 [codeup/repositories/](./codeup/repositories/)）
 
 - CreateRepository - 创建代码库: https://help.aliyun.com/zh/yunxiao/developer-reference/createreposition-creates-a-code-base
 - DeleteRepository - 删除代码库: https://help.aliyun.com/zh/yunxiao/developer-reference/deletereposition-delete-code-base
 - GetRepository - 查询代码库: https://help.aliyun.com/zh/yunxiao/developer-reference/getrepository-query-the-code-base
 - ListRepositories - 查询代码库列表: https://help.aliyun.com/zh/yunxiao/developer-reference/listrepositories-query-code-base-list
 - ListTemplateRepositories - 查询模板代码库列表: https://help.aliyun.com/zh/yunxiao/developer-reference/listtemplaterepositories-query-the-list-of-template-code-libraries
+- UpdateRepository - 更新代码库: https://help.aliyun.com/zh/yunxiao/developer-reference/updatereposition-update-the-code-base
+- ArchiveRepository - 归档代码库: https://help.aliyun.com/zh/yunxiao/developer-reference/archivereposition-archive-the-code-base
+- TransferRepository - 转移代码库: https://help.aliyun.com/zh/yunxiao/developer-reference/transfer-repository-transfer-repository
 
-### ✅ 代码组（4个API）
+### ✅ 代码组（5个API，2026-10-16 更新，完整文档见 [codeup/groups/](./codeup/groups/)）
 
-- CreateGroup - 创建代码组: https://help.aliyun.com/zh/yunxiao/developer-reference/creategroup
-- DeleteGroup - 删除代码组: https://help.aliyun.com/zh/yunxiao/developer-reference/deletegroup
-- GetGroup - 查询代码组: https://help.aliyun.com/zh/yunxiao/developer-reference/getgroup
-- ListGroups - 查询代码组列表: https://help.aliyun.com/zh/yunxiao/developer-reference/listgroups
+- CreateGroup - 创建代码组: https://help.aliyun.com/zh/yunxiao/developer-reference/creategroup-creates-a-code-group
+- GetNamespace - 查询代码组空间信息: https://help.aliyun.com/zh/yunxiao/developer-reference/getnamespace-query-code-group-space-information
+- ListNamespaces - 查询代码组空间列表: https://help.aliyun.com/zh/yunxiao/developer-reference/listnamespaces-query-the-code-group-space-list
+- ListGroupRepositories - 查询代码组下的代码库列表: https://help.aliyun.com/zh/yunxiao/developer-reference/listgrouprepostions-query-the-list-of-code-libraries-under-a-code-group
+- UpdateGroup - 更新代码组: https://help.aliyun.com/zh/yunxiao/developer-reference/updategroup-update-code-group
+
+> 注：旧索引中的 DeleteGroup、GetGroup、ListGroups 已从官方文档下线（2026-10 导航实况）。
 
 ### ✅ 分支（4个API）
 
