@@ -494,3 +494,19 @@ cargo build --release
 - [云效 OpenAPI 文档](https://help.aliyun.com/zh/yunxiao/developer-reference/)
 - [API 列表](./docs/yunxiao_api_list.md)
 - [实现报告](./docs/projex_api_implementation_report.md)
+
+---
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs are tracked in GitHub Issues (dev-zapi/yunxiao-cli) via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-label vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `GLOSSARY.md` at the repo root, ADRs in `docs/adr/`. See `docs/agents/domain.md`.
