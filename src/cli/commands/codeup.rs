@@ -55,6 +55,8 @@ pub enum ReposCmds {
     List(ReposListArgs),
     /// Get repository details by ID.
     Get(ReposGetArgs),
+    /// Create a repository, optionally importing from a template.
+    Create(Box<ReposCreateArgs>),
     /// Query template repositories.
     Templates(ReposTemplatesArgs),
     /// Delete a repository.
@@ -100,6 +102,47 @@ pub struct ReposGetArgs {
     /// Repository ID. Get via: yunxiao codeup repos list
     #[arg(long)]
     pub repo_id: String,
+}
+
+/// Arguments for `codeup repos create`.
+#[derive(Debug, Args)]
+pub struct ReposCreateArgs {
+    /// Repository name (required).
+    #[arg(long)]
+    pub name: String,
+    /// Repository path (required).
+    #[arg(long)]
+    pub path: String,
+    /// Parent code group space ID. Accepts a numeric ID or full path; omit to create at the organization root.
+    #[arg(long = "namespace-id")]
+    pub namespace_id: Option<String>,
+    /// Repository description.
+    #[arg(long)]
+    pub description: Option<String>,
+    /// Repository visibility. One of: private, internal.
+    #[arg(long)]
+    pub visibility: Option<String>,
+    /// Type of README to auto-create. One of: EMPTY, USER_GUIDE.
+    #[arg(long = "readme-type")]
+    pub readme_type: Option<String>,
+    /// Comma-separated repository tags, e.g. "tag1,tag2".
+    #[arg(long)]
+    pub tags: Option<String>,
+    /// Repository avatar URL.
+    #[arg(long = "avatar-url")]
+    pub avatar_url: Option<String>,
+    /// Template repository ID to import from. Accepts a numeric ID or full path.
+    #[arg(long = "template-id")]
+    pub template_id: Option<String>,
+    /// Template type: 1 (custom) or 2 (system preset).
+    #[arg(long = "template-type")]
+    pub template_type: Option<i64>,
+    /// Import all branches from the template repository.
+    #[arg(long = "sync-all-branches")]
+    pub sync_all_branches: bool,
+    /// Automatically create missing parent paths.
+    #[arg(long = "create-parent-path")]
+    pub create_parent_path: bool,
 }
 
 /// Arguments for `codeup repos templates`.
@@ -870,6 +913,87 @@ fn build_mr_create_body(c: &MrCreateArgs) -> Result<serde_json::Value> {
     Ok(body)
 }
 
+/// Render an identifier that may be a numeric ID or a full path.
+///
+/// Numeric strings are emitted as JSON numbers so the API's typed field is
+/// preserved; anything else is emitted as a JSON string (the URL-encoded
+/// full path the Codeup API also accepts for namespace/template fields).
+fn id_or_path_value(value: &str) -> serde_json::Value {
+    match value.trim().parse::<i64>() {
+        Ok(id) => json!(id),
+        Err(_) => json!(value),
+    }
+}
+
+/// Build the request body for `codeup repos create`.
+///
+/// Required fields (`name`, `path`) are always present. All other flags are
+/// omitted from the body when unset. Template-related flags are nested into
+/// a single `templateProject` object and only included when `template_id` is
+/// given. Visibility is validated against the API's allowed values.
+fn build_repo_create_body(c: &ReposCreateArgs) -> Result<serde_json::Value> {
+    let mut body = json!({
+        "name": c.name,
+        "path": c.path,
+    });
+    if let Some(ref namespace_id) = c.namespace_id {
+        body["namespaceId"] = id_or_path_value(namespace_id);
+    }
+    if let Some(ref description) = c.description {
+        body["description"] = json!(description);
+    }
+    if let Some(ref visibility) = c.visibility {
+        match visibility.as_str() {
+            "private" | "internal" => body["visibility"] = json!(visibility),
+            other => {
+                return Err(crate::error::CliError::Config(format!(
+                    "--visibility must be one of: private, internal (got \"{other}\")"
+                )));
+            }
+        }
+    }
+    if let Some(ref readme_type) = c.readme_type {
+        body["readMeType"] = json!(readme_type);
+    }
+    if let Some(ref tags) = c.tags {
+        let values: Vec<String> = tags
+            .split(',')
+            .map(|tag| tag.trim().to_string())
+            .filter(|tag| !tag.is_empty())
+            .collect();
+        if !values.is_empty() {
+            body["repositoryTags"] = json!(values);
+        }
+    }
+    if let Some(ref avatar_url) = c.avatar_url {
+        body["avatarUrl"] = json!(avatar_url);
+    }
+    if let Some(ref template_id) = c.template_id {
+        let mut template = json!({
+            "templateProjectId": id_or_path_value(template_id),
+        });
+        if let Some(template_type) = c.template_type {
+            template["templateType"] = json!(template_type);
+        }
+        if c.sync_all_branches {
+            template["syncAllBranches"] = json!(true);
+        }
+        body["templateProject"] = template;
+    }
+    Ok(body)
+}
+
+/// Build the request path for `codeup repos create`, appending the
+/// `createParentPath` query parameter when the flag is set.
+fn repos_create_path(org_id: &str, create_parent_path: bool) -> String {
+    let base = format!("/oapi/v1/codeup/organizations/{org_id}/repositories");
+    if create_parent_path {
+        format!("{base}?createParentPath=true")
+    } else {
+        base
+    }
+}
+
 fn build_mr_merge_body(m: &MrMergeArgs) -> Result<serde_json::Value> {
     let mut body = json!({
         "mergeType": m.merge_type,
@@ -1277,6 +1401,13 @@ async fn exec_repos(
                     ),
                     &[],
                 )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+        ReposCmds::Create(c) => {
+            let body = build_repo_create_body(c)?;
+            let data = client
+                .post(&repos_create_path(oid, c.create_parent_path), &body)
                 .await?;
             output::print_output(&data, format)?;
         }
@@ -2404,6 +2535,249 @@ mod tests {
             panic!("expected mr command");
         };
         mr.command
+    }
+
+    // ── repos create ─────────────────────────────────────────────────────
+
+    #[test]
+    fn build_repo_create_body_omits_absent_optionals() {
+        let args = ReposCreateArgs {
+            name: "demo-repo".into(),
+            path: "demo-repo".into(),
+            namespace_id: None,
+            description: None,
+            visibility: None,
+            readme_type: None,
+            tags: None,
+            avatar_url: None,
+            template_id: None,
+            template_type: None,
+            sync_all_branches: false,
+            create_parent_path: false,
+        };
+
+        let body = build_repo_create_body(&args).unwrap();
+
+        assert_eq!(body["name"], "demo-repo");
+        assert_eq!(body["path"], "demo-repo");
+        assert!(body.get("namespaceId").is_none());
+        assert!(body.get("description").is_none());
+        assert!(body.get("visibility").is_none());
+        assert!(body.get("readMeType").is_none());
+        assert!(body.get("repositoryTags").is_none());
+        assert!(body.get("avatarUrl").is_none());
+        assert!(body.get("templateProject").is_none());
+    }
+
+    #[test]
+    fn build_repo_create_body_includes_all_optionals() {
+        let args = ReposCreateArgs {
+            name: "demo-repo".into(),
+            path: "demo-repo".into(),
+            namespace_id: Some("2813489".into()),
+            description: Some("desc".into()),
+            visibility: Some("private".into()),
+            readme_type: Some("USER_GUIDE".into()),
+            tags: Some("tag1,tag2".into()),
+            avatar_url: Some("https://example/avatar".into()),
+            template_id: Some("7".into()),
+            template_type: Some(2),
+            sync_all_branches: true,
+            create_parent_path: true,
+        };
+
+        let body = build_repo_create_body(&args).unwrap();
+
+        assert_eq!(body["namespaceId"], 2813489);
+        assert_eq!(body["description"], "desc");
+        assert_eq!(body["visibility"], "private");
+        assert_eq!(body["readMeType"], "USER_GUIDE");
+        assert_eq!(body["repositoryTags"], json!(["tag1", "tag2"]));
+        assert_eq!(body["avatarUrl"], "https://example/avatar");
+        let tpl = &body["templateProject"];
+        assert_eq!(tpl["templateProjectId"], 7);
+        assert_eq!(tpl["templateType"], 2);
+        assert_eq!(tpl["syncAllBranches"], true);
+    }
+
+    #[test]
+    fn build_repo_create_body_converts_comma_tags_to_array() {
+        let args = ReposCreateArgs {
+            name: "r".into(),
+            path: "r".into(),
+            namespace_id: None,
+            description: None,
+            visibility: None,
+            readme_type: None,
+            tags: Some(" alpha , beta ".into()),
+            avatar_url: None,
+            template_id: None,
+            template_type: None,
+            sync_all_branches: false,
+            create_parent_path: false,
+        };
+
+        let body = build_repo_create_body(&args).unwrap();
+
+        assert_eq!(body["repositoryTags"], json!(["alpha", "beta"]));
+    }
+
+    #[test]
+    fn build_repo_create_body_omits_template_project_without_template_id() {
+        let args = ReposCreateArgs {
+            name: "r".into(),
+            path: "r".into(),
+            namespace_id: None,
+            description: None,
+            visibility: None,
+            readme_type: None,
+            tags: None,
+            avatar_url: None,
+            template_id: None,
+            template_type: Some(1),
+            sync_all_branches: true,
+            create_parent_path: false,
+        };
+
+        let body = build_repo_create_body(&args).unwrap();
+
+        assert!(body.get("templateProject").is_none());
+    }
+
+    #[test]
+    fn build_repo_create_body_rejects_invalid_visibility() {
+        let args = ReposCreateArgs {
+            name: "r".into(),
+            path: "r".into(),
+            namespace_id: None,
+            description: None,
+            visibility: Some("public".into()),
+            readme_type: None,
+            tags: None,
+            avatar_url: None,
+            template_id: None,
+            template_type: None,
+            sync_all_branches: false,
+            create_parent_path: false,
+        };
+
+        let err = build_repo_create_body(&args).unwrap_err();
+        assert!(err.to_string().contains("visibility"));
+    }
+
+    #[test]
+    fn build_repo_create_body_accepts_full_path_namespace() {
+        let args_numeric = ReposCreateArgs {
+            name: "r".into(),
+            path: "r".into(),
+            namespace_id: Some("2813489".into()),
+            description: None,
+            visibility: None,
+            readme_type: None,
+            tags: None,
+            avatar_url: None,
+            template_id: None,
+            template_type: None,
+            sync_all_branches: false,
+            create_parent_path: false,
+        };
+        let body = build_repo_create_body(&args_numeric).unwrap();
+        assert_eq!(body["namespaceId"], 2813489);
+
+        let args_path = ReposCreateArgs {
+            name: "r".into(),
+            path: "r".into(),
+            namespace_id: Some("group/subgroup".into()),
+            description: None,
+            visibility: None,
+            readme_type: None,
+            tags: None,
+            avatar_url: None,
+            template_id: None,
+            template_type: None,
+            sync_all_branches: false,
+            create_parent_path: false,
+        };
+        let body = build_repo_create_body(&args_path).unwrap();
+        assert_eq!(body["namespaceId"], "group/subgroup");
+    }
+
+    #[test]
+    fn repos_create_path_appends_query_only_when_requested() {
+        assert_eq!(
+            repos_create_path("org-123", false),
+            "/oapi/v1/codeup/organizations/org-123/repositories"
+        );
+        assert_eq!(
+            repos_create_path("org-123", true),
+            "/oapi/v1/codeup/organizations/org-123/repositories?createParentPath=true"
+        );
+    }
+
+    #[test]
+    fn cli_parses_repos_create() {
+        let cli = Cli::parse_from([
+            "yunxiao",
+            "codeup",
+            "repos",
+            "create",
+            "--name",
+            "demo-repo",
+            "--path",
+            "demo-repo",
+            "--namespace-id",
+            "2813489",
+            "--description",
+            "desc",
+            "--visibility",
+            "private",
+            "--readme-type",
+            "USER_GUIDE",
+            "--tags",
+            "t1,t2",
+            "--avatar-url",
+            "https://example/a",
+            "--template-id",
+            "7",
+            "--template-type",
+            "2",
+            "--sync-all-branches",
+            "--create-parent-path",
+        ]);
+
+        let crate::cli::Commands::Codeup(codeup) = cli.command else {
+            panic!("expected codeup command");
+        };
+        let CodeupCommands::Repos(repos) = codeup.command else {
+            panic!("expected repos command");
+        };
+        let ReposCmds::Create(c) = repos.command else {
+            panic!("expected repos create command");
+        };
+
+        assert_eq!(c.name, "demo-repo");
+        assert_eq!(c.path, "demo-repo");
+        assert_eq!(c.namespace_id.as_deref(), Some("2813489"));
+        assert_eq!(c.description.as_deref(), Some("desc"));
+        assert_eq!(c.visibility.as_deref(), Some("private"));
+        assert_eq!(c.readme_type.as_deref(), Some("USER_GUIDE"));
+        assert_eq!(c.tags.as_deref(), Some("t1,t2"));
+        assert_eq!(c.avatar_url.as_deref(), Some("https://example/a"));
+        assert_eq!(c.template_id.as_deref(), Some("7"));
+        assert_eq!(c.template_type, Some(2));
+        assert!(c.sync_all_branches);
+        assert!(c.create_parent_path);
+    }
+
+    #[test]
+    fn cli_repos_create_requires_name_and_path() {
+        let missing_name =
+            Cli::try_parse_from(["yunxiao", "codeup", "repos", "create", "--path", "p"]);
+        assert!(missing_name.is_err());
+
+        let missing_path =
+            Cli::try_parse_from(["yunxiao", "codeup", "repos", "create", "--name", "n"]);
+        assert!(missing_path.is_err());
     }
 
     // ── T4: repos delete confirmation pure functions ─────────────────────

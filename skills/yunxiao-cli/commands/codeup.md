@@ -12,6 +12,7 @@
 |------|------|
 | `yunxiao codeup repos list` | 列出代码仓库 |
 | `yunxiao codeup repos get` | 查看仓库详情 |
+| `yunxiao codeup repos create` | 创建代码库（支持从模板导入） |
 
 ### 分支管理
 
@@ -112,6 +113,53 @@ yunxiao codeup repos get --repo-id <REPO_ID> --org-id <ORG_ID>
 
 ```bash
 yunxiao codeup repos get --repo-id repo-xxxxxxxx --org-id org-xxxxxxxx --output json
+```
+
+---
+
+## 创建代码库
+
+### 基本用法
+
+```bash
+yunxiao codeup repos create --name <NAME> --path <PATH> --org-id <ORG_ID>
+```
+
+### 参数
+
+| 参数 | 说明 | 必需 |
+|------|------|------|
+| `--org-id` | 组织 ID | 是 |
+| `--name` | 代码库名称 | 是 |
+| `--path` | 代码库路径 | 是 |
+| `--namespace-id` | 父代码组空间 ID，可传纯数字 ID 或全路径；省略则创建在组织根路径下 | 否 |
+| `--description` | 代码库描述 | 否 |
+| `--visibility` | 可见性，仅 `private` 或 `internal` | 否 |
+| `--readme-type` | 自动创建 README 类型：`EMPTY` 或 `USER_GUIDE` | 否 |
+| `--tags` | 代码库标签，逗号分隔（如 `tag1,tag2`） | 否 |
+| `--avatar-url` | 代码库头像地址 | 否 |
+| `--template-id` | 模板库 ID（可传纯数字 ID 或全路径），用于从模板导入 | 否 |
+| `--template-type` | 模板类型：`1` 自定义模板，`2` 系统预置模板 | 否 |
+| `--sync-all-branches` | 导入模板库所有分支 | 否 |
+| `--create-parent-path` | 自动创建缺失的父路径 | 否 |
+
+未传的可选参数不会进入请求体。
+
+### 示例
+
+```bash
+# 创建空代码库
+yunxiao codeup repos create --name demo-repo --path demo-repo --org-id org-xxxxxxxx
+
+# 指定父代码组、可见性并自动生成 README
+yunxiao codeup repos create --name demo-repo --path demo-repo \
+  --namespace-id 2813489 --visibility private --readme-type USER_GUIDE \
+  --org-id org-xxxxxxxx
+
+# 从模板导入，并同步模板全部分支
+yunxiao codeup repos create --name scaffold --path scaffold \
+  --template-id 7 --template-type 2 --sync-all-branches \
+  --org-id org-xxxxxxxx
 ```
 
 ---
