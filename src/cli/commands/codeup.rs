@@ -52,6 +52,8 @@ pub enum ReposCmds {
     List(ReposListArgs),
     /// Get repository details by ID.
     Get(ReposGetArgs),
+    /// Query template repositories.
+    Templates(ReposTemplatesArgs),
 }
 
 /// Arguments for `codeup repos list`.
@@ -63,6 +65,18 @@ pub struct ReposListArgs {
     /// Number of results per page.
     #[arg(long, default_value = "20")]
     pub per_page: u32,
+    /// Filter by keyword, fuzzy-matching the repository path.
+    #[arg(long)]
+    pub search: Option<String>,
+    /// Sort field (created_at, name, path, last_activity_at).
+    #[arg(long)]
+    pub order_by: Option<String>,
+    /// Sort direction (asc, desc).
+    #[arg(long)]
+    pub sort: Option<String>,
+    /// Filter by archived state (true/false). Omit to include both.
+    #[arg(long)]
+    pub archived: Option<bool>,
 }
 
 /// Arguments for `codeup repos get`.
@@ -71,6 +85,34 @@ pub struct ReposGetArgs {
     /// Repository ID. Get via: yunxiao codeup repos list
     #[arg(long)]
     pub repo_id: String,
+}
+
+/// Arguments for `codeup repos templates`.
+#[derive(Debug, Args)]
+pub struct ReposTemplatesArgs {
+    #[command(subcommand)]
+    pub command: ReposTemplatesCmds,
+}
+
+/// Template-repository operations.
+#[derive(Debug, Subcommand)]
+pub enum ReposTemplatesCmds {
+    /// List template repositories.
+    List(ReposTemplatesListArgs),
+}
+
+/// Arguments for `codeup repos templates list`.
+#[derive(Debug, Args)]
+pub struct ReposTemplatesListArgs {
+    /// Template type (1 = custom, 2 = system preset). Required.
+    #[arg(long)]
+    pub template_type: u32,
+    /// Page number (1-based).
+    #[arg(long, default_value = "1")]
+    pub page: u32,
+    /// Number of results per page.
+    #[arg(long, default_value = "20")]
+    pub per_page: u32,
 }
 
 // ─────────────────────────── Branches ───────────────────────────────────
@@ -854,6 +896,43 @@ fn require_org(org_id: &Option<String>) -> Result<&str> {
 
 // ─────────────────────────── Repos ──────────────────────────────────────
 
+/// Build query parameters for `codeup repos list`.
+///
+/// Pagination is always sent. Optional filters are omitted when unset so the
+/// API applies its own defaults. `archived` is tri-state: `None` sends nothing,
+/// `Some(true)` / `Some(false)` send the explicit value.
+fn build_repos_list_params(l: &ReposListArgs) -> Vec<(&'static str, String)> {
+    let mut params: Vec<(&'static str, String)> = vec![
+        ("page", l.page.to_string()),
+        ("perPage", l.per_page.to_string()),
+    ];
+    if let Some(ref search) = l.search {
+        params.push(("search", search.clone()));
+    }
+    if let Some(ref order_by) = l.order_by {
+        params.push(("orderBy", order_by.clone()));
+    }
+    if let Some(ref sort) = l.sort {
+        params.push(("sort", sort.clone()));
+    }
+    if let Some(archived) = l.archived {
+        params.push(("archived", archived.to_string()));
+    }
+    params
+}
+
+/// Build query parameters for `codeup repos templates list`.
+///
+/// `templateType` is required by the API; pagination uses the same defaults as
+/// other list endpoints.
+fn build_templates_list_params(t: &ReposTemplatesListArgs) -> Vec<(&'static str, String)> {
+    vec![
+        ("page", t.page.to_string()),
+        ("perPage", t.per_page.to_string()),
+        ("templateType", t.template_type.to_string()),
+    ]
+}
+
 /// Execute repository sub-operations.
 async fn exec_repos(
     args: &ReposArgs,
@@ -864,12 +943,13 @@ async fn exec_repos(
     let oid = require_org(org_id)?;
     match &args.command {
         ReposCmds::List(l) => {
-            let page = l.page.to_string();
-            let per_page = l.per_page.to_string();
+            let params = build_repos_list_params(l);
+            let params_ref: Vec<(&str, &str)> =
+                params.iter().map(|(k, v)| (*k, v.as_str())).collect();
             let data = client
                 .get(
                     &format!("/oapi/v1/codeup/organizations/{oid}/repositories"),
-                    &[("page", page.as_str()), ("perPage", per_page.as_str())],
+                    &params_ref,
                 )
                 .await?;
             output::print_output(&data, format)?;
@@ -886,6 +966,20 @@ async fn exec_repos(
                 .await?;
             output::print_output(&data, format)?;
         }
+        ReposCmds::Templates(t) => match &t.command {
+            ReposTemplatesCmds::List(l) => {
+                let params = build_templates_list_params(l);
+                let params_ref: Vec<(&str, &str)> =
+                    params.iter().map(|(k, v)| (*k, v.as_str())).collect();
+                let data = client
+                    .get(
+                        &format!("/oapi/v1/codeup/organizations/{oid}/repositories/templates"),
+                        &params_ref,
+                    )
+                    .await?;
+                output::print_output(&data, format)?;
+            }
+        },
     }
     Ok(())
 }
@@ -1752,6 +1846,153 @@ mod tests {
             panic!("expected comments command");
         };
         assert!(matches!(comments.command, MrCommentsCmds::Delete(_)));
+    }
+
+    #[test]
+    fn repos_list_params_omit_absent_filters_and_keep_defaults() {
+        let args = ReposListArgs {
+            page: 1,
+            per_page: 20,
+            search: None,
+            order_by: None,
+            sort: None,
+            archived: None,
+        };
+
+        let params = build_repos_list_params(&args);
+
+        assert_eq!(
+            params,
+            vec![("page", "1".to_string()), ("perPage", "20".to_string())]
+        );
+    }
+
+    #[test]
+    fn repos_list_params_tristate_archived() {
+        let absent = build_repos_list_params(&ReposListArgs {
+            page: 1,
+            per_page: 20,
+            search: None,
+            order_by: None,
+            sort: None,
+            archived: None,
+        });
+        assert!(!absent.iter().any(|(k, _)| *k == "archived"));
+
+        let true_set = build_repos_list_params(&ReposListArgs {
+            page: 1,
+            per_page: 20,
+            search: None,
+            order_by: None,
+            sort: None,
+            archived: Some(true),
+        });
+        assert!(true_set
+            .iter()
+            .any(|(k, v)| *k == "archived" && v == "true"));
+
+        let false_set = build_repos_list_params(&ReposListArgs {
+            page: 1,
+            per_page: 20,
+            search: None,
+            order_by: None,
+            sort: None,
+            archived: Some(false),
+        });
+        assert!(false_set
+            .iter()
+            .any(|(k, v)| *k == "archived" && v == "false"));
+    }
+
+    #[test]
+    fn repos_list_params_include_search_order_by_sort() {
+        let args = ReposListArgs {
+            page: 2,
+            per_page: 50,
+            search: Some("TestRepo".into()),
+            order_by: Some("name".into()),
+            sort: Some("asc".into()),
+            archived: None,
+        };
+
+        let params = build_repos_list_params(&args);
+
+        assert_eq!(
+            params,
+            vec![
+                ("page", "2".to_string()),
+                ("perPage", "50".to_string()),
+                ("search", "TestRepo".to_string()),
+                ("orderBy", "name".to_string()),
+                ("sort", "asc".to_string()),
+            ]
+        );
+    }
+
+    #[test]
+    fn templates_list_params_always_include_template_type() {
+        let args = ReposTemplatesListArgs {
+            template_type: 1,
+            page: 1,
+            per_page: 20,
+        };
+        let params = build_templates_list_params(&args);
+        assert_eq!(
+            params,
+            vec![
+                ("page", "1".to_string()),
+                ("perPage", "20".to_string()),
+                ("templateType", "1".to_string()),
+            ]
+        );
+
+        let args2 = ReposTemplatesListArgs {
+            template_type: 2,
+            page: 3,
+            per_page: 10,
+        };
+        let params2 = build_templates_list_params(&args2);
+        assert_eq!(params2[2], ("templateType", "2".to_string()));
+        assert_eq!(params2[0], ("page", "3".to_string()));
+    }
+
+    #[test]
+    fn cli_parses_repos_templates_list() {
+        let cli = Cli::parse_from([
+            "yunxiao",
+            "codeup",
+            "repos",
+            "templates",
+            "list",
+            "--template-type",
+            "2",
+            "--page",
+            "3",
+            "--per-page",
+            "10",
+        ]);
+        let crate::cli::Commands::Codeup(codeup) = cli.command else {
+            panic!("expected codeup command");
+        };
+        let CodeupCommands::Repos(repos) = codeup.command else {
+            panic!("expected repos command");
+        };
+        let ReposCmds::Templates(templates) = repos.command else {
+            panic!("expected templates subcommand");
+        };
+        match templates.command {
+            ReposTemplatesCmds::List(l) => {
+                assert_eq!(l.template_type, 2);
+                assert_eq!(l.page, 3);
+                assert_eq!(l.per_page, 10);
+            }
+        }
+    }
+
+    #[test]
+    fn cli_repos_templates_list_requires_template_type() {
+        let result = Cli::try_parse_from(["yunxiao", "codeup", "repos", "templates", "list"]);
+        assert!(result.is_err());
     }
 
     fn parse_mr_command<const N: usize>(args: [&str; N]) -> MrCmds {
