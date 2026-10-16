@@ -2,7 +2,7 @@
 
 `yunxiao codeup` 命令用于管理代码仓库、代码组、分支、提交、合并请求、文件和代码比较。
 
-> **ID 参数约定**：仓库与代码组相关的 ID 参数（`--repo-id`、`--group-id`、`--namespace-id`、`--parent-id`、`--template-id`）均接受纯数字 ID 或完整路径（`path_with_namespace`）。含 `/` 的完整路径在拼入 URL 路径段时需百分号编码；多数命令由 CLI 自动编码，少数命令（帮助中注明 "URL-encoded full path"）需自行传入已编码的路径（如 `60de7a6852743a5162b5f957%2FDemoRepo`）。
+> **ID 参数约定**：仓库与代码组相关的 ID 参数（`--repo-id`、`--group-id`、`--namespace-id`、`--parent-id`、`--template-id`）均接受纯数字 ID 或完整路径（`path_with_namespace`）。含 `/` 的完整路径在拼入 URL 路径段时由 CLI **自动百分号编码**（如 `60de7a6852743a5162b5f957/DemoRepo` → `60de7a6852743a5162b5f957%2FDemoRepo`），无需手动编码；纯数字 ID 原样透传。
 
 ---
 
@@ -135,7 +135,7 @@ yunxiao codeup repos get --repo-id <REPO_ID> --org-id <ORG_ID>
 | 参数 | 说明 | 必需 |
 |------|------|------|
 | `--org-id` | 组织 ID | 是 |
-| `--repo-id` | 仓库 ID；也接受完整路径 `path_with_namespace`（含 `/` 时需 URL 编码） | 是 |
+| `--repo-id` | 仓库 ID 或完整路径 `path_with_namespace`（CLI 自动百分号编码） | 是 |
 
 ### 示例
 
@@ -331,7 +331,7 @@ yunxiao codeup repos delete --repo-id <REPO_ID> --org-id <ORG_ID>
 | 参数 | 说明 | 必需 |
 |------|------|------|
 | `--org-id` | 组织 ID | 是 |
-| `--repo-id` | 仓库 ID 或已 URL 编码的完整路径 `path_with_namespace`（如 `60de...%2FDemoRepo`） | 是 |
+| `--repo-id` | 仓库 ID 或完整路径 `path_with_namespace`（CLI 自动百分号编码） | 是 |
 | `--yes` | 跳过交互式确认（用于自动化/脚本） | 否 |
 
 ### 双重确认流程
@@ -415,7 +415,7 @@ yunxiao codeup groups create --name <NAME> --path <PATH> --org-id <ORG_ID>
 | `--org-id` | 组织 ID | 是 |
 | `--name` | 代码组显示名称 | 是 |
 | `--path` | 代码组路径段 | 是 |
-| `--parent-id` | 父代码组或根空间 ID；省略则在组织根下创建 | 否 |
+| `--parent-id` | 父代码组或根空间 ID，或完整路径；省略则在组织根下创建 | 否 |
 | `--description` | 描述（最长 65535 字符） | 否 |
 | `--visibility` | 可见性：`private`（仅组内成员）或 `internal`（组织内可见） | 否 |
 | `--avatar` | 头像 URL | 否 |

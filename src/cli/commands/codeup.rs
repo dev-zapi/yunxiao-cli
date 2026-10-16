@@ -120,14 +120,14 @@ pub struct ReposCreateArgs {
     #[arg(long)]
     pub description: Option<String>,
     /// Repository visibility. One of: private, internal.
-    #[arg(long)]
+    #[arg(long, value_parser = ["private", "internal"])]
     pub visibility: Option<String>,
     /// Type of README to auto-create. One of: EMPTY, USER_GUIDE.
     #[arg(long = "readme-type")]
     pub readme_type: Option<String>,
-    /// Comma-separated repository tags, e.g. "tag1,tag2".
-    #[arg(long)]
-    pub tags: Option<String>,
+    /// Repository tags (comma-separated or repeated, e.g. --tags a,b).
+    #[arg(long, value_delimiter = ',', value_name = "TAG")]
+    pub tags: Vec<String>,
     /// Repository avatar URL.
     #[arg(long = "avatar-url")]
     pub avatar_url: Option<String>,
@@ -206,14 +206,14 @@ pub struct GroupsCreateArgs {
     /// Code group path segment (required).
     #[arg(long)]
     pub path: String,
-    /// Parent group or root-space ID. Omit to create under the org root.
+    /// Parent group or root-space ID, or full path. Omit to create under the org root.
     #[arg(long)]
-    pub parent_id: Option<i64>,
+    pub parent_id: Option<String>,
     /// Description text (up to 65535 characters).
     #[arg(long)]
     pub description: Option<String>,
     /// Visibility: `private` (group members only) or `internal` (org-wide).
-    #[arg(long)]
+    #[arg(long, value_parser = ["private", "internal"])]
     pub visibility: Option<String>,
     /// Avatar URL.
     #[arg(long)]
@@ -236,7 +236,7 @@ pub struct GroupsUpdateArgs {
     #[arg(long)]
     pub description: Option<String>,
     /// New visibility: `private` or `internal`.
-    #[arg(long)]
+    #[arg(long, value_parser = ["private", "internal"])]
     pub visibility: Option<String>,
     /// New avatar URL.
     #[arg(long)]
@@ -312,8 +312,7 @@ pub struct GroupsReposListArgs {
 /// Arguments for `codeup repos delete`.
 #[derive(Debug, Args)]
 pub struct ReposDeleteArgs {
-    /// Repository ID or URL-encoded full path (path_with_namespace).
-    /// Get via: yunxiao codeup repos list
+    /// Repository ID or full path (auto-encoded). Get via: yunxiao codeup repos list
     #[arg(long)]
     pub repo_id: String,
     /// Skip the interactive confirmation prompts (for automation).
@@ -324,7 +323,7 @@ pub struct ReposDeleteArgs {
 /// Arguments for `codeup repos update`.
 #[derive(Debug, Args)]
 pub struct ReposUpdateArgs {
-    /// Repository ID or URL-encoded full path (e.g. 60de...%2FDemoRepo).
+    /// Repository ID or full path (auto-encoded; e.g. 60de.../DemoRepo).
     #[arg(long)]
     pub repo_id: String,
     /// New repository name.
@@ -347,7 +346,7 @@ pub struct ReposUpdateArgs {
 /// Arguments for `codeup repos archive`.
 #[derive(Debug, Args)]
 pub struct ReposArchiveArgs {
-    /// Repository ID or URL-encoded full path (e.g. 60de...%2FDemoRepo).
+    /// Repository ID or full path (auto-encoded; e.g. 60de.../DemoRepo).
     #[arg(long)]
     pub repo_id: String,
 }
@@ -1002,7 +1001,7 @@ fn id_or_path_value(value: &str) -> serde_json::Value {
 /// Required fields (`name`, `path`) are always present. All other flags are
 /// omitted from the body when unset. Template-related flags are nested into
 /// a single `templateProject` object and only included when `template_id` is
-/// given. Visibility is validated against the API's allowed values.
+/// given. Visibility and tags are validated at the clap layer.
 fn build_repo_create_body(c: &ReposCreateArgs) -> Result<serde_json::Value> {
     let mut body = json!({
         "name": c.name,
@@ -1015,27 +1014,13 @@ fn build_repo_create_body(c: &ReposCreateArgs) -> Result<serde_json::Value> {
         body["description"] = json!(description);
     }
     if let Some(ref visibility) = c.visibility {
-        match visibility.as_str() {
-            "private" | "internal" => body["visibility"] = json!(visibility),
-            other => {
-                return Err(crate::error::CliError::Config(format!(
-                    "--visibility must be one of: private, internal (got \"{other}\")"
-                )));
-            }
-        }
+        body["visibility"] = json!(visibility);
     }
     if let Some(ref readme_type) = c.readme_type {
         body["readMeType"] = json!(readme_type);
     }
-    if let Some(ref tags) = c.tags {
-        let values: Vec<String> = tags
-            .split(',')
-            .map(|tag| tag.trim().to_string())
-            .filter(|tag| !tag.is_empty())
-            .collect();
-        if !values.is_empty() {
-            body["repositoryTags"] = json!(values);
-        }
+    if !c.tags.is_empty() {
+        body["repositoryTags"] = json!(normalized_non_empty_values(&c.tags, "--tags")?);
     }
     if let Some(ref avatar_url) = c.avatar_url {
         body["avatarUrl"] = json!(avatar_url);
@@ -1187,10 +1172,13 @@ fn require_non_empty_body(body: &serde_json::Value, message: &str) -> Result<()>
     Ok(())
 }
 
-/// Percent-encode a repository ID when it's a full path containing '/'.
-/// Plain numeric IDs pass through unchanged; paths like
-/// `60de7a6852743a5162b5f957/DemoRepo` become URL-encoded as the API expects.
-fn encode_repo_path(value: &str) -> String {
+/// Percent-encode an identifier for use as a single URL path segment.
+///
+/// Codeup accepts either a numeric ID or a full path (e.g.
+/// `60de7a6852743a5162b5f957/DemoRepo`) for repository and group identifiers.
+/// When the value contains `/`, encode it so the whole string stays one
+/// segment on the wire. Plain numeric IDs pass through untouched.
+fn encode_path_segment(value: &str) -> String {
     if value.contains('/') {
         urlencoding::encode(value).into_owned()
     } else {
@@ -1198,6 +1186,11 @@ fn encode_repo_path(value: &str) -> String {
     }
 }
 
+/// Build the request body for `codeup repos update`.
+///
+/// Partial-update semantics: only fields the user passed are included in the
+/// body. At least one field must be set, otherwise the API would receive an
+/// empty payload.
 fn build_repo_update_body(u: &ReposUpdateArgs) -> Result<serde_json::Value> {
     let mut body = json!({});
     if let Some(ref name) = u.name {
@@ -1207,6 +1200,7 @@ fn build_repo_update_body(u: &ReposUpdateArgs) -> Result<serde_json::Value> {
         body["description"] = json!(description);
     }
     if let Some(ref branch) = u.default_branch {
+        // Official API doc uses snake_case `default_branch` here (unlike camelCase siblings) — intentional, don't "fix".
         body["default_branch"] = json!(branch);
     }
     if let Some(ref visibility) = u.visibility {
@@ -1215,6 +1209,10 @@ fn build_repo_update_body(u: &ReposUpdateArgs) -> Result<serde_json::Value> {
     if !u.tags.is_empty() {
         body["repositoryTags"] = json!(normalized_non_empty_values(&u.tags, "--tags")?);
     }
+    require_non_empty_body(
+        &body,
+        "repos update requires at least one of --name, --description, --default-branch, --visibility, or --tags",
+    )?;
     Ok(body)
 }
 
@@ -1225,21 +1223,12 @@ fn build_repo_transfer_body(t: &ReposTransferArgs) -> Result<serde_json::Value> 
     }))
 }
 
-/// Validate a group visibility value (`private` or `internal`).
-fn require_valid_group_visibility(value: &str) -> Result<()> {
-    if value != "private" && value != "internal" {
-        return Err(crate::error::CliError::Config(format!(
-            "--visibility must be 'private' or 'internal' (got '{value}')"
-        )));
-    }
-    Ok(())
-}
-
 /// Build the request body for `codeup groups create`.
 ///
 /// `name` and `path` are always sent. Optional fields (`parentId`, `description`,
 /// `visibility`, `avatar`) are omitted from the body when unset so the API applies
-/// its own defaults. `visibility`, when provided, must be `private` or `internal`.
+/// its own defaults. `parentId` accepts a numeric ID or a full path; visibility is
+/// validated at the clap layer.
 fn build_group_create_body(c: &GroupsCreateArgs) -> Result<serde_json::Value> {
     require_non_empty_text(&c.name, "--name")?;
     require_non_empty_text(&c.path, "--path")?;
@@ -1247,14 +1236,13 @@ fn build_group_create_body(c: &GroupsCreateArgs) -> Result<serde_json::Value> {
         "name": c.name,
         "path": c.path,
     });
-    if let Some(parent_id) = c.parent_id {
-        body["parentId"] = json!(parent_id);
+    if let Some(ref parent_id) = c.parent_id {
+        body["parentId"] = id_or_path_value(parent_id);
     }
     if let Some(ref description) = c.description {
         body["description"] = json!(description);
     }
     if let Some(ref visibility) = c.visibility {
-        require_valid_group_visibility(visibility)?;
         body["visibility"] = json!(visibility);
     }
     if let Some(ref avatar) = c.avatar {
@@ -1282,7 +1270,6 @@ fn build_group_update_body(u: &GroupsUpdateArgs) -> Result<serde_json::Value> {
         body["description"] = json!(description);
     }
     if let Some(ref visibility) = u.visibility {
-        require_valid_group_visibility(visibility)?;
         body["visibility"] = json!(visibility);
     }
     if let Some(ref avatar) = u.avatar {
@@ -1334,19 +1321,6 @@ fn require_org(org_id: &Option<String>) -> Result<&str> {
 
 // ─────────────────────────── Groups ─────────────────────────────────────
 
-/// Percent-encode a group identifier for use as a single URL path segment.
-///
-/// The API accepts either a numeric ID or a full path (e.g. `org/DemoGroup`).
-/// When the value contains a `/`, encode it so the whole string stays one
-/// segment on the wire. Plain IDs are returned untouched.
-fn encode_group_id(group_id: &str) -> String {
-    if group_id.contains('/') {
-        urlencoding::encode(group_id).into_owned()
-    } else {
-        group_id.to_string()
-    }
-}
-
 /// Build query parameters for `codeup groups list` (the namespaces endpoint).
 ///
 /// Pagination is always sent. Optional filters are omitted when unset so the
@@ -1358,21 +1332,21 @@ fn build_namespaces_query(
     sort: Option<&str>,
     page: u32,
     per_page: u32,
-) -> Vec<(String, String)> {
-    let mut params: Vec<(String, String)> = Vec::new();
+) -> Vec<(&'static str, String)> {
+    let mut params: Vec<(&'static str, String)> = Vec::new();
     if let Some(p) = parent_id {
-        params.push(("parentId".into(), p.to_string()));
+        params.push(("parentId", p.to_string()));
     }
-    params.push(("page".into(), page.to_string()));
-    params.push(("perPage".into(), per_page.to_string()));
+    params.push(("page", page.to_string()));
+    params.push(("perPage", per_page.to_string()));
     if let Some(s) = search {
-        params.push(("search".into(), s.to_string()));
+        params.push(("search", s.to_string()));
     }
     if let Some(o) = order_by {
-        params.push(("orderBy".into(), o.to_string()));
+        params.push(("orderBy", o.to_string()));
     }
     if let Some(s) = sort {
-        params.push(("sort".into(), s.to_string()));
+        params.push(("sort", s.to_string()));
     }
     params
 }
@@ -1386,17 +1360,24 @@ fn build_group_repos_query(
     include_subgroups: bool,
     page: u32,
     per_page: u32,
-) -> Vec<(String, String)> {
-    let mut params: Vec<(String, String)> = Vec::new();
-    params.push(("page".into(), page.to_string()));
-    params.push(("perPage".into(), per_page.to_string()));
+) -> Vec<(&'static str, String)> {
+    let mut params: Vec<(&'static str, String)> = Vec::new();
+    params.push(("page", page.to_string()));
+    params.push(("perPage", per_page.to_string()));
     if let Some(s) = search {
-        params.push(("search".into(), s.to_string()));
+        params.push(("search", s.to_string()));
     }
     if include_subgroups {
-        params.push(("includeSubgroups".into(), "true".into()));
+        params.push(("includeSubgroups", "true".into()));
     }
     params
+}
+
+/// Adapter: borrow a `Vec<(&str, String)>` query into the `&[(&str, &str)]`
+/// slice shape the API client expects. Shared by every list query builder so
+/// they all return one shape.
+fn as_param_refs<'a>(params: &'a [(&'static str, String)]) -> Vec<(&'static str, &'a str)> {
+    params.iter().map(|(k, v)| (*k, v.as_str())).collect()
 }
 
 /// Execute code-group sub-operations.
@@ -1420,7 +1401,7 @@ async fn exec_groups(
         }
         GroupsCmds::Update(u) => {
             let body = build_group_update_body(u)?;
-            let encoded = encode_group_id(&u.group_id);
+            let encoded = encode_path_segment(&u.group_id);
             let data = client
                 .put(
                     &format!("/oapi/v1/codeup/organizations/{oid}/groups/{encoded}"),
@@ -1438,10 +1419,7 @@ async fn exec_groups(
                 l.page,
                 l.per_page,
             );
-            let params_ref: Vec<(&str, &str)> = query
-                .iter()
-                .map(|(k, v)| (k.as_str(), v.as_str()))
-                .collect();
+            let params_ref = as_param_refs(&query);
             let data = client
                 .get(
                     &format!("/oapi/v1/codeup/organizations/{oid}/namespaces"),
@@ -1455,7 +1433,7 @@ async fn exec_groups(
                 .get(
                     &format!(
                         "/oapi/v1/codeup/organizations/{oid}/namespaces/{}",
-                        encode_group_id(&g.group_id)
+                        encode_path_segment(&g.group_id)
                     ),
                     &[],
                 )
@@ -1470,15 +1448,12 @@ async fn exec_groups(
                     l.page,
                     l.per_page,
                 );
-                let params_ref: Vec<(&str, &str)> = query
-                    .iter()
-                    .map(|(k, v)| (k.as_str(), v.as_str()))
-                    .collect();
+                let params_ref = as_param_refs(&query);
                 let data = client
                     .get(
                         &format!(
                             "/oapi/v1/codeup/organizations/{oid}/groups/{}/repositories",
-                            encode_group_id(&l.group_id)
+                            encode_path_segment(&l.group_id)
                         ),
                         &params_ref,
                     )
@@ -1599,8 +1574,7 @@ async fn exec_repos(
     match &args.command {
         ReposCmds::List(l) => {
             let params = build_repos_list_params(l);
-            let params_ref: Vec<(&str, &str)> =
-                params.iter().map(|(k, v)| (*k, v.as_str())).collect();
+            let params_ref = as_param_refs(&params);
             let data = client
                 .get(
                     &format!("/oapi/v1/codeup/organizations/{oid}/repositories"),
@@ -1614,7 +1588,7 @@ async fn exec_repos(
                 .get(
                     &format!(
                         "/oapi/v1/codeup/organizations/{oid}/repositories/{}",
-                        g.repo_id
+                        encode_path_segment(&g.repo_id)
                     ),
                     &[],
                 )
@@ -1631,8 +1605,7 @@ async fn exec_repos(
         ReposCmds::Templates(t) => match &t.command {
             ReposTemplatesCmds::List(l) => {
                 let params = build_templates_list_params(l);
-                let params_ref: Vec<(&str, &str)> =
-                    params.iter().map(|(k, v)| (*k, v.as_str())).collect();
+                let params_ref = as_param_refs(&params);
                 let data = client
                     .get(
                         &format!("/oapi/v1/codeup/organizations/{oid}/repositories/templates"),
@@ -1650,7 +1623,7 @@ async fn exec_repos(
                 .delete(
                     &format!(
                         "/oapi/v1/codeup/organizations/{oid}/repositories/{}",
-                        d.repo_id
+                        encode_path_segment(&d.repo_id)
                     ),
                     &[],
                 )
@@ -1663,7 +1636,7 @@ async fn exec_repos(
                 .put(
                     &format!(
                         "/oapi/v1/codeup/organizations/{oid}/repositories/{}",
-                        encode_repo_path(&u.repo_id)
+                        encode_path_segment(&u.repo_id)
                     ),
                     &body,
                 )
@@ -1675,7 +1648,7 @@ async fn exec_repos(
                 .post(
                     &format!(
                         "/oapi/v1/codeup/organizations/{oid}/repositories/{}/archive",
-                        encode_repo_path(&a.repo_id)
+                        encode_path_segment(&a.repo_id)
                     ),
                     &json!({}),
                 )
@@ -1714,7 +1687,7 @@ async fn exec_branches(
                 .get(
                     &format!(
                         "/oapi/v1/codeup/organizations/{oid}/repositories/{}/branches",
-                        l.repo_id
+                        encode_path_segment(&l.repo_id)
                     ),
                     &[("page", page.as_str()), ("perPage", per_page.as_str())],
                 )
@@ -1726,7 +1699,7 @@ async fn exec_branches(
                 .get(
                     &format!(
                         "/oapi/v1/codeup/organizations/{oid}/repositories/{}/branches/detail",
-                        g.repo_id
+                        encode_path_segment(&g.repo_id)
                     ),
                     &[("branchName", g.branch.as_str())],
                 )
@@ -1742,7 +1715,7 @@ async fn exec_branches(
                 .post(
                     &format!(
                         "/oapi/v1/codeup/organizations/{oid}/repositories/{}/branches",
-                        c.repo_id
+                        encode_path_segment(&c.repo_id)
                     ),
                     &body,
                 )
@@ -1754,7 +1727,7 @@ async fn exec_branches(
                 .delete(
                     &format!(
                         "/oapi/v1/codeup/organizations/{oid}/repositories/{}/branches",
-                        d.repo_id
+                        encode_path_segment(&d.repo_id)
                     ),
                     &[("branchName", d.branch.as_str())],
                 )
@@ -1788,7 +1761,7 @@ async fn exec_commits(
                 .get(
                     &format!(
                         "/oapi/v1/codeup/organizations/{oid}/repositories/{}/commits",
-                        l.repo_id
+                        encode_path_segment(&l.repo_id)
                     ),
                     &params,
                 )
@@ -1800,7 +1773,8 @@ async fn exec_commits(
                 .get(
                     &format!(
                         "/oapi/v1/codeup/organizations/{oid}/repositories/{}/commits/{}",
-                        g.repo_id, g.sha
+                        encode_path_segment(&g.repo_id),
+                        g.sha
                     ),
                     &[],
                 )
@@ -1831,7 +1805,7 @@ async fn exec_files(
                 .get(
                     &format!(
                         "/oapi/v1/codeup/organizations/{oid}/repositories/{}/files/tree",
-                        l.repo_id
+                        encode_path_segment(&l.repo_id)
                     ),
                     &params,
                 )
@@ -1848,7 +1822,8 @@ async fn exec_files(
                 .get(
                     &format!(
                         "/oapi/v1/codeup/organizations/{oid}/repositories/{}/files/{}",
-                        g.repo_id, encoded_path
+                        encode_path_segment(&g.repo_id),
+                        encoded_path
                     ),
                     &params,
                 )
@@ -1866,7 +1841,7 @@ async fn exec_files(
                 .post(
                     &format!(
                         "/oapi/v1/codeup/organizations/{oid}/repositories/{}/files",
-                        c.repo_id
+                        encode_path_segment(&c.repo_id)
                     ),
                     &body,
                 )
@@ -1884,7 +1859,7 @@ async fn exec_files(
                 .put(
                     &format!(
                         "/oapi/v1/codeup/organizations/{oid}/repositories/{}/files",
-                        u.repo_id
+                        encode_path_segment(&u.repo_id)
                     ),
                     &body,
                 )
@@ -1896,7 +1871,7 @@ async fn exec_files(
                 .delete(
                     &format!(
                         "/oapi/v1/codeup/organizations/{oid}/repositories/{}/files",
-                        d.repo_id
+                        encode_path_segment(&d.repo_id)
                     ),
                     &[
                         ("filePath", d.path.as_str()),
@@ -1925,7 +1900,7 @@ async fn exec_compare(
         .get(
             &format!(
                 "/oapi/v1/codeup/organizations/{oid}/repositories/{}/compares",
-                args.repo_id
+                encode_path_segment(&args.repo_id)
             ),
             &[("from", args.from.as_str()), ("to", args.to.as_str())],
         )
@@ -1971,7 +1946,8 @@ async fn exec_mr(
                 .get(
                     &format!(
                         "/oapi/v1/codeup/organizations/{oid}/repositories/{}/changeRequests/{}",
-                        g.repo_id, g.mr_id
+                        encode_path_segment(&g.repo_id),
+                        g.mr_id
                     ),
                     &[],
                 )
@@ -1984,7 +1960,7 @@ async fn exec_mr(
                 .post(
                     &format!(
                         "/oapi/v1/codeup/organizations/{oid}/repositories/{}/changeRequests",
-                        c.repo_id
+                        encode_path_segment(&c.repo_id)
                     ),
                     &body,
                 )
@@ -1997,7 +1973,8 @@ async fn exec_mr(
                 .post(
                     &format!(
                         "/oapi/v1/codeup/organizations/{oid}/repositories/{}/changeRequests/{}/merge",
-                        m.repo_id, m.mr_id
+                        encode_path_segment(&m.repo_id),
+                        m.mr_id
                     ),
                     &body,
                 )
@@ -2010,7 +1987,8 @@ async fn exec_mr(
                 .post(
                     &format!(
                         "/oapi/v1/codeup/organizations/{oid}/repositories/{}/changeRequests/{}/review",
-                        r.repo_id, r.mr_id
+                        encode_path_segment(&r.repo_id),
+                        r.mr_id
                     ),
                     &body,
                 )
@@ -2022,7 +2000,8 @@ async fn exec_mr(
                 .post(
                     &format!(
                         "/oapi/v1/codeup/organizations/{oid}/repositories/{}/changeRequests/{}/close",
-                        c.repo_id, c.mr_id
+                        encode_path_segment(&c.repo_id),
+                        c.mr_id
                     ),
                     &json!({}),
                 )
@@ -2034,7 +2013,8 @@ async fn exec_mr(
                 .post(
                     &format!(
                         "/oapi/v1/codeup/organizations/{oid}/repositories/{}/changeRequests/{}/reopen",
-                        r.repo_id, r.mr_id
+                        encode_path_segment(&r.repo_id),
+                        r.mr_id
                     ),
                     &json!({}),
                 )
@@ -2047,7 +2027,8 @@ async fn exec_mr(
                 .put(
                     &format!(
                         "/oapi/v1/codeup/organizations/{oid}/repositories/{}/changeRequests/{}",
-                        u.repo_id, u.mr_id
+                        encode_path_segment(&u.repo_id),
+                        u.mr_id
                     ),
                     &body,
                 )
@@ -2060,7 +2041,9 @@ async fn exec_mr(
                 .post(
                     &format!(
                         "/oapi/v1/codeup/organizations/{oid}/repositories/{}/changeRequests/{}/person/{}",
-                        p.repo_id, p.mr_id, p.person_type
+                        encode_path_segment(&p.repo_id),
+                        p.mr_id,
+                        p.person_type
                     ),
                     &body,
                 )
@@ -2073,7 +2056,8 @@ async fn exec_mr(
                     .get(
                         &format!(
                             "/oapi/v1/codeup/organizations/{oid}/repositories/{}/changeRequests/{}/labels",
-                            list.repo_id, list.mr_id
+                            encode_path_segment(&list.repo_id),
+                            list.mr_id
                         ),
                         &[],
                     )
@@ -2086,7 +2070,8 @@ async fn exec_mr(
                     .post(
                         &format!(
                             "/oapi/v1/codeup/organizations/{oid}/repositories/{}/changeRequests/{}/labels",
-                            attach.repo_id, attach.mr_id
+                            encode_path_segment(&attach.repo_id),
+                            attach.mr_id
                         ),
                         &body,
                     )
@@ -2099,7 +2084,8 @@ async fn exec_mr(
                 .get(
                     &format!(
                         "/oapi/v1/codeup/organizations/{oid}/repositories/{}/changeRequests/{}/diffs/changeTree",
-                        t.repo_id, t.mr_id
+                        encode_path_segment(&t.repo_id),
+                        t.mr_id
                     ),
                     &[
                         ("fromPatchSetId", t.from_patchset_id.as_str()),
@@ -2115,7 +2101,8 @@ async fn exec_mr(
                     .get(
                         &format!(
                             "/oapi/v1/codeup/organizations/{oid}/repositories/{}/changeRequests/{}/comments",
-                            l.repo_id, l.mr_id
+                            encode_path_segment(&l.repo_id),
+                            l.mr_id
                         ),
                         &[],
                     )
@@ -2128,7 +2115,8 @@ async fn exec_mr(
                     .post(
                         &format!(
                             "/oapi/v1/codeup/organizations/{oid}/repositories/{}/changeRequests/{}/comments",
-                            cr.repo_id, cr.mr_id
+                            encode_path_segment(&cr.repo_id),
+                            cr.mr_id
                         ),
                         &body,
                     )
@@ -2141,7 +2129,9 @@ async fn exec_mr(
                     .put(
                         &format!(
                             "/oapi/v1/codeup/organizations/{oid}/repositories/{}/changeRequests/{}/comments/{}",
-                            u.repo_id, u.mr_id, u.comment_id
+                            encode_path_segment(&u.repo_id),
+                            u.mr_id,
+                            u.comment_id
                         ),
                         &body,
                     )
@@ -2153,7 +2143,9 @@ async fn exec_mr(
                     .delete(
                         &format!(
                             "/oapi/v1/codeup/organizations/{oid}/repositories/{}/changeRequests/{}/comments/{}",
-                            d.repo_id, d.mr_id, d.comment_id
+                            encode_path_segment(&d.repo_id),
+                            d.mr_id,
+                            d.comment_id
                         ),
                         &[],
                     )
@@ -2166,7 +2158,8 @@ async fn exec_mr(
                 .get(
                     &format!(
                         "/oapi/v1/codeup/organizations/{oid}/repositories/{}/changeRequests/{}/patchsets",
-                        p.repo_id, p.mr_id
+                        encode_path_segment(&p.repo_id),
+                        p.mr_id
                     ),
                     &[],
                 )
@@ -2648,10 +2641,7 @@ mod tests {
         let query = build_namespaces_query(None, None, None, None, 1, 20);
         assert_eq!(
             query,
-            vec![
-                ("page".to_string(), "1".to_string()),
-                ("perPage".to_string(), "20".to_string()),
-            ]
+            vec![("page", "1".to_string()), ("perPage", "20".to_string())]
         );
     }
 
@@ -2734,12 +2724,12 @@ mod tests {
         assert_eq!(
             query,
             vec![
-                ("parentId".to_string(), "1".to_string()),
-                ("page".to_string(), "2".to_string()),
-                ("perPage".to_string(), "50".to_string()),
-                ("search".to_string(), "Test".to_string()),
-                ("orderBy".to_string(), "updated_at".to_string()),
-                ("sort".to_string(), "desc".to_string()),
+                ("parentId", "1".to_string()),
+                ("page", "2".to_string()),
+                ("perPage", "50".to_string()),
+                ("search", "Test".to_string()),
+                ("orderBy", "updated_at".to_string()),
+                ("sort", "desc".to_string()),
             ]
         );
     }
@@ -2749,10 +2739,7 @@ mod tests {
         let query = build_group_repos_query(None, false, 1, 20);
         assert_eq!(
             query,
-            vec![
-                ("page".to_string(), "1".to_string()),
-                ("perPage".to_string(), "20".to_string()),
-            ]
+            vec![("page", "1".to_string()), ("perPage", "20".to_string())]
         );
     }
 
@@ -2762,24 +2749,37 @@ mod tests {
         assert_eq!(
             query,
             vec![
-                ("page".to_string(), "3".to_string()),
-                ("perPage".to_string(), "10".to_string()),
-                ("search".to_string(), "TestRepo".to_string()),
-                ("includeSubgroups".to_string(), "true".to_string()),
+                ("page", "3".to_string()),
+                ("perPage", "10".to_string()),
+                ("search", "TestRepo".to_string()),
+                ("includeSubgroups", "true".to_string()),
             ]
         );
     }
 
     #[test]
-    fn encode_group_id_leaves_plain_id_untouched() {
-        assert_eq!(encode_group_id("123"), "123");
+    fn as_param_refs_borrows_static_keys_and_values() {
+        let params: Vec<(&'static str, String)> =
+            vec![("page", "1".to_string()), ("search", "demo".to_string())];
+        let refs = as_param_refs(&params);
+        assert_eq!(refs, vec![("page", "1"), ("search", "demo")]);
     }
 
     #[test]
-    fn encode_group_id_percent_encodes_slash() {
+    fn encode_path_segment_leaves_plain_id_untouched() {
+        assert_eq!(encode_path_segment("123"), "123");
+        assert_eq!(encode_path_segment("2813489"), "2813489");
+    }
+
+    #[test]
+    fn encode_path_segment_percent_encodes_slash() {
         assert_eq!(
-            encode_group_id("60de7a6852743a5162b5f957/DemoGroup"),
+            encode_path_segment("60de7a6852743a5162b5f957/DemoGroup"),
             "60de7a6852743a5162b5f957%2FDemoGroup"
+        );
+        assert_eq!(
+            encode_path_segment("60de7a6852743a5162b5f957/DemoRepo"),
+            "60de7a6852743a5162b5f957%2FDemoRepo"
         );
     }
 
@@ -2846,7 +2846,7 @@ mod tests {
             description: None,
             visibility: None,
             readme_type: None,
-            tags: None,
+            tags: vec![],
             avatar_url: None,
             template_id: None,
             template_type: None,
@@ -2876,7 +2876,7 @@ mod tests {
             description: Some("desc".into()),
             visibility: Some("private".into()),
             readme_type: Some("USER_GUIDE".into()),
-            tags: Some("tag1,tag2".into()),
+            tags: vec!["tag1".into(), "tag2".into()],
             avatar_url: Some("https://example/avatar".into()),
             template_id: Some("7".into()),
             template_type: Some(2),
@@ -2899,7 +2899,7 @@ mod tests {
     }
 
     #[test]
-    fn build_repo_create_body_converts_comma_tags_to_array() {
+    fn build_repo_create_body_normalizes_tag_values() {
         let args = ReposCreateArgs {
             name: "r".into(),
             path: "r".into(),
@@ -2907,7 +2907,7 @@ mod tests {
             description: None,
             visibility: None,
             readme_type: None,
-            tags: Some(" alpha , beta ".into()),
+            tags: vec![" alpha ".into(), " beta ".into()],
             avatar_url: None,
             template_id: None,
             template_type: None,
@@ -2929,7 +2929,7 @@ mod tests {
             description: None,
             visibility: None,
             readme_type: None,
-            tags: None,
+            tags: vec![],
             avatar_url: None,
             template_id: None,
             template_type: Some(1),
@@ -2943,24 +2943,22 @@ mod tests {
     }
 
     #[test]
-    fn build_repo_create_body_rejects_invalid_visibility() {
-        let args = ReposCreateArgs {
-            name: "r".into(),
-            path: "r".into(),
-            namespace_id: None,
-            description: None,
-            visibility: Some("public".into()),
-            readme_type: None,
-            tags: None,
-            avatar_url: None,
-            template_id: None,
-            template_type: None,
-            sync_all_branches: false,
-            create_parent_path: false,
-        };
-
-        let err = build_repo_create_body(&args).unwrap_err();
-        assert!(err.to_string().contains("visibility"));
+    fn cli_rejects_invalid_repos_create_visibility() {
+        let err = Cli::try_parse_from([
+            "yunxiao",
+            "codeup",
+            "repos",
+            "create",
+            "--name",
+            "r",
+            "--path",
+            "r",
+            "--visibility",
+            "public",
+        ])
+        .unwrap_err();
+        assert!(err.to_string().contains("private"));
+        assert!(err.to_string().contains("internal"));
     }
 
     #[test]
@@ -2972,7 +2970,7 @@ mod tests {
             description: None,
             visibility: None,
             readme_type: None,
-            tags: None,
+            tags: vec![],
             avatar_url: None,
             template_id: None,
             template_type: None,
@@ -2989,7 +2987,7 @@ mod tests {
             description: None,
             visibility: None,
             readme_type: None,
-            tags: None,
+            tags: vec![],
             avatar_url: None,
             template_id: None,
             template_type: None,
@@ -3059,7 +3057,7 @@ mod tests {
         assert_eq!(c.description.as_deref(), Some("desc"));
         assert_eq!(c.visibility.as_deref(), Some("private"));
         assert_eq!(c.readme_type.as_deref(), Some("USER_GUIDE"));
-        assert_eq!(c.tags.as_deref(), Some("t1,t2"));
+        assert_eq!(c.tags, vec!["t1", "t2"]);
         assert_eq!(c.avatar_url.as_deref(), Some("https://example/a"));
         assert_eq!(c.template_id.as_deref(), Some("7"));
         assert_eq!(c.template_type, Some(2));
@@ -3188,17 +3186,6 @@ mod tests {
     }
 
     #[test]
-    fn encode_repo_path_passes_through_plain_id() {
-        assert_eq!(encode_repo_path("2813489"), "2813489");
-    }
-
-    #[test]
-    fn encode_repo_path_percent_encodes_slash_in_full_path() {
-        let encoded = encode_repo_path("60de7a6852743a5162b5f957/DemoRepo");
-        assert_eq!(encoded, "60de7a6852743a5162b5f957%2FDemoRepo");
-    }
-
-    #[test]
     fn build_repo_update_body_includes_all_set_fields() {
         let args = ReposUpdateArgs {
             repo_id: "2813489".into(),
@@ -3309,7 +3296,7 @@ mod tests {
     }
 
     #[test]
-    fn build_repo_update_body_all_empty_returns_empty_body() {
+    fn build_repo_update_body_all_empty_is_rejected() {
         let args = ReposUpdateArgs {
             repo_id: "2813489".into(),
             name: None,
@@ -3318,8 +3305,8 @@ mod tests {
             visibility: None,
             tags: vec![],
         };
-        let body = build_repo_update_body(&args).unwrap();
-        assert!(body.as_object().unwrap().is_empty());
+        let err = build_repo_update_body(&args).unwrap_err();
+        assert!(err.to_string().contains("at least one"));
     }
 
     #[test]
@@ -3439,7 +3426,7 @@ mod tests {
         let args = GroupsCreateArgs {
             name: "DemoGroup".into(),
             path: "demo-group".into(),
-            parent_id: Some(42),
+            parent_id: Some("42".into()),
             description: Some("group description".into()),
             visibility: Some("private".into()),
             avatar: Some("https://example/example/w/100/h/100".into()),
@@ -3456,17 +3443,36 @@ mod tests {
     }
 
     #[test]
-    fn build_group_create_body_rejects_invalid_visibility() {
+    fn build_group_create_body_accepts_full_path_parent_id() {
         let args = GroupsCreateArgs {
             name: "DemoGroup".into(),
             path: "demo-group".into(),
-            parent_id: None,
+            parent_id: Some("60de7a6852743a5162b5f957/DemoGroup".into()),
             description: None,
-            visibility: Some("public".into()),
+            visibility: None,
             avatar: None,
         };
 
-        let err = build_group_create_body(&args).unwrap_err();
+        let body = build_group_create_body(&args).unwrap();
+
+        assert_eq!(body["parentId"], "60de7a6852743a5162b5f957/DemoGroup");
+    }
+
+    #[test]
+    fn cli_rejects_invalid_groups_create_visibility() {
+        let err = Cli::try_parse_from([
+            "yunxiao",
+            "codeup",
+            "groups",
+            "create",
+            "--name",
+            "DemoGroup",
+            "--path",
+            "demo-group",
+            "--visibility",
+            "public",
+        ])
+        .unwrap_err();
 
         let msg = err.to_string();
         assert!(msg.contains("private"));
@@ -3510,17 +3516,18 @@ mod tests {
     }
 
     #[test]
-    fn build_group_update_body_rejects_invalid_visibility() {
-        let args = GroupsUpdateArgs {
-            group_id: "123".into(),
-            name: None,
-            path: None,
-            description: None,
-            visibility: Some("public".into()),
-            avatar: None,
-        };
-
-        let err = build_group_update_body(&args).unwrap_err();
+    fn cli_rejects_invalid_groups_update_visibility() {
+        let err = Cli::try_parse_from([
+            "yunxiao",
+            "codeup",
+            "groups",
+            "update",
+            "--group-id",
+            "123",
+            "--visibility",
+            "public",
+        ])
+        .unwrap_err();
 
         assert!(err.to_string().contains("private"));
     }
@@ -3551,6 +3558,36 @@ mod tests {
         assert_eq!(args.path, "demo-group");
         assert!(args.parent_id.is_none());
         assert!(args.visibility.is_none());
+    }
+
+    #[test]
+    fn cli_parses_groups_create_full_path_parent_id() {
+        let cli = Cli::parse_from([
+            "yunxiao",
+            "codeup",
+            "groups",
+            "create",
+            "--name",
+            "SubGroup",
+            "--path",
+            "sub-group",
+            "--parent-id",
+            "60de7a6852743a5162b5f957/DemoGroup",
+        ]);
+        let crate::cli::Commands::Codeup(codeup) = cli.command else {
+            panic!("expected codeup command");
+        };
+        let CodeupCommands::Groups(groups) = codeup.command else {
+            panic!("expected groups command");
+        };
+        let GroupsCmds::Create(args) = groups.command else {
+            panic!("expected groups create command");
+        };
+
+        assert_eq!(
+            args.parent_id.as_deref(),
+            Some("60de7a6852743a5162b5f957/DemoGroup")
+        );
     }
 
     #[test]
