@@ -59,6 +59,12 @@ pub enum ReposCmds {
     /// the exact repository ID or full path (path_with_namespace). Pass --yes
     /// to skip both prompts for automation.
     Delete(ReposDeleteArgs),
+    /// Update repository metadata (partial update).
+    Update(ReposUpdateArgs),
+    /// Archive a repository.
+    Archive(ReposArchiveArgs),
+    /// Transfer a repository to another group.
+    Transfer(ReposTransferArgs),
 }
 
 /// Arguments for `codeup repos list`.
@@ -90,6 +96,48 @@ pub struct ReposDeleteArgs {
     /// Skip the interactive confirmation prompts (for automation).
     #[arg(long)]
     pub yes: bool,
+}
+
+/// Arguments for `codeup repos update`.
+#[derive(Debug, Args)]
+pub struct ReposUpdateArgs {
+    /// Repository ID or URL-encoded full path (e.g. 60de...%2FDemoRepo).
+    #[arg(long)]
+    pub repo_id: String,
+    /// New repository name.
+    #[arg(long)]
+    pub name: Option<String>,
+    /// New repository description (max 65535 characters).
+    #[arg(long)]
+    pub description: Option<String>,
+    /// Default branch.
+    #[arg(long)]
+    pub default_branch: Option<String>,
+    /// Visibility: private or internal.
+    #[arg(long, value_parser = ["private", "internal"])]
+    pub visibility: Option<String>,
+    /// Comma-separated repository tags.
+    #[arg(long, value_delimiter = ',', value_name = "TAG")]
+    pub tags: Vec<String>,
+}
+
+/// Arguments for `codeup repos archive`.
+#[derive(Debug, Args)]
+pub struct ReposArchiveArgs {
+    /// Repository ID or URL-encoded full path (e.g. 60de...%2FDemoRepo).
+    #[arg(long)]
+    pub repo_id: String,
+}
+
+/// Arguments for `codeup repos transfer`.
+#[derive(Debug, Args)]
+pub struct ReposTransferArgs {
+    /// Repository ID or path_with_namespace full path.
+    #[arg(long)]
+    pub repo_id: String,
+    /// Target group ID or path_with_namespace full path.
+    #[arg(long)]
+    pub group_id: String,
 }
 
 // ─────────────────────────── Branches ───────────────────────────────────
@@ -835,6 +883,44 @@ fn require_non_empty_body(body: &serde_json::Value, message: &str) -> Result<()>
     Ok(())
 }
 
+/// Percent-encode a repository ID when it's a full path containing '/'.
+/// Plain numeric IDs pass through unchanged; paths like
+/// `60de7a6852743a5162b5f957/DemoRepo` become URL-encoded as the API expects.
+fn encode_repo_path(value: &str) -> String {
+    if value.contains('/') {
+        urlencoding::encode(value).into_owned()
+    } else {
+        value.to_string()
+    }
+}
+
+fn build_repo_update_body(u: &ReposUpdateArgs) -> Result<serde_json::Value> {
+    let mut body = json!({});
+    if let Some(ref name) = u.name {
+        body["name"] = json!(name);
+    }
+    if let Some(ref description) = u.description {
+        body["description"] = json!(description);
+    }
+    if let Some(ref branch) = u.default_branch {
+        body["default_branch"] = json!(branch);
+    }
+    if let Some(ref visibility) = u.visibility {
+        body["visibility"] = json!(visibility);
+    }
+    if !u.tags.is_empty() {
+        body["repositoryTags"] = json!(normalized_non_empty_values(&u.tags, "--tags")?);
+    }
+    Ok(body)
+}
+
+fn build_repo_transfer_body(t: &ReposTransferArgs) -> Result<serde_json::Value> {
+    Ok(json!({
+        "repositoryId": t.repo_id,
+        "groupId": t.group_id,
+    }))
+}
+
 // ─────────────────────────── Execute ────────────────────────────────────
 
 /// Execute the `codeup` subcommand tree.
@@ -975,6 +1061,41 @@ async fn exec_repos(
                         d.repo_id
                     ),
                     &[],
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+        ReposCmds::Update(u) => {
+            let body = build_repo_update_body(u)?;
+            let data = client
+                .put(
+                    &format!(
+                        "/oapi/v1/codeup/organizations/{oid}/repositories/{}",
+                        encode_repo_path(&u.repo_id)
+                    ),
+                    &body,
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+        ReposCmds::Archive(a) => {
+            let data = client
+                .post(
+                    &format!(
+                        "/oapi/v1/codeup/organizations/{oid}/repositories/{}/archive",
+                        encode_repo_path(&a.repo_id)
+                    ),
+                    &json!({}),
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+        ReposCmds::Transfer(t) => {
+            let body = build_repo_transfer_body(t)?;
+            let data = client
+                .post(
+                    &format!("/oapi/v1/codeup/organizations/{oid}/repositories/transfer"),
+                    &body,
                 )
                 .await?;
             output::print_output(&data, format)?;
@@ -1954,5 +2075,242 @@ mod tests {
         };
         assert_eq!(args.repo_id, "2813489");
         assert!(!args.yes);
+    }
+
+    fn parse_repos_command<const N: usize>(args: [&str; N]) -> ReposCmds {
+        let cli = Cli::parse_from(args);
+        let crate::cli::Commands::Codeup(codeup) = cli.command else {
+            panic!("expected codeup command");
+        };
+        let CodeupCommands::Repos(repos) = codeup.command else {
+            panic!("expected repos command");
+        };
+        repos.command
+    }
+
+    #[test]
+    fn encode_repo_path_passes_through_plain_id() {
+        assert_eq!(encode_repo_path("2813489"), "2813489");
+    }
+
+    #[test]
+    fn encode_repo_path_percent_encodes_slash_in_full_path() {
+        let encoded = encode_repo_path("60de7a6852743a5162b5f957/DemoRepo");
+        assert_eq!(encoded, "60de7a6852743a5162b5f957%2FDemoRepo");
+    }
+
+    #[test]
+    fn build_repo_update_body_includes_all_set_fields() {
+        let args = ReposUpdateArgs {
+            repo_id: "2813489".into(),
+            name: Some("demo-repo".into()),
+            description: Some("desc".into()),
+            default_branch: Some("main".into()),
+            visibility: Some("private".into()),
+            tags: vec!["alpha".into(), "beta".into()],
+        };
+        let body = build_repo_update_body(&args).unwrap();
+        assert_eq!(body["name"], "demo-repo");
+        assert_eq!(body["description"], "desc");
+        assert_eq!(body["default_branch"], "main");
+        assert_eq!(body["visibility"], "private");
+        assert_eq!(body["repositoryTags"], json!(["alpha", "beta"]));
+    }
+
+    #[test]
+    fn build_repo_update_body_omits_name_when_absent() {
+        let args = ReposUpdateArgs {
+            repo_id: "2813489".into(),
+            name: None,
+            description: Some("desc".into()),
+            default_branch: Some("main".into()),
+            visibility: Some("private".into()),
+            tags: vec!["t".into()],
+        };
+        let body = build_repo_update_body(&args).unwrap();
+        assert!(body.get("name").is_none());
+        assert_eq!(body["description"], "desc");
+        assert_eq!(body["default_branch"], "main");
+        assert_eq!(body["visibility"], "private");
+        assert_eq!(body["repositoryTags"], json!(["t"]));
+    }
+
+    #[test]
+    fn build_repo_update_body_omits_description_when_absent() {
+        let args = ReposUpdateArgs {
+            repo_id: "2813489".into(),
+            name: Some("demo".into()),
+            description: None,
+            default_branch: Some("main".into()),
+            visibility: Some("private".into()),
+            tags: vec!["t".into()],
+        };
+        let body = build_repo_update_body(&args).unwrap();
+        assert!(body.get("description").is_none());
+        assert_eq!(body["name"], "demo");
+    }
+
+    #[test]
+    fn build_repo_update_body_omits_default_branch_when_absent() {
+        let args = ReposUpdateArgs {
+            repo_id: "2813489".into(),
+            name: Some("demo".into()),
+            description: Some("desc".into()),
+            default_branch: None,
+            visibility: Some("private".into()),
+            tags: vec!["t".into()],
+        };
+        let body = build_repo_update_body(&args).unwrap();
+        assert!(body.get("default_branch").is_none());
+        assert_eq!(body["name"], "demo");
+    }
+
+    #[test]
+    fn build_repo_update_body_omits_visibility_when_absent() {
+        let args = ReposUpdateArgs {
+            repo_id: "2813489".into(),
+            name: Some("demo".into()),
+            description: Some("desc".into()),
+            default_branch: Some("main".into()),
+            visibility: None,
+            tags: vec!["t".into()],
+        };
+        let body = build_repo_update_body(&args).unwrap();
+        assert!(body.get("visibility").is_none());
+        assert_eq!(body["name"], "demo");
+    }
+
+    #[test]
+    fn build_repo_update_body_omits_tags_when_absent() {
+        let args = ReposUpdateArgs {
+            repo_id: "2813489".into(),
+            name: Some("demo".into()),
+            description: Some("desc".into()),
+            default_branch: Some("main".into()),
+            visibility: Some("private".into()),
+            tags: vec![],
+        };
+        let body = build_repo_update_body(&args).unwrap();
+        assert!(body.get("repositoryTags").is_none());
+        assert_eq!(body["name"], "demo");
+    }
+
+    #[test]
+    fn build_repo_update_body_rejects_empty_tag_string() {
+        let args = ReposUpdateArgs {
+            repo_id: "2813489".into(),
+            name: None,
+            description: None,
+            default_branch: None,
+            visibility: None,
+            tags: vec!["".into()],
+        };
+        let err = build_repo_update_body(&args).unwrap_err();
+        assert!(err.to_string().contains("cannot be empty"));
+    }
+
+    #[test]
+    fn build_repo_update_body_all_empty_returns_empty_body() {
+        let args = ReposUpdateArgs {
+            repo_id: "2813489".into(),
+            name: None,
+            description: None,
+            default_branch: None,
+            visibility: None,
+            tags: vec![],
+        };
+        let body = build_repo_update_body(&args).unwrap();
+        assert!(body.as_object().unwrap().is_empty());
+    }
+
+    #[test]
+    fn build_repo_transfer_body_uses_repo_and_group_id() {
+        let args = ReposTransferArgs {
+            repo_id: "60de7a6852743a5162b5f957/DemoRepo".into(),
+            group_id: "60de7a6852743a5162b5f957/target-group".into(),
+        };
+        let body = build_repo_transfer_body(&args).unwrap();
+        assert_eq!(body["repositoryId"], "60de7a6852743a5162b5f957/DemoRepo");
+        assert_eq!(body["groupId"], "60de7a6852743a5162b5f957/target-group");
+    }
+
+    #[test]
+    fn cli_parses_repos_update_with_all_flags() {
+        let ReposCmds::Update(args) = parse_repos_command([
+            "yunxiao",
+            "codeup",
+            "repos",
+            "update",
+            "--repo-id",
+            "2813489",
+            "--name",
+            "demo",
+            "--description",
+            "desc",
+            "--default-branch",
+            "main",
+            "--visibility",
+            "private",
+            "--tags",
+            "a,b",
+        ]) else {
+            panic!("expected repos update");
+        };
+        assert_eq!(args.repo_id, "2813489");
+        assert_eq!(args.name.as_deref(), Some("demo"));
+        assert_eq!(args.description.as_deref(), Some("desc"));
+        assert_eq!(args.default_branch.as_deref(), Some("main"));
+        assert_eq!(args.visibility.as_deref(), Some("private"));
+        assert_eq!(args.tags, vec!["a", "b"]);
+    }
+
+    #[test]
+    fn cli_rejects_invalid_repos_update_visibility() {
+        let err = Cli::try_parse_from([
+            "yunxiao",
+            "codeup",
+            "repos",
+            "update",
+            "--repo-id",
+            "2813489",
+            "--visibility",
+            "public",
+        ])
+        .unwrap_err();
+        assert!(err.to_string().contains("private"));
+        assert!(err.to_string().contains("internal"));
+    }
+
+    #[test]
+    fn cli_parses_repos_archive() {
+        let ReposCmds::Archive(args) = parse_repos_command([
+            "yunxiao",
+            "codeup",
+            "repos",
+            "archive",
+            "--repo-id",
+            "2813489",
+        ]) else {
+            panic!("expected repos archive");
+        };
+        assert_eq!(args.repo_id, "2813489");
+    }
+
+    #[test]
+    fn cli_parses_repos_transfer() {
+        let ReposCmds::Transfer(args) = parse_repos_command([
+            "yunxiao",
+            "codeup",
+            "repos",
+            "transfer",
+            "--repo-id",
+            "2813489",
+            "--group-id",
+            "60de7a6852743a5162b5f957/target",
+        ]) else {
+            panic!("expected repos transfer");
+        };
+        assert_eq!(args.repo_id, "2813489");
+        assert_eq!(args.group_id, "60de7a6852743a5162b5f957/target");
     }
 }
