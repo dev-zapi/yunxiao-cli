@@ -34,6 +34,8 @@ pub enum CodeupCommands {
     Compare(CompareArgs),
     /// Manage merge requests.
     Mr(MrArgs),
+    /// Manage code groups.
+    Groups(GroupsArgs),
 }
 
 // ─────────────────────────── Repos ──────────────────────────────────────
@@ -71,6 +73,92 @@ pub struct ReposGetArgs {
     /// Repository ID. Get via: yunxiao codeup repos list
     #[arg(long)]
     pub repo_id: String,
+}
+
+// ─────────────────────────── Groups ─────────────────────────────────────
+
+/// Arguments for `codeup groups`.
+#[derive(Debug, Args)]
+pub struct GroupsArgs {
+    #[command(subcommand)]
+    pub command: GroupsCmds,
+}
+
+/// Code-group operations.
+#[derive(Debug, Subcommand)]
+pub enum GroupsCmds {
+    /// List code groups (and root spaces).
+    List(GroupsListArgs),
+    /// Get a code group or root space by ID or full path.
+    Get(GroupsGetArgs),
+    /// Manage repositories within a code group.
+    Repos(GroupsReposArgs),
+}
+
+/// Arguments for `codeup groups list`.
+#[derive(Debug, Args)]
+pub struct GroupsListArgs {
+    /// Parent group or root-space ID, or full path. Omit to list the current
+    /// user's group spaces.
+    #[arg(long)]
+    pub parent_id: Option<String>,
+    /// Search keyword.
+    #[arg(long)]
+    pub search: Option<String>,
+    /// Sort field: created_at or updated_at (default updated_at).
+    #[arg(long)]
+    pub order_by: Option<String>,
+    /// Sort direction: asc or desc (default desc).
+    #[arg(long)]
+    pub sort: Option<String>,
+    /// Page number (1-based).
+    #[arg(long, default_value = "1")]
+    pub page: u32,
+    /// Number of results per page.
+    #[arg(long, default_value = "20")]
+    pub per_page: u32,
+}
+
+/// Arguments for `codeup groups get`.
+#[derive(Debug, Args)]
+pub struct GroupsGetArgs {
+    /// Group or root-space ID, or full path.
+    #[arg(long)]
+    pub group_id: String,
+}
+
+/// Arguments for `codeup groups repos`.
+#[derive(Debug, Args)]
+pub struct GroupsReposArgs {
+    #[command(subcommand)]
+    pub command: GroupsReposCmds,
+}
+
+/// Operations on repositories within a code group.
+#[derive(Debug, Subcommand)]
+pub enum GroupsReposCmds {
+    /// List repositories in a code group.
+    List(GroupsReposListArgs),
+}
+
+/// Arguments for `codeup groups repos list`.
+#[derive(Debug, Args)]
+pub struct GroupsReposListArgs {
+    /// Group or root-space ID, or full path.
+    #[arg(long)]
+    pub group_id: String,
+    /// Search keyword (repository name).
+    #[arg(long)]
+    pub search: Option<String>,
+    /// Include repositories in subgroups.
+    #[arg(long)]
+    pub include_subgroups: bool,
+    /// Page number (1-based).
+    #[arg(long, default_value = "1")]
+    pub page: u32,
+    /// Number of results per page.
+    #[arg(long, default_value = "20")]
+    pub per_page: u32,
 }
 
 // ─────────────────────────── Branches ───────────────────────────────────
@@ -840,6 +928,7 @@ pub async fn execute(
         CodeupCommands::Files(f) => exec_files(f, &client, &org_id, format).await,
         CodeupCommands::Compare(c) => exec_compare(c, &client, &org_id, format).await,
         CodeupCommands::Mr(m) => exec_mr(m, &client, &org_id, format).await,
+        CodeupCommands::Groups(g) => exec_groups(g, &client, &org_id, format).await,
     }
 }
 
@@ -850,6 +939,143 @@ fn require_org(org_id: &Option<String>) -> Result<&str> {
             "Organization ID required. Set via --org-id, YUNXIAO_CLI_ORG_ID, or config.".into(),
         )
     })
+}
+
+// ─────────────────────────── Groups ─────────────────────────────────────
+
+/// Percent-encode a group identifier for use as a single URL path segment.
+///
+/// The API accepts either a numeric ID or a full path (e.g. `org/DemoGroup`).
+/// When the value contains a `/`, encode it so the whole string stays one
+/// segment on the wire. Plain IDs are returned untouched.
+fn encode_group_id(group_id: &str) -> String {
+    if group_id.contains('/') {
+        urlencoding::encode(group_id).into_owned()
+    } else {
+        group_id.to_string()
+    }
+}
+
+/// Build query parameters for `codeup groups list` (the namespaces endpoint).
+///
+/// Pagination is always sent. Optional filters are omitted when unset so the
+/// API applies its own defaults.
+fn build_namespaces_query(
+    parent_id: Option<&str>,
+    search: Option<&str>,
+    order_by: Option<&str>,
+    sort: Option<&str>,
+    page: u32,
+    per_page: u32,
+) -> Vec<(String, String)> {
+    let mut params: Vec<(String, String)> = Vec::new();
+    if let Some(p) = parent_id {
+        params.push(("parentId".into(), p.to_string()));
+    }
+    params.push(("page".into(), page.to_string()));
+    params.push(("perPage".into(), per_page.to_string()));
+    if let Some(s) = search {
+        params.push(("search".into(), s.to_string()));
+    }
+    if let Some(o) = order_by {
+        params.push(("orderBy".into(), o.to_string()));
+    }
+    if let Some(s) = sort {
+        params.push(("sort".into(), s.to_string()));
+    }
+    params
+}
+
+/// Build query parameters for `codeup groups repos list`.
+///
+/// Pagination is always sent. `search` and `includeSubgroups` are omitted when
+/// absent / false so the API uses its defaults.
+fn build_group_repos_query(
+    search: Option<&str>,
+    include_subgroups: bool,
+    page: u32,
+    per_page: u32,
+) -> Vec<(String, String)> {
+    let mut params: Vec<(String, String)> = Vec::new();
+    params.push(("page".into(), page.to_string()));
+    params.push(("perPage".into(), per_page.to_string()));
+    if let Some(s) = search {
+        params.push(("search".into(), s.to_string()));
+    }
+    if include_subgroups {
+        params.push(("includeSubgroups".into(), "true".into()));
+    }
+    params
+}
+
+/// Execute code-group sub-operations.
+async fn exec_groups(
+    args: &GroupsArgs,
+    client: &ApiClient,
+    org_id: &Option<String>,
+    format: &OutputFormat,
+) -> Result<()> {
+    let oid = require_org(org_id)?;
+    match &args.command {
+        GroupsCmds::List(l) => {
+            let query = build_namespaces_query(
+                l.parent_id.as_deref(),
+                l.search.as_deref(),
+                l.order_by.as_deref(),
+                l.sort.as_deref(),
+                l.page,
+                l.per_page,
+            );
+            let params_ref: Vec<(&str, &str)> = query
+                .iter()
+                .map(|(k, v)| (k.as_str(), v.as_str()))
+                .collect();
+            let data = client
+                .get(
+                    &format!("/oapi/v1/codeup/organizations/{oid}/namespaces"),
+                    &params_ref,
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+        GroupsCmds::Get(g) => {
+            let data = client
+                .get(
+                    &format!(
+                        "/oapi/v1/codeup/organizations/{oid}/namespaces/{}",
+                        encode_group_id(&g.group_id)
+                    ),
+                    &[],
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+        GroupsCmds::Repos(r) => match &r.command {
+            GroupsReposCmds::List(l) => {
+                let query = build_group_repos_query(
+                    l.search.as_deref(),
+                    l.include_subgroups,
+                    l.page,
+                    l.per_page,
+                );
+                let params_ref: Vec<(&str, &str)> = query
+                    .iter()
+                    .map(|(k, v)| (k.as_str(), v.as_str()))
+                    .collect();
+                let data = client
+                    .get(
+                        &format!(
+                            "/oapi/v1/codeup/organizations/{oid}/groups/{}/repositories",
+                            encode_group_id(&l.group_id)
+                        ),
+                        &params_ref,
+                    )
+                    .await?;
+                output::print_output(&data, format)?;
+            }
+        },
+    }
+    Ok(())
 }
 
 // ─────────────────────────── Repos ──────────────────────────────────────
@@ -1752,6 +1978,123 @@ mod tests {
             panic!("expected comments command");
         };
         assert!(matches!(comments.command, MrCommentsCmds::Delete(_)));
+    }
+
+    // ───── groups ─────
+
+    #[test]
+    fn build_namespaces_query_omits_absent_filters() {
+        let query = build_namespaces_query(None, None, None, None, 1, 20);
+        assert_eq!(
+            query,
+            vec![
+                ("page".to_string(), "1".to_string()),
+                ("perPage".to_string(), "20".to_string()),
+            ]
+        );
+    }
+
+    #[test]
+    fn build_namespaces_query_includes_provided_filters() {
+        let query = build_namespaces_query(
+            Some("1"),
+            Some("Test"),
+            Some("updated_at"),
+            Some("desc"),
+            2,
+            50,
+        );
+        assert_eq!(
+            query,
+            vec![
+                ("parentId".to_string(), "1".to_string()),
+                ("page".to_string(), "2".to_string()),
+                ("perPage".to_string(), "50".to_string()),
+                ("search".to_string(), "Test".to_string()),
+                ("orderBy".to_string(), "updated_at".to_string()),
+                ("sort".to_string(), "desc".to_string()),
+            ]
+        );
+    }
+
+    #[test]
+    fn build_group_repos_query_omits_defaults() {
+        let query = build_group_repos_query(None, false, 1, 20);
+        assert_eq!(
+            query,
+            vec![
+                ("page".to_string(), "1".to_string()),
+                ("perPage".to_string(), "20".to_string()),
+            ]
+        );
+    }
+
+    #[test]
+    fn build_group_repos_query_includes_optional() {
+        let query = build_group_repos_query(Some("TestRepo"), true, 3, 10);
+        assert_eq!(
+            query,
+            vec![
+                ("page".to_string(), "3".to_string()),
+                ("perPage".to_string(), "10".to_string()),
+                ("search".to_string(), "TestRepo".to_string()),
+                ("includeSubgroups".to_string(), "true".to_string()),
+            ]
+        );
+    }
+
+    #[test]
+    fn encode_group_id_leaves_plain_id_untouched() {
+        assert_eq!(encode_group_id("123"), "123");
+    }
+
+    #[test]
+    fn encode_group_id_percent_encodes_slash() {
+        assert_eq!(
+            encode_group_id("60de7a6852743a5162b5f957/DemoGroup"),
+            "60de7a6852743a5162b5f957%2FDemoGroup"
+        );
+    }
+
+    #[test]
+    fn cli_parses_groups_commands() {
+        let list =
+            parse_groups_command(["yunxiao", "codeup", "groups", "list", "--parent-id", "1"]);
+        assert!(matches!(list, GroupsCmds::List(_)));
+
+        let get = parse_groups_command(["yunxiao", "codeup", "groups", "get", "--group-id", "123"]);
+        let GroupsCmds::Get(args) = get else {
+            panic!("expected groups get command");
+        };
+        assert_eq!(args.group_id, "123");
+
+        let repos = parse_groups_command([
+            "yunxiao",
+            "codeup",
+            "groups",
+            "repos",
+            "list",
+            "--group-id",
+            "123",
+            "--include-subgroups",
+        ]);
+        let GroupsCmds::Repos(r) = repos else {
+            panic!("expected groups repos command");
+        };
+        let GroupsReposCmds::List(list_args) = r.command;
+        assert_eq!(list_args.group_id, "123");
+        assert!(list_args.include_subgroups);
+    }
+
+    fn parse_groups_command<const N: usize>(args: [&str; N]) -> GroupsCmds {
+        let cli = Cli::parse_from(args);
+        let crate::cli::Commands::Codeup(codeup) = cli.command else {
+            panic!("expected codeup command");
+        };
+        let CodeupCommands::Groups(groups) = codeup.command else {
+            panic!("expected groups command");
+        };
+        groups.command
     }
 
     fn parse_mr_command<const N: usize>(args: [&str; N]) -> MrCmds {
