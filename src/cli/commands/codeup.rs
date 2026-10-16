@@ -35,6 +35,8 @@ pub enum CodeupCommands {
     Compare(CompareArgs),
     /// Manage merge requests.
     Mr(MrArgs),
+    /// Manage code groups.
+    Groups(GroupsArgs),
 }
 
 // ─────────────────────────── Repos ──────────────────────────────────────
@@ -776,6 +778,70 @@ pub struct MrPatchsetsArgs {
     pub mr_id: String,
 }
 
+// ─────────────────────────── Groups ─────────────────────────────────────
+
+/// Arguments for `codeup groups`.
+#[derive(Debug, Args)]
+pub struct GroupsArgs {
+    #[command(subcommand)]
+    pub command: GroupsCmds,
+}
+
+/// Code-group operations.
+#[derive(Debug, Subcommand)]
+pub enum GroupsCmds {
+    /// Create a new code group.
+    Create(GroupsCreateArgs),
+    /// Update a code group's metadata (partial update).
+    Update(GroupsUpdateArgs),
+}
+
+/// Arguments for `codeup groups create`.
+#[derive(Debug, Args)]
+pub struct GroupsCreateArgs {
+    /// Code group display name (required).
+    #[arg(long)]
+    pub name: String,
+    /// Code group path segment (required).
+    #[arg(long)]
+    pub path: String,
+    /// Parent group or root-space ID. Omit to create under the org root.
+    #[arg(long)]
+    pub parent_id: Option<i64>,
+    /// Description text (up to 65535 characters).
+    #[arg(long)]
+    pub description: Option<String>,
+    /// Visibility: `private` (group members only) or `internal` (org-wide).
+    #[arg(long)]
+    pub visibility: Option<String>,
+    /// Avatar URL.
+    #[arg(long)]
+    pub avatar: Option<String>,
+}
+
+/// Arguments for `codeup groups update`.
+#[derive(Debug, Args)]
+pub struct GroupsUpdateArgs {
+    /// Group ID, or full path (automatically percent-encoded if it contains '/').
+    #[arg(long)]
+    pub group_id: String,
+    /// New display name.
+    #[arg(long)]
+    pub name: Option<String>,
+    /// New path segment.
+    #[arg(long)]
+    pub path: Option<String>,
+    /// New description.
+    #[arg(long)]
+    pub description: Option<String>,
+    /// New visibility: `private` or `internal`.
+    #[arg(long)]
+    pub visibility: Option<String>,
+    /// New avatar URL.
+    #[arg(long)]
+    pub avatar: Option<String>,
+}
+
 fn build_mr_create_body(c: &MrCreateArgs) -> Result<serde_json::Value> {
     let source_project_id = c
         .source_project_id
@@ -963,6 +1029,89 @@ fn build_repo_transfer_body(t: &ReposTransferArgs) -> Result<serde_json::Value> 
     }))
 }
 
+/// Percent-encode a group ID when it is a full path.
+///
+/// The API accepts either a numeric ID or a full path (e.g. `org/DemoGroup`).
+/// When the value contains a `/`, encode it so the whole string stays one
+/// segment on the wire. Plain IDs are returned untouched.
+fn encode_group_id(group_id: &str) -> String {
+    if group_id.contains('/') {
+        group_id.replace('/', "%2F")
+    } else {
+        group_id.to_string()
+    }
+}
+
+/// Validate a group visibility value (`private` or `internal`).
+fn require_valid_group_visibility(value: &str) -> Result<()> {
+    if value != "private" && value != "internal" {
+        return Err(crate::error::CliError::Config(format!(
+            "--visibility must be 'private' or 'internal' (got '{value}')"
+        )));
+    }
+    Ok(())
+}
+
+/// Build the request body for `codeup groups create`.
+///
+/// `name` and `path` are always sent. Optional fields (`parentId`, `description`,
+/// `visibility`, `avatar`) are omitted from the body when unset so the API applies
+/// its own defaults. `visibility`, when provided, must be `private` or `internal`.
+fn build_group_create_body(c: &GroupsCreateArgs) -> Result<serde_json::Value> {
+    require_non_empty_text(&c.name, "--name")?;
+    require_non_empty_text(&c.path, "--path")?;
+    let mut body = json!({
+        "name": c.name,
+        "path": c.path,
+    });
+    if let Some(parent_id) = c.parent_id {
+        body["parentId"] = json!(parent_id);
+    }
+    if let Some(ref description) = c.description {
+        body["description"] = json!(description);
+    }
+    if let Some(ref visibility) = c.visibility {
+        require_valid_group_visibility(visibility)?;
+        body["visibility"] = json!(visibility);
+    }
+    if let Some(ref avatar) = c.avatar {
+        body["avatar"] = json!(avatar);
+    }
+    Ok(body)
+}
+
+/// Build the request body for `codeup groups update`.
+///
+/// Partial-update semantics: only fields the user passed are included in the
+/// body. At least one field must be set, otherwise the API would receive an
+/// empty payload.
+fn build_group_update_body(u: &GroupsUpdateArgs) -> Result<serde_json::Value> {
+    let mut body = json!({});
+    if let Some(ref name) = u.name {
+        require_non_empty_text(name, "--name")?;
+        body["name"] = json!(name);
+    }
+    if let Some(ref path) = u.path {
+        require_non_empty_text(path, "--path")?;
+        body["path"] = json!(path);
+    }
+    if let Some(ref description) = u.description {
+        body["description"] = json!(description);
+    }
+    if let Some(ref visibility) = u.visibility {
+        require_valid_group_visibility(visibility)?;
+        body["visibility"] = json!(visibility);
+    }
+    if let Some(ref avatar) = u.avatar {
+        body["avatar"] = json!(avatar);
+    }
+    require_non_empty_body(
+        &body,
+        "groups update requires at least one of --name, --path, --description, --visibility, or --avatar",
+    )?;
+    Ok(body)
+}
+
 // ─────────────────────────── Execute ────────────────────────────────────
 
 /// Execute the `codeup` subcommand tree.
@@ -987,6 +1136,7 @@ pub async fn execute(
         CodeupCommands::Files(f) => exec_files(f, &client, &org_id, format).await,
         CodeupCommands::Compare(c) => exec_compare(c, &client, &org_id, format).await,
         CodeupCommands::Mr(m) => exec_mr(m, &client, &org_id, format).await,
+        CodeupCommands::Groups(g) => exec_groups(g, &client, &org_id, format).await,
     }
 }
 
@@ -1671,6 +1821,42 @@ async fn exec_mr(
                         p.repo_id, p.mr_id
                     ),
                     &[],
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+    }
+    Ok(())
+}
+
+// ─────────────────────────── Groups ─────────────────────────────────────
+
+/// Execute code-group sub-operations.
+async fn exec_groups(
+    args: &GroupsArgs,
+    client: &ApiClient,
+    org_id: &Option<String>,
+    format: &OutputFormat,
+) -> Result<()> {
+    let oid = require_org(org_id)?;
+    match &args.command {
+        GroupsCmds::Create(c) => {
+            let body = build_group_create_body(c)?;
+            let data = client
+                .post(
+                    &format!("/oapi/v1/codeup/organizations/{oid}/groups"),
+                    &body,
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+        GroupsCmds::Update(u) => {
+            let body = build_group_update_body(u)?;
+            let encoded = encode_group_id(&u.group_id);
+            let data = client
+                .put(
+                    &format!("/oapi/v1/codeup/organizations/{oid}/groups/{encoded}"),
+                    &body,
                 )
                 .await?;
             output::print_output(&data, format)?;
@@ -2553,5 +2739,189 @@ mod tests {
         };
         assert_eq!(args.repo_id, "2813489");
         assert_eq!(args.group_id, "60de7a6852743a5162b5f957/target");
+    }
+
+    #[test]
+    fn build_group_create_body_includes_only_required_fields() {
+        let args = GroupsCreateArgs {
+            name: "DemoGroup".into(),
+            path: "demo-group".into(),
+            parent_id: None,
+            description: None,
+            visibility: None,
+            avatar: None,
+        };
+
+        let body = build_group_create_body(&args).unwrap();
+
+        assert_eq!(body["name"], "DemoGroup");
+        assert_eq!(body["path"], "demo-group");
+        assert!(body.get("parentId").is_none());
+        assert!(body.get("description").is_none());
+        assert!(body.get("visibility").is_none());
+        assert!(body.get("avatar").is_none());
+    }
+
+    #[test]
+    fn build_group_create_body_includes_all_optional_fields() {
+        let args = GroupsCreateArgs {
+            name: "DemoGroup".into(),
+            path: "demo-group".into(),
+            parent_id: Some(42),
+            description: Some("group description".into()),
+            visibility: Some("private".into()),
+            avatar: Some("https://example/example/w/100/h/100".into()),
+        };
+
+        let body = build_group_create_body(&args).unwrap();
+
+        assert_eq!(body["name"], "DemoGroup");
+        assert_eq!(body["path"], "demo-group");
+        assert_eq!(body["parentId"], 42);
+        assert_eq!(body["description"], "group description");
+        assert_eq!(body["visibility"], "private");
+        assert_eq!(body["avatar"], "https://example/example/w/100/h/100");
+    }
+
+    #[test]
+    fn build_group_create_body_rejects_invalid_visibility() {
+        let args = GroupsCreateArgs {
+            name: "DemoGroup".into(),
+            path: "demo-group".into(),
+            parent_id: None,
+            description: None,
+            visibility: Some("public".into()),
+            avatar: None,
+        };
+
+        let err = build_group_create_body(&args).unwrap_err();
+
+        let msg = err.to_string();
+        assert!(msg.contains("private"));
+        assert!(msg.contains("internal"));
+    }
+
+    #[test]
+    fn build_group_update_body_omits_unset_fields() {
+        let args = GroupsUpdateArgs {
+            group_id: "123".into(),
+            name: None,
+            path: None,
+            description: Some("new description".into()),
+            visibility: None,
+            avatar: None,
+        };
+
+        let body = build_group_update_body(&args).unwrap();
+
+        assert_eq!(body["description"], "new description");
+        assert!(body.get("name").is_none());
+        assert!(body.get("path").is_none());
+        assert!(body.get("visibility").is_none());
+        assert!(body.get("avatar").is_none());
+    }
+
+    #[test]
+    fn build_group_update_body_requires_at_least_one_field() {
+        let args = GroupsUpdateArgs {
+            group_id: "123".into(),
+            name: None,
+            path: None,
+            description: None,
+            visibility: None,
+            avatar: None,
+        };
+
+        let err = build_group_update_body(&args).unwrap_err();
+
+        assert!(err.to_string().contains("at least one"));
+    }
+
+    #[test]
+    fn build_group_update_body_rejects_invalid_visibility() {
+        let args = GroupsUpdateArgs {
+            group_id: "123".into(),
+            name: None,
+            path: None,
+            description: None,
+            visibility: Some("public".into()),
+            avatar: None,
+        };
+
+        let err = build_group_update_body(&args).unwrap_err();
+
+        assert!(err.to_string().contains("private"));
+    }
+
+    #[test]
+    fn encode_group_id_leaves_plain_id_untouched() {
+        assert_eq!(encode_group_id("123"), "123");
+    }
+
+    #[test]
+    fn encode_group_id_percent_encodes_slash() {
+        assert_eq!(
+            encode_group_id("60de7a6852743a5162b5f957/DemoGroup"),
+            "60de7a6852743a5162b5f957%2FDemoGroup"
+        );
+    }
+
+    #[test]
+    fn cli_parses_groups_create_required_only() {
+        let cli = Cli::parse_from([
+            "yunxiao",
+            "codeup",
+            "groups",
+            "create",
+            "--name",
+            "DemoGroup",
+            "--path",
+            "demo-group",
+        ]);
+        let crate::cli::Commands::Codeup(codeup) = cli.command else {
+            panic!("expected codeup command");
+        };
+        let CodeupCommands::Groups(groups) = codeup.command else {
+            panic!("expected groups command");
+        };
+        let GroupsCmds::Create(args) = groups.command else {
+            panic!("expected groups create command");
+        };
+
+        assert_eq!(args.name, "DemoGroup");
+        assert_eq!(args.path, "demo-group");
+        assert!(args.parent_id.is_none());
+        assert!(args.visibility.is_none());
+    }
+
+    #[test]
+    fn cli_parses_groups_update_flags() {
+        let cli = Cli::parse_from([
+            "yunxiao",
+            "codeup",
+            "groups",
+            "update",
+            "--group-id",
+            "123",
+            "--name",
+            "NewName",
+            "--visibility",
+            "internal",
+        ]);
+        let crate::cli::Commands::Codeup(codeup) = cli.command else {
+            panic!("expected codeup command");
+        };
+        let CodeupCommands::Groups(groups) = codeup.command else {
+            panic!("expected groups command");
+        };
+        let GroupsCmds::Update(args) = groups.command else {
+            panic!("expected groups update command");
+        };
+
+        assert_eq!(args.group_id, "123");
+        assert_eq!(args.name.as_deref(), Some("NewName"));
+        assert_eq!(args.visibility.as_deref(), Some("internal"));
+        assert!(args.description.is_none());
+        assert!(args.avatar.is_none());
     }
 }
