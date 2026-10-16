@@ -5,6 +5,7 @@
 
 use clap::{Args, Subcommand};
 use serde_json::json;
+use std::io::{IsTerminal, Write};
 
 use crate::client::ApiClient;
 use crate::config;
@@ -54,6 +55,12 @@ pub enum ReposCmds {
     List(ReposListArgs),
     /// Get repository details by ID.
     Get(ReposGetArgs),
+    /// Delete a repository.
+    ///
+    /// By default prompts twice: first a y/N confirmation, then requires typing
+    /// the exact repository ID or full path (path_with_namespace). Pass --yes
+    /// to skip both prompts for automation.
+    Delete(ReposDeleteArgs),
 }
 
 /// Arguments for `codeup repos list`.
@@ -159,6 +166,18 @@ pub struct GroupsReposListArgs {
     /// Number of results per page.
     #[arg(long, default_value = "20")]
     pub per_page: u32,
+}
+
+/// Arguments for `codeup repos delete`.
+#[derive(Debug, Args)]
+pub struct ReposDeleteArgs {
+    /// Repository ID or URL-encoded full path (path_with_namespace).
+    /// Get via: yunxiao codeup repos list
+    #[arg(long)]
+    pub repo_id: String,
+    /// Skip the interactive confirmation prompts (for automation).
+    #[arg(long)]
+    pub yes: bool,
 }
 
 // ─────────────────────────── Branches ───────────────────────────────────
@@ -1080,6 +1099,65 @@ async fn exec_groups(
 
 // ─────────────────────────── Repos ──────────────────────────────────────
 
+/// Check if user input is an affirmative response (y/yes, case-insensitive).
+fn is_affirmative(input: &str) -> bool {
+    matches!(input.trim().to_ascii_lowercase().as_str(), "y" | "yes")
+}
+
+/// Check if user input matches the repository ID or full path for delete confirmation.
+///
+/// Comparison is exact after trimming surrounding whitespace from both sides,
+/// so `--repo-id` may be either a repository ID or a `path_with_namespace`.
+fn matches_delete_confirmation(input: &str, repo_id: &str) -> bool {
+    input.trim() == repo_id.trim()
+}
+
+/// Interactive double confirmation for repository deletion.
+///
+/// Returns `Ok(true)` if deletion should proceed, `Ok(false)` if the user
+/// cancelled, or `Err` on I/O failure or non-interactive mode without `--yes`.
+fn confirm_repo_deletion(repo_id: &str, yes: bool) -> Result<bool> {
+    if yes {
+        return Ok(true);
+    }
+
+    if !std::io::stdin().is_terminal() {
+        return Err(crate::error::CliError::Config(
+            "Refusing to delete in non-interactive mode. Pass --yes to confirm.".into(),
+        ));
+    }
+
+    // First confirmation: y/N
+    eprint!(
+        "This will permanently delete repository '{}' and all its contents. Continue? [y/N] ",
+        repo_id
+    );
+    std::io::stderr().flush()?;
+    let mut line = String::new();
+    std::io::stdin().read_line(&mut line)?;
+
+    if !is_affirmative(line.trim()) {
+        eprintln!("Deletion cancelled.");
+        return Ok(false);
+    }
+
+    // Second confirmation: type exact repo_id
+    eprint!("Type the repository ID or full path to confirm deletion: ");
+    std::io::stderr().flush()?;
+    line.clear();
+    std::io::stdin().read_line(&mut line)?;
+
+    if !matches_delete_confirmation(&line, repo_id) {
+        eprintln!(
+            "Confirmation did not match '{}'. Deletion cancelled.",
+            repo_id
+        );
+        return Ok(false);
+    }
+
+    Ok(true)
+}
+
 /// Execute repository sub-operations.
 async fn exec_repos(
     args: &ReposArgs,
@@ -1106,6 +1184,21 @@ async fn exec_repos(
                     &format!(
                         "/oapi/v1/codeup/organizations/{oid}/repositories/{}",
                         g.repo_id
+                    ),
+                    &[],
+                )
+                .await?;
+            output::print_output(&data, format)?;
+        }
+        ReposCmds::Delete(d) => {
+            if !confirm_repo_deletion(&d.repo_id, d.yes)? {
+                return Ok(());
+            }
+            let data = client
+                .delete(
+                    &format!(
+                        "/oapi/v1/codeup/organizations/{oid}/repositories/{}",
+                        d.repo_id
                     ),
                     &[],
                 )
@@ -2106,5 +2199,103 @@ mod tests {
             panic!("expected mr command");
         };
         mr.command
+    }
+
+    // ── T4: repos delete confirmation pure functions ─────────────────────
+
+    #[test]
+    fn matches_delete_confirmation_exact_id() {
+        assert!(matches_delete_confirmation("2813489", "2813489"));
+    }
+
+    #[test]
+    fn matches_delete_confirmation_full_path() {
+        assert!(matches_delete_confirmation(
+            "60de7a6852743a5162b5f957/DemoRepo",
+            "60de7a6852743a5162b5f957/DemoRepo"
+        ));
+    }
+
+    #[test]
+    fn matches_delete_confirmation_mismatch() {
+        assert!(!matches_delete_confirmation("2813489", "2813490"));
+        assert!(!matches_delete_confirmation(
+            "DemoRepo",
+            "60de7a6852743a5162b5f957/DemoRepo"
+        ));
+    }
+
+    #[test]
+    fn matches_delete_confirmation_trims_whitespace() {
+        assert!(matches_delete_confirmation("  2813489\n", "2813489"));
+        assert!(matches_delete_confirmation(
+            "60de7a6852743a5162b5f957/DemoRepo ",
+            " 60de7a6852743a5162b5f957/DemoRepo"
+        ));
+    }
+
+    #[test]
+    fn is_affirmative_accepts_yes_variants() {
+        assert!(is_affirmative("y"));
+        assert!(is_affirmative("Y"));
+        assert!(is_affirmative("yes"));
+        assert!(is_affirmative("YES"));
+        assert!(is_affirmative(" y "));
+    }
+
+    #[test]
+    fn is_affirmative_rejects_others() {
+        assert!(!is_affirmative(""));
+        assert!(!is_affirmative("n"));
+        assert!(!is_affirmative("no"));
+        assert!(!is_affirmative("yeah"));
+        assert!(!is_affirmative("   "));
+    }
+
+    #[test]
+    fn cli_parses_repos_delete_with_yes_flag() {
+        let cli = Cli::parse_from([
+            "yunxiao",
+            "codeup",
+            "repos",
+            "delete",
+            "--repo-id",
+            "2813489",
+            "--yes",
+        ]);
+        let crate::cli::Commands::Codeup(codeup) = cli.command else {
+            panic!("expected codeup command");
+        };
+        let CodeupCommands::Repos(repos) = codeup.command else {
+            panic!("expected repos command");
+        };
+        let ReposCmds::Delete(args) = repos.command else {
+            panic!("expected repos delete command");
+        };
+        assert_eq!(args.repo_id, "2813489");
+        assert!(args.yes);
+    }
+
+    #[test]
+    fn cli_repos_delete_yes_defaults_false() {
+        let cli = Cli::parse_from([
+            "yunxiao",
+            "codeup",
+            "repos",
+            "delete",
+            "--repo-id",
+            "2813489",
+        ]);
+        let crate::cli::Commands::Codeup(codeup) = cli.command else {
+            panic!("expected codeup command");
+        };
+        let CodeupCommands::Repos(repos) = codeup.command else {
+            panic!("expected repos command");
+        };
+        let ReposCmds::Delete(args) = repos.command else {
+            panic!("expected repos delete command");
+        };
+        assert_eq!(args.repo_id, "2813489");
+        assert!(!args.yes);
     }
 }
