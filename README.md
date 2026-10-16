@@ -126,7 +126,7 @@ yunxiao-cli projex workitems flow --space-id <PROJECT_ID> --type-id <TYPE_ID>
 | `config` | 配置管理 |
 | `org` | 组织与成员管理 |
 | `projex` | 项目、工作项、迭代 |
-| `codeup` | 代码库、分支、合并请求 |
+| `codeup` | 代码库、代码组、分支、合并请求 |
 | `flow` | 流水线与运行记录 |
 | `appstack` | 应用交付与部署 |
 | `packages` | 制品仓库管理 |
