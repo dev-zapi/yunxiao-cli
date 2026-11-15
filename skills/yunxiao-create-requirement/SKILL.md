@@ -44,9 +44,12 @@ yunxiao org members search "<NAME_OR_EMAIL>" --org-id <ORG_ID> --output json
 - 需求描述 (description，支持 Markdown)
 - 指派人 userId（**必需**，从 `org members list` 获取 `userId` 字段，不是 `id`）
 
+**标题格式：** 若项目根目录存在 `docs/agents/yunxiao-ticket-titles.md`，严格按其中格式生成 subject。否则使用中文 `<能力名>` 或 `<能力名>：<关键限定>`，不超过 60 个字符（Unicode 码点），不写模块/子系统前缀，不写工作项类型前缀。
+
 **描述处理：**
 - 如果用户未提供描述，**必须询问**或使用最小默认值："待补充"
 - 避免使用空描述，某些项目可能强制要求
+- AI 起草或整理描述时，措辞遵循 `humanizer-zh`：删除空话、重复和模板化表达，保留用户提供的事实与确定程度
 
 **可选：**
 - 优先级、迭代、版本、标签、父工作项
